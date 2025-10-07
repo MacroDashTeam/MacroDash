@@ -1,3 +1,4 @@
+import * as React from 'react'
 import {
   Sidebar,
   SidebarContent,
@@ -8,6 +9,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
   SidebarTrigger,
+  SidebarInset,
 } from "@/components/ui/sidebar";
 import { Home, Search, Database, LayoutDashboard, Settings } from "lucide-react";
 
@@ -19,48 +21,78 @@ const navItems = [
   { title: "Settings", url: "/settings", icon: Settings },
 ] as const;
 
-export default function AppSidebar() {
+type AppSidebarProps = {
+  onNavigate?: (view: string) => void;
+  activeView?: string;
+};
+
+export default function AppSidebar({ onNavigate, activeView, children }: React.PropsWithChildren<AppSidebarProps>) {
   return (
-    <Sidebar
-      collapsible="icon"
-      className="top-0 h-screen z-50 bg-[#0B1320]/95 backdrop-blur"
-    >
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarMenu>
-              <SidebarMenuButton
-                className="
-                  group-data-[collapsible=icon]/sidebar:justify-center
-                  group-data-[collapsible=icon]/sidebar:px-0
-                "
-              >
-                <SidebarTrigger className="h-5 w-5 shrink-0" />
-              </SidebarMenuButton>
-            {navItems.map((item) => (
-              <SidebarMenuItem key={item.title}>
+    <>
+      <Sidebar
+        collapsible="icon"
+        className="top-0 h-screen z-50 bg-[#0B1320]/95 backdrop-blur"
+      >
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarMenu>
                 <SidebarMenuButton
-                  asChild
-                  tooltip={item.title}
                   className="
                     group-data-[collapsible=icon]/sidebar:justify-center
                     group-data-[collapsible=icon]/sidebar:px-0
                   "
                 >
-                  <a href={item.url} className="flex w-full items-center gap-2">
-                    <item.icon className="h-5 w-5 shrink-0" />
-                    <span className="truncate group-data-[collapsible=icon]/sidebar:hidden">
-                      {item.title}
-                    </span>
-                  </a>
+                  <SidebarTrigger className="h-5 w-5 shrink-0" />
                 </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </SidebarGroup>
-      </SidebarContent>
+              {navItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    isActive={item.title === 'Home' && activeView === 'home'}
+                    asChild
+                    tooltip={item.title}
+                    className="
+                      group-data-[collapsible=icon]/sidebar:justify-center
+                      group-data-[collapsible=icon]/sidebar:px-0
+                    "
+                  >
+                    {item.title === 'Home' ? (
+                      <a
+                        href={item.url}
+                        onClick={(e) => {
+                          if (onNavigate) {
+                            e.preventDefault();
+                            onNavigate('home');
+                          }
+                        }}
+                        className="flex w-full items-center gap-2"
+                      >
+                        <item.icon className="h-5 w-5 shrink-0" />
+                        <span className="truncate group-data-[collapsible=icon]/sidebar:hidden">
+                          {item.title}
+                        </span>
+                      </a>
+                    ) : (
+                      <a href={item.url} className="flex w-full items-center gap-2">
+                        <item.icon className="h-5 w-5 shrink-0" />
+                        <span className="truncate group-data-[collapsible=icon]/sidebar:hidden">
+                          {item.title}
+                        </span>
+                      </a>
+                    )}
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroup>
+        </SidebarContent>
 
-      <SidebarFooter />
-      <SidebarRail />
-    </Sidebar>
+        <SidebarFooter />
+        <SidebarRail />
+      </Sidebar>
+
+      <SidebarInset>
+        {children}
+      </SidebarInset>
+    </>
   );
 }
