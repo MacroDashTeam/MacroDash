@@ -3,182 +3,38 @@ from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime, timedelta
 import json
 import random
+from .services import FREDService, YahooFinanceService
 
 
 @csrf_exempt
 def economic_data(request):
-    """Mock economic data from FRED API"""
+    """Real economic data from FRED API"""
     if request.method == 'GET':
-        mock_data = {
-            "status": "success",
-            "data": {
-                "gdp": {
-                    "current": 26950.0,
-                    "previous": 26850.0,
-                    "change": 100.0,
-                    "change_percent": 0.37,
-                    "unit": "Billions of Dollars",
-                    "last_updated": "2024-01-15"
-                },
-                "unemployment_rate": {
-                    "current": 3.7,
-                    "previous": 3.9,
-                    "change": -0.2,
-                    "change_percent": -5.13,
-                    "unit": "Percent",
-                    "last_updated": "2024-01-15"
-                },
-                "federal_funds_rate": {
-                    "current": 5.25,
-                    "previous": 5.50,
-                    "change": -0.25,
-                    "change_percent": -4.55,
-                    "unit": "Percent",
-                    "last_updated": "2024-01-15"
-                },
-                "inflation_rate": {
-                    "current": 3.2,
-                    "previous": 3.7,
-                    "change": -0.5,
-                    "change_percent": -13.51,
-                    "unit": "Percent",
-                    "last_updated": "2024-01-15"
-                },
-                "consumer_confidence": {
-                    "current": 110.7,
-                    "previous": 108.3,
-                    "change": 2.4,
-                    "change_percent": 2.22,
-                    "unit": "Index",
-                    "last_updated": "2024-01-15"
-                }
-            },
-            "timestamp": datetime.now().isoformat()
-        }
-        return JsonResponse(mock_data)
+        fred_service = FREDService()
+        data = fred_service.get_economic_indicators()
+        return JsonResponse(data)
     
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
 @csrf_exempt
 def stocks_list(request):
-    """Mock top stocks data from Yahoo Finance"""
+    """Real market data from Yahoo Finance"""
     if request.method == 'GET':
-        mock_stocks = {
-            "status": "success",
-            "data": {
-                "top_stocks": [
-                    {
-                        "symbol": "AAPL",
-                        "name": "Apple Inc.",
-                        "price": 192.53,
-                        "change": 2.85,
-                        "change_percent": 1.50,
-                        "volume": 45678900,
-                        "market_cap": 2980000000000
-                    },
-                    {
-                        "symbol": "MSFT",
-                        "name": "Microsoft Corporation",
-                        "price": 378.85,
-                        "change": -1.25,
-                        "change_percent": -0.33,
-                        "volume": 23456789,
-                        "market_cap": 2810000000000
-                    },
-                    {
-                        "symbol": "GOOGL",
-                        "name": "Alphabet Inc.",
-                        "price": 142.56,
-                        "change": 0.89,
-                        "change_percent": 0.63,
-                        "volume": 18765432,
-                        "market_cap": 1790000000000
-                    },
-                    {
-                        "symbol": "AMZN",
-                        "name": "Amazon.com Inc.",
-                        "price": 151.94,
-                        "change": -0.67,
-                        "change_percent": -0.44,
-                        "volume": 34567890,
-                        "market_cap": 1580000000000
-                    },
-                    {
-                        "symbol": "TSLA",
-                        "name": "Tesla Inc.",
-                        "price": 248.42,
-                        "change": 12.78,
-                        "change_percent": 5.42,
-                        "volume": 67890123,
-                        "market_cap": 789000000000
-                    }
-                ],
-                "market_summary": {
-                    "sp500": {
-                        "value": 4783.45,
-                        "change": 15.67,
-                        "change_percent": 0.33
-                    },
-                    "dow_jones": {
-                        "value": 37863.80,
-                        "change": -45.23,
-                        "change_percent": -0.12
-                    },
-                    "nasdaq": {
-                        "value": 14968.78,
-                        "change": 89.34,
-                        "change_percent": 0.60
-                    }
-                }
-            },
-            "timestamp": datetime.now().isoformat()
-        }
-        return JsonResponse(mock_stocks)
+        yahoo_service = YahooFinanceService()
+        data = yahoo_service.get_market_data()
+        return JsonResponse(data)
     
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
 @csrf_exempt
 def stock_detail(request, symbol):
-    """Mock individual stock details with historical data"""
+    """Real individual stock details with historical data"""
     if request.method == 'GET':
-        # Generate mock historical data
-        historical_data = []
-        base_price = 150.0 + random.uniform(-50, 100)
-        
-        for i in range(30):  # 30 days of data
-            date = (datetime.now() - timedelta(days=29-i)).strftime('%Y-%m-%d')
-            price = base_price + random.uniform(-10, 10)
-            historical_data.append({
-                "date": date,
-                "open": round(price + random.uniform(-2, 2), 2),
-                "high": round(price + random.uniform(0, 5), 2),
-                "low": round(price - random.uniform(0, 5), 2),
-                "close": round(price, 2),
-                "volume": random.randint(1000000, 100000000)
-            })
-            base_price = price
-        
-        mock_detail = {
-            "status": "success",
-            "data": {
-                "symbol": symbol.upper(),
-                "name": f"{symbol.upper()} Corporation",
-                "current_price": historical_data[-1]["close"],
-                "change": round(historical_data[-1]["close"] - historical_data[-2]["close"], 2),
-                "change_percent": round(((historical_data[-1]["close"] - historical_data[-2]["close"]) / historical_data[-2]["close"]) * 100, 2),
-                "volume": historical_data[-1]["volume"],
-                "market_cap": random.randint(10000000000, 3000000000000),
-                "pe_ratio": round(random.uniform(10, 35), 2),
-                "dividend_yield": round(random.uniform(0, 5), 2),
-                "52_week_high": max([day["high"] for day in historical_data]),
-                "52_week_low": min([day["low"] for day in historical_data]),
-                "historical_data": historical_data
-            },
-            "timestamp": datetime.now().isoformat()
-        }
-        return JsonResponse(mock_detail)
+        yahoo_service = YahooFinanceService()
+        data = yahoo_service.get_stock_detail(symbol)
+        return JsonResponse(data)
     
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
