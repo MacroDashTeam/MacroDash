@@ -8,7 +8,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-  SidebarTrigger,
   SidebarInset,
 } from "@/components/ui/sidebar";
 import { Home, Search, Database, LayoutDashboard, Settings, TrendingUp, Bitcoin } from "lucide-react";
