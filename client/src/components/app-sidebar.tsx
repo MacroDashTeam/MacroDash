@@ -11,14 +11,16 @@ import {
   SidebarTrigger,
   SidebarInset,
 } from "@/components/ui/sidebar";
-import { Home, Search, Database, LayoutDashboard, Settings } from "lucide-react";
+import { Home, Search, Database, LayoutDashboard, Settings, TrendingUp, Bitcoin } from "lucide-react";
 
 const navItems = [
-  { title: "Home", url: "/", icon: Home },
-  { title: "Search Time Series", url: "/search", icon: Search },
-  { title: "Browse Catalog", url: "/catalog", icon: Database },
-  { title: "Manage Displays", url: "/displays", icon: LayoutDashboard },
-  { title: "Settings", url: "/settings", icon: Settings },
+  { title: "Home", url: "/", icon: Home, view: "home" },
+  { title: "Browse Stocks", url: "/browse", icon: TrendingUp, view: "browse" },
+  { title: "Cryptocurrency", url: "/crypto", icon: Bitcoin, view: "crypto" },
+  { title: "Search Time Series", url: "/search", icon: Search, view: null },
+  { title: "Browse Catalog", url: "/catalog", icon: Database, view: null },
+  { title: "Manage Displays", url: "/displays", icon: LayoutDashboard, view: null },
+  { title: "Settings", url: "/settings", icon: Settings, view: "settings" },
 ] as const;
 
 type AppSidebarProps = {
@@ -36,18 +38,10 @@ export default function AppSidebar({ onNavigate, activeView, children }: React.P
         <SidebarContent>
           <SidebarGroup>
             <SidebarMenu>
-                <SidebarMenuButton
-                  className="
-                    group-data-[collapsible=icon]/sidebar:justify-center
-                    group-data-[collapsible=icon]/sidebar:px-0
-                  "
-                >
-                  <SidebarTrigger className="h-5 w-5 shrink-0" />
-                </SidebarMenuButton>
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
-                    isActive={item.title === 'Home' && activeView === 'home'}
+                    isActive={item.view === activeView}
                     asChild
                     tooltip={item.title}
                     className="
@@ -55,13 +49,13 @@ export default function AppSidebar({ onNavigate, activeView, children }: React.P
                       group-data-[collapsible=icon]/sidebar:px-0
                     "
                   >
-                    {item.title === 'Home' ? (
+                    {item.view ? (
                       <a
                         href={item.url}
                         onClick={(e) => {
                           if (onNavigate) {
                             e.preventDefault();
-                            onNavigate('home');
+                            onNavigate(item.view);
                           }
                         }}
                         className="flex w-full items-center gap-2"

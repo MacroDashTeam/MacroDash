@@ -1,87 +1,71 @@
-import * as React from 'react'
-import { useQuery } from '@tanstack/react-query'
+import MarketOverview from './market-overview'
+import EconomicIndicators from './economic-indicators'
+import MarketSectors from './market-sectors'
+import Watchlist from './watchlist'
+import NewsFeed from './news-feed'
+import TopGainers from './top-gainers'
+import StockTopLosers from './stock-top-losers'
+import CryptoWatchlist from './crypto-watchlist'
+import CryptoTopGainers from './crypto-top-gainers'
+import CryptoTopLosers from './crypto-top-losers'
 
-type DashboardPreferences = {
-  theme: string
-  refresh_interval: number
-  currency: string
-  timezone: string
-}
-
-type DashboardLayout = {
-  economic_indicators?: { enabled: boolean }
-  top_stocks?: { enabled: boolean }
-  watchlist?: { enabled: boolean }
-  news_feed?: { enabled: boolean }
-}
-
-type DashboardApiResponse = {
-  status: string
-  data: {
-    user_id: string
-    dashboard_layout: DashboardLayout
-    preferences: DashboardPreferences
-  }
-  timestamp: string
-}
-
-async function fetchDashboardConfig(): Promise<DashboardApiResponse> {
-  const response = await fetch('/api/dashboard/')
-  if (!response.ok) {
-    const message = await response.text().catch(() => '')
-    throw new Error(message || `Failed to load dashboard config (${response.status})`)
-  }
-  return response.json()
-}
-
-export default function DashboardHome(): JSX.Element {
-  const { data, isLoading, isError, error, refetch, isFetching } = useQuery<DashboardApiResponse>({
-    queryKey: ['dashboard-config'],
-    queryFn: fetchDashboardConfig,
-    staleTime: 30_000,
-  })
-
-  if (isLoading) {
-    return (
-      <div className="p-6">
-        <p className="text-sm text-zinc-400">Loading dashboard...</p>
-      </div>
-    )
-  }
-
-  if (isError) {
-    return (
-      <div className="p-6 space-y-3">
-        <p className="text-red-400">Failed to load dashboard.</p>
-        <p className="text-zinc-400 text-sm">{(error as Error).message}</p>
-        <button
-          className="inline-flex items-center rounded-md bg-zinc-800 px-3 py-2 text-sm hover:bg-zinc-700"
-          onClick={() => refetch()}
-        >
-          Retry
-        </button>
-      </div>
-    )
-  }
-
-  if (data) {
-    console.log(data);
-  }
-
+export default function DashboardHome() {
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between space-x-4">
-        <h1 className="text-xl font-semibold">Dashboard</h1>
-        <button
-          className="inline-flex items-center rounded-md bg-zinc-800 px-3 py-2 text-sm hover:bg-zinc-700 disabled:opacity-50"
-          onClick={() => refetch()}
-          disabled={isFetching}
-        >
-          {isFetching ? 'Refreshing…' : 'Refresh'}
-        </button>
+      <div className="flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold">MacroDash</h1>
+          <p className="text-sm text-zinc-500 mt-1">Real-time market insights and economic data</p>
+        </div>
       </div>
 
+      {/* Market Overview - Major Indices */}
+      <section>
+        <MarketOverview />
+      </section>
 
+      {/* Market Sectors */}
+      <section>
+        <MarketSectors />
+      </section>
+
+      {/* Economic Indicators */}
+      <section>
+        <EconomicIndicators />
+      </section>
+
+      {/* Stock Watchlist */}
+      <section>
+        <Watchlist />
+      </section>
+
+      {/* Stock Top Gainers & Losers */}
+      <section>
+        <h2 className="text-xl font-semibold mb-4">Stock Market Movers</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <TopGainers />
+          <StockTopLosers />
+        </div>
+      </section>
+
+      {/* Crypto Watchlist */}
+      <section>
+        <CryptoWatchlist />
+      </section>
+
+      {/* Crypto Top Gainers & Losers */}
+      <section>
+        <h2 className="text-xl font-semibold mb-4">Cryptocurrency Movers</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <CryptoTopGainers />
+          <CryptoTopLosers />
+        </div>
+      </section>
+
+      {/* News Feed */}
+      <section>
+        <NewsFeed />
+      </section>
     </div>
   )
 }

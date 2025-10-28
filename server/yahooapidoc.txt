@@ -1,0 +1,371 @@
+API Documentation
+Please note that the API is currently under development and things may change rapidly!
+
+Core Interface
+class yahoofinance.interfaces.IYahooData(locale)[source]
+This is the base interface.
+
+Each class in this library inherits implements this interface.
+
+This class is NOT instantiable.
+
+Parameters:	locale – a yahoofinance.Locale constant to determine which domain to query from.
+to_csv()[source]
+Generates a CSV file.
+
+to_dfs()[source]
+Generates a dictionary containing pandas.DataFrame.
+
+Historical Data
+class yahoofinance.HistoricalPrices(instrument, start_date, end_date, date_format_string='%Y-%m-%d', event='history', frequency='1d', locale='')[source]
+Retrieves historical data from Yahoo Finance.
+
+Parameters:	
+instrument – The a stock instrument code to query.
+start_date – The start date for the query (inclusive).
+end_date – The end date for the query (inclusive).
+date_format_string – If start_date or end_date is not a DateTime object, the object passed in (string) will be parsed to the format string. Default: %Y-%m-%d.
+event – A DataEvent constant to determine what event to query for. Default: DataEvent.HISTORICAL_PRICES.
+frequency – A DataFrequency constant to determine the interval between records. Default: DataFrequency.DAILY.
+locale – A Locale constant to determine which domain to query from. Default: Locale.US.
+Returns:	
+HistoricalPrices object
+
+Return type:	
+HistoricalPrices
+
+E.g. https://finance.yahoo.com/quote/AAPL/history
+
+Usage:
+
+>>> from yahoofinance import HistoricalPrices
+>>> req = HistoricalPrices('AAPL')
+Object<HistoricalPrices>
+to_csv(path=None, sep=', ', data_format='raw', csv_dialect='excel')[source]
+Generates a CSV file.
+
+Parameters:	
+path – The path to a file location. If it is None, this method returns the CSV as a string.
+sep – The separator between elements in the new line. NOT USED
+data_format – A DataFormat constant to determine how the data is exported. NOT USED
+csv_dialect – The dialect to write the CSV file. See Python in-built csv.
+Returns:	
+None or string
+
+Return type:	
+None or string
+
+to_dfs(data_format='raw')[source]
+Generates a dictionary containing pandas.DataFrame.
+
+Parameters:	data_format – A DataFormat constant to determine how the data is exported. NOT USED
+Returns:	pandas.DataFrame
+Return type:	pandas.DataFrame
+Dictionary keys
+
+Historical Prices
+Note: All of the below classes below are experimental and results may vary significantly as they data is scraped from the website. Use at your own risk!
+
+Balance Sheet
+class yahoofinance.BalanceSheet(stock, locale='')[source]
+Retrieves annual balance sheet information from Yahoo Finance.
+
+EXPERIMENTAL
+
+Parameters:	
+stock – The a stock code to query.
+locale – A Locale constant to determine which domain to query from. Default: Locale.US.
+Returns:	
+BalanceSheet object
+
+Return type:	
+BalanceSheet
+
+E.g. https://finance.yahoo.com/quote/AAPL/balance-sheet
+
+Usage:
+
+>>> from yahoofinance import BalanceSheet
+>>> req = BalanceSheet('AAPL')
+Object<BalanceSheet>
+to_csv(path=None, sep=', ', data_format='raw', csv_dialect='excel')[source]
+Generates a CSV file.
+
+Parameters:	
+path – The path to a file location. If it is None, this method returns the CSV as a string.
+sep – The separator between elements in the new line.
+data_format – A DataFormat constant to determine how the data is exported.
+csv_dialect – The dialect to write the CSV file. See Python in-built csv.
+Returns:	
+None or string
+
+Return type:	
+None or string
+
+to_dfs(data_format='raw')[source]
+Generates a dictionary containing pandas.DataFrame.
+
+Parameters:	data_format – A DataFormat constant to determine how the data is exported.
+Returns:	pandas.DataFrame
+Return type:	pandas.DataFrame
+Dictionary keys
+
+Cash Flow
+Overall
+Operating activities
+Investment activities
+Financing activities
+Changes in Cash
+class yahoofinance.BalanceSheetQuarterly(stock, locale='')[source]
+Retrieves quarterly balance sheet information from Yahoo Finance.
+
+EXPERIMENTAL
+
+Parameters:	
+stock – The a stock code to query.
+locale – A Locale constant to determine which domain to query from. Default: Locale.US.
+Returns:	
+BalanceSheetQuarterly object
+
+Return type:	
+BalanceSheetQuarterly
+
+E.g. https://finance.yahoo.com/quote/AAPL/balance-sheet
+
+Usage:
+
+>>> from yahoofinance import BalanceSheetQuarterly
+>>> req = BalanceSheetQuarterly('AAPL')
+Object<BalanceSheetQuarterly>
+Cash Flow
+class yahoofinance.CashFlow(stock, locale='')[source]
+Retrieves annual cash flow information from Yahoo Finance.
+
+EXPERIMENTAL
+
+Parameters:	
+stock – The a stock code to query.
+locale – A Locale constant to determine which domain to query from. Default: Locale.US.
+Returns:	
+CashFlow object
+
+Return type:	
+CashFlow
+
+E.g. https://finance.yahoo.com/quote/AAPL/cash-flow
+
+Usage:
+
+>>> from yahoofinance import CashFlow
+>>> req = CashFlow('AAPL')
+Object<CashFlow>
+to_csv(path=None, sep=', ', data_format='raw', csv_dialect='excel')[source]
+Generates a CSV file.
+
+Parameters:	
+path – The path to a file location. If it is None, this method returns the CSV as a string.
+sep – The separator between elements in the new line.
+data_format – A DataFormat constant to determine how the data is exported.
+csv_dialect – The dialect to write the CSV file. See Python in-built csv.
+Returns:	
+None or string
+
+Return type:	
+None or string
+
+to_dfs(data_format='raw')[source]
+Generates a dictionary containing pandas.DataFrame.
+
+Parameters:	data_format – A DataFormat constant to determine how the data is exported.
+Returns:	pandas.DataFrame
+Return type:	pandas.DataFrame
+Dictionary keys
+
+Cash Flow
+Overall
+Operating activities
+Investment activities
+Financing activities
+Changes in Cash
+class yahoofinance.CashFlowQuarterly(stock, locale='')[source]
+Retrieves quarterly cash flow information from Yahoo Finance.
+
+EXPERIMENTAL
+
+Parameters:	
+stock – The a stock code to query.
+locale – A Locale constant to determine which domain to query from. Default: Locale.US.
+Returns:	
+CashFlowQuarterly object
+
+Return type:	
+CashFlowQuarterly
+
+E.g. https://finance.yahoo.com/quote/AAPL/cash-flow
+
+Usage:
+
+>>> from yahoofinance import CashFlowQuarterly
+>>> req = CashFlowQuarterly('AAPL')
+Object<CashFlowQuarterly>
+Income Statement
+class yahoofinance.IncomeStatement(stock, locale='')[source]
+Retrieves annual balance sheet information from Yahoo Finance.
+
+EXPERIMENTAL
+
+Parameters:	
+stock – The a stock code to query.
+locale – A Locale constant to determine which domain to query from. Default: Locale.US.
+Returns:	
+IncomeStatement object
+
+Return type:	
+IncomeStatement
+
+E.g. https://finance.yahoo.com/quote/AAPL/financials
+
+Usage:
+
+>>> from yahoofinance import IncomeStatement
+>>> req = IncomeStatement('AAPL')
+Object<IncomeStatement>
+to_csv(path=None, sep=', ', data_format='raw', csv_dialect='excel')[source]
+Generates a CSV file.
+
+Parameters:	
+path – The path to a file location. If it is None, this method returns the CSV as a string.
+sep – The separator between elements in the new line.
+data_format – A DataFormat constant to determine how the data is exported.
+csv_dialect – The dialect to write the CSV file. See Python in-built csv.
+Returns:	
+None or string
+
+Return type:	
+None or string
+
+to_dfs(data_format='raw')[source]
+Generates a dictionary containing pandas.DataFrame.
+
+Parameters:	data_format – A DataFormat constant to determine how the data is exported.
+Returns:	pandas.DataFrame
+Return type:	pandas.DataFrame
+Dictionary keys
+
+Cash Flow
+Overall
+Operating activities
+Investment activities
+Financing activities
+Changes in Cash
+class yahoofinance.IncomeStatementQuarterly(stock, locale='')[source]
+Retrieves quarterly balance sheet information from Yahoo Finance.
+
+EXPERIMENTAL
+
+Parameters:	
+stock – The a stock code to query.
+locale – A Locale constant to determine which domain to query from. Default: Locale.US.
+Returns:	
+IncomeStatementQuarterly object
+
+Return type:	
+IncomeStatementQuarterly
+
+E.g. https://finance.yahoo.com/quote/AAPL/financials
+
+Usage:
+
+>>> from yahoofinance import IncomeStatementQuarterly
+>>> req = IncomeStatementQuarterly('AAPL')
+Object<IncomeStatementQuarterly>
+Asset Profile
+class yahoofinance.AssetProfile(stock, locale='')[source]
+Retrieves the asset profile from Yahoo Finance.
+
+EXPERIMENTAL
+
+Parameters:	
+stock – The stock ticker
+locale – A Local constant to determine which domain to query from. Default: Locale.US.
+Returns:	
+AssetProfile object
+
+Return type:	
+AssetProfile
+
+E.g. https://finance.yahoo.com/quote/AAPL/profile
+
+Usage:
+
+>>> from yahoofinance import AssetProfile
+>>> req = AssetProfile('AAPL')
+Object<AssetProfile>
+to_csv(path, sep=', ', data_format='raw', csv_dialect='excel')[source]
+Generates a CSV file.
+
+Parameters:	
+path – The path to a file location. If it is None, this method returns the CSV as a string.
+sep – The separator between elements in the new line. NOT USED
+data_format – A DataFormat constant to determine how the data is exported. NOT USED
+csv_dialect – The dialect to write the CSV file. See Python in-built csv.
+Returns:	
+None or string
+
+Return type:	
+None or string
+
+to_dfs(data_format='raw')[source]
+Generates a dictionary containing pandas.DataFrame.
+
+Additional Config
+class yahoofinance.Locale[source]
+Provides locale information to any IYahooData implementations.
+
+By using your local domain, it may speed up queries by a miniscule amount or bypass
+certain country domain filters and restrictions.
+AU = 'au'
+Uses the Australian domain. E.g. https://au.finance.yahoo.com/quote/AAPL/
+
+CA = 'ca'
+Uses the Canadian domain. E.g. https://ca.finance.yahoo.com/quote/AAPL/
+
+US = ''
+Uses the United States domain. E.g. https://finance.yahoo.com/quote/AAPL/
+
+static locale_url(locale)[source]
+This is an auxilary method to determine the domain url for a locale.
+
+Parameters:	locale – A Locale string constant. A hard coded string can also be used if the 2 letter domain is known.
+Returns:	string object
+Return type:	string
+class yahoofinance.DataEvent[source]
+Provides data event information for HistoricalData.
+
+Yahoo provides 3 different types of historical data sets.
+
+class yahoofinance.DataFrequency[source]
+Provides data frequency information for HistoricalData.
+
+Yahoo provides data at 3 different time granuarities.
+
+DAILY = '1d'
+Retrieve data at daily intervals.
+
+MONTHLY = '1mo'
+Retrieve data at montly intervals.
+
+WEEKLY = '1wk'
+Retrieve data at weekly intervals.
+
+class yahoofinance.DataFormat[source]
+Selects the way data is formatted for IYahooData implementations.
+
+LONG = 'longFmt'
+Provides a longer formatted value. E.g. 1,000,000.0
+
+RAW = 'raw'
+Provides a raw numerical value. E.g. 1000000.0
+
+SHORT = 'fmt'
+Provides a shorter formatted value. E.g. 1.0M
