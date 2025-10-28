@@ -1,0 +1,42 @@
+name: Deploy Client
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'client/**'
+      - '.github/workflows/deploy-client.yml'
+
+jobs:
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    env:
+      VERSION_SHA: ${{ github.sha }}
+      VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 18
+
+    - name: Install deps
+      run: |
+        cd client
+        yarn install
+
+    - name: Build
+      run: |
+        cd client
+        yarn run build
+
+    - name: Upload build artifacts to S3
+      run: |
+        aws s3 sync client/dist s3://${{ secrets.S3_BUCKET }} --delete
+
+    - name: CloudFront cache refresh
+      run: |
+        aws cloudfront create-invalidation \
+          --distribution-id ${{ secrets.CF_DIST_ID }} \
+          --paths "/*"

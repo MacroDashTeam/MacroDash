@@ -1,0 +1,33 @@
+name: Deploy Server
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - server/**
+      - .github/workflows/deploy-server.yml
+
+jobs:
+  deploy-backend:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Log in to Docker Hub
+      run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+    - name: Build and push backend image
+      run: |
+        cd backend
+        docker build --platform linux/amd64 -t taahabmohsin/macrodash-server:v3 .
+        docker push taahabmohsin/macrodash-server:v3
+
+    - name: Deploy to Lightsail
+      run: |
+        ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.LIGHTSAIL_HOST }} '
+          docker pull taahabmohsin/macrodash-server:v3 &&
+          docker compose -f docker-compose.yml up -d
+        '
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_KEY }}
