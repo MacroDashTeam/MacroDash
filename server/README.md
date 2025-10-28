@@ -6,9 +6,12 @@ Django REST API backend for MacroDash - A comprehensive financial analytics dash
 
 - **Economic Data Integration**: FRED API for GDP, unemployment, inflation, and interest rates
 - **Stock Market Data**: Yahoo Finance and Alpha Vantage for real-time and historical data
+- **Cryptocurrency Trading**: CoinMarketCap and CoinGecko integration for crypto prices, charts, and analytics
 - **Technical Indicators**: Professional-grade TA-Lib calculations for RSI, MACD, Bollinger Bands, SMA, EMA
+- **Price Alerts**: Automated email notifications for price thresholds with APScheduler
 - **AI-Powered Insights**: OpenAI GPT-4 integration for stock analysis and sentiment
 - **News & Sentiment**: Real-time financial news with sentiment scoring
+- **Memory Optimization**: Backend caching (60s for real-time, 5min for historical data)
 - **RESTful API**: Clean, well-documented endpoints with proper error handling
 
 ## Installation
@@ -209,6 +212,50 @@ Request body:
 - Investment thesis summary
 - Technical and fundamental analysis synthesis
 
+### Cryptocurrency (New Feature)
+
+**GET /api/crypto/**
+- List of cryptocurrencies with real-time data from CoinMarketCap
+- Parameters: `limit` (default: 100)
+- Returns: price, market cap, volume, circulating supply, max supply, 1h/24h/7d/30d changes
+
+**GET /api/crypto/{symbol}/**
+- Detailed cryptocurrency information
+- Includes description, website, whitepaper, social links
+- Market metrics and price changes across multiple timeframes
+
+**GET /api/crypto/top/gainers/**
+- Top gaining cryptocurrencies in last 24 hours
+- Parameters: `limit` (default: 10)
+
+**GET /api/crypto/top/losers/**
+- Top losing cryptocurrencies in last 24 hours
+- Parameters: `limit` (default: 10)
+
+**GET /api/crypto/{symbol}/historical/**
+- Historical price, market cap, and volume data
+- Powered by CoinGecko API (free)
+- Parameters: `days` (1, 7, 30, 90, 180, 365)
+
+**GET /api/crypto/{symbol}/ohlc/**
+- OHLC candlestick data for trading charts
+- Parameters: `days` (1, 7, 14, 30, 90, 180, 365)
+- Returns: open, high, low, close prices with timestamps
+
+### Price Alerts
+
+**GET /api/alerts/**
+- List all price alerts for the user
+- Includes active and triggered alerts
+
+**POST /api/alerts/**
+- Create new price alert
+- Email notifications when price thresholds are met
+- Scheduled checks every 5 minutes
+
+**DELETE /api/alerts/{id}/**
+- Delete specific price alert
+
 ### Dashboard
 
 **GET /api/dashboard/**
@@ -230,7 +277,9 @@ Business logic is organized into service classes in `api/services.py`:
 - **AlphaVantageService**: Stock data, news, and sentiment
 - **YahooFinanceService**: Historical prices and company fundamentals
 - **OpenAIService**: AI-powered insights and chatbot
-- **TechnicalIndicatorService**: TA-Lib indicator calculations (new in Sprint 4)
+- **TechnicalIndicatorService**: TA-Lib indicator calculations
+- **CoinMarketCapService**: Real-time cryptocurrency data (with 60s caching)
+- **CoinGeckoService**: Historical cryptocurrency charts (with 5min caching)
 
 ### Key Implementation Details
 
@@ -303,15 +352,20 @@ print(result)
 ## Dependencies
 
 Key Python packages:
-- `Django==5.1.5`: Web framework
-- `djangorestframework==3.15.2`: REST API toolkit
-- `django-cors-headers==4.6.0`: CORS support
+- `Django==4.2.7`: Web framework
+- `djangorestframework==3.16.1`: REST API toolkit
+- `django-cors-headers==4.9.0`: CORS support
 - `TA-Lib==0.6.8`: Technical analysis library
-- `yfinance==0.2.50`: Yahoo Finance data
-- `numpy==2.2.3`: Numerical computations
-- `requests==2.32.3`: HTTP client
-- `openai==1.59.7`: OpenAI API client
-- `python-dotenv==1.0.1`: Environment variable management
+- `yfinance==0.2.66`: Yahoo Finance data
+- `pandas==2.3.3`: Data manipulation and analysis
+- `numpy==2.3.3`: Numerical computations
+- `requests==2.32.5`: HTTP client
+- `openai==2.6.1`: OpenAI API client
+- `fredapi==0.5.2`: Federal Reserve Economic Data API
+- `APScheduler==3.11.0`: Task scheduling for price alerts
+- `django-apscheduler==0.7.0`: Django integration for APScheduler
+- `python-dotenv==1.0.0`: Environment variable management
+- `gunicorn>=21.2.0`: Production WSGI server
 
 See `requirements.txt` for complete list.
 
