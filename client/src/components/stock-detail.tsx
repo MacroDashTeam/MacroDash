@@ -185,7 +185,7 @@ export default function StockDetail({ onBack }: { onBack?: () => void }) {
     const daysAgo = periods[timePeriod]
     const cutoffDate = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000)
 
-    return allData.filter(d => new Date(d.date) >= cutoffDate)
+    return allData.filter((d: { date: string }) => new Date(d.date) >= cutoffDate)
   }
 
   const chartData = getFilteredData()
@@ -212,7 +212,7 @@ export default function StockDetail({ onBack }: { onBack?: () => void }) {
 
     // Get all unique keys from all reports
     const allKeys = new Set<string>()
-    reports.forEach(report => {
+    reports.forEach((report: Record<string, any>) => {
       Object.keys(report).forEach(key => allKeys.add(key))
     })
 
@@ -221,7 +221,7 @@ export default function StockDetail({ onBack }: { onBack?: () => void }) {
     const csvRows = [headers.join(',')]
 
     // Add data rows
-    reports.forEach(report => {
+    reports.forEach((report: Record<string, any>) => {
       const row = headers.map(header => {
         const value = report[header]
         // Escape values that contain commas or quotes
