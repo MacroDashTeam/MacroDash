@@ -5,11 +5,11 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-const API_BASE = import.meta.env.VITE_API_URL_API_BASE_URL;
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
-export async function apiFetch(path, options = {}) {
+export async function apiFetch(path: string, options = {}) {
   const url = `${API_BASE}${path.startsWith('/') ? '' : '/'}${path}`;
-console.log('GOT HERE', url)
+
   const response = await fetch(url, {
     credentials: 'include',
     ...options,
