@@ -1,7 +1,31 @@
+# Core Django packages
 Django==4.2.7
-djangorestframework==3.14.0
-django-cors-headers==4.3.1
-fredapi==0.5.1
-yfinance==0.2.28
+djangorestframework==3.16.1
+django-cors-headers==4.9.0
+
+# Environment variables
 python-dotenv==1.0.0
+
+# Financial data APIs
+fredapi==0.5.2
+yfinance==0.2.66
+
+# Data processing and analysis
+pandas==2.3.3
+numpy==2.3.3
+
+# Technical analysis indicators
+TA-Lib==0.6.8
+
+# HTTP requests
+requests==2.32.5
+
+# OpenAI for chatbot and AI features
+openai==2.6.1
+
+# Task scheduling for price alerts
+APScheduler==3.11.0
+django-apscheduler==0.7.0
+
+# Production server
 gunicorn>=21.2.0
