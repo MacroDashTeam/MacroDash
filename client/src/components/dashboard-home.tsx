@@ -1,5 +1,7 @@
-import * as React from 'react'
+import React from 'react';
 import { useQuery } from '@tanstack/react-query'
+
+import { apiFetch } from '../lib/utils';
 
 type DashboardPreferences = {
   theme: string
@@ -26,15 +28,13 @@ type DashboardApiResponse = {
 }
 
 async function fetchDashboardConfig(): Promise<DashboardApiResponse> {
-  const response = await fetch('/api/dashboard/')
-  if (!response.ok) {
-    const message = await response.text().catch(() => '')
-    throw new Error(message || `Failed to load dashboard config (${response.status})`)
-  }
-  return response.json()
+
+  const response = await apiFetch('/api/dashboard/')
+
+  return response;
 }
 
-export default function DashboardHome(): JSX.Element {
+export default function DashboardHome(): React.JSX.Element {
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery<DashboardApiResponse>({
     queryKey: ['dashboard-config'],
     queryFn: fetchDashboardConfig,
