@@ -4,15 +4,8 @@ import { Button } from '@/components/ui/button'
 import { useState } from 'react'
 import { Key, Database, Brain, Lock, CheckCircle, AlertCircle, ExternalLink } from 'lucide-react'
 
-interface ApiKeyStatus {
-  name: string
-  configured: boolean
-  message: string
-}
-
 export default function Settings() {
   const [showKeys, setShowKeys] = useState(false)
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle')
 
   const apiKeys = [
     {
@@ -52,13 +45,6 @@ export default function Settings() {
       placeholder: 'your_secret_key_here'
     }
   ]
-
-  const handleSave = () => {
-    // Note: This is a client-side only demonstration
-    // In production, you would need to implement server-side API key storage
-    setSaveStatus('success')
-    setTimeout(() => setSaveStatus('idle'), 3000)
-  }
 
   return (
     <div className="flex-1 p-8 overflow-auto">
