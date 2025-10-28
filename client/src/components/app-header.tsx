@@ -1,4 +1,3 @@
-import * as React from "react";
 import Bull from '../assets/bull.jpeg';
 import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
@@ -9,11 +8,16 @@ type AppHeaderProps = {
   onLogout?: () => void;
 };
 
+interface style {
+  height: string;
+  "--app-header-h": string;
+}
+
 export default function AppHeader({ onLogout }: AppHeaderProps) {
   return (
     <header
       className="fixed top-0 left-0 right-0 z-40 w-full bg-[#0B1320]/95 backdrop-blur"
-      style={{ height: APP_HEADER_H, ["--app-header-h"]: APP_HEADER_H }}
+      style={{ height: APP_HEADER_H, ["--app-header-h"]: APP_HEADER_H } as style}
     >
       <div className="flex h-full w-full items-center justify-between px-4">
         <a href="#/home" className="group flex items-center gap-2">

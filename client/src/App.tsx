@@ -13,7 +13,7 @@ import './App.css'
 
 const queryClient = new QueryClient()
 
-  function App({ children }) {
+function App({ children }: { children?: React.ReactNode }) {
     const [activeView, setActiveView] = useState<string>('home')
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true); // temporarily hardcoded while the backend is built
 
