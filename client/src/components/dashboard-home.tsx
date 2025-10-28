@@ -9,6 +9,8 @@ import CryptoWatchlist from './crypto-watchlist'
 import CryptoTopGainers from './crypto-top-gainers'
 import CryptoTopLosers from './crypto-top-losers'
 
+import React from 'react'
+
 export default function DashboardHome() {
   return (
     <div className="p-6 space-y-6">
