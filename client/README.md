@@ -1,6 +1,7 @@
 # MacroDash — Client
 
-The frontend for MacroDash, built with Vite, React, TypeScript, TailwindCSS and shadcn/ui**.
+The frontend for MacroDash, built with Vite, React, TypeScript, TailwindCSS, shadcn/ui, and Recharts.
+A comprehensive financial analytics dashboard featuring real-time stock data, technical indicators, AI insights, and interactive charts.
 The app communicates with a Django backend through a Vite dev-server proxy during development.
 
 ---
@@ -71,5 +72,33 @@ The app communicates with a Django backend through a Vite dev-server proxy durin
         "preview": "vite preview"
       }
     }
+
+---
+
+## 9) Features
+
+### Dashboard
+- Real-time economic indicators (GDP, unemployment, inflation, interest rates)
+- Top stocks list with current prices and changes
+- Market summary statistics
+
+### Stock Detail Pages
+- Interactive price charts with historical data
+- Company fundamentals and metrics
+- Analyst recommendations and price targets
+- Financial statements
+- Real-time news feed with sentiment
+- AI-powered insights and analysis
+
+### Technical Indicators (Sprint 4)
+- RSI, MACD, Bollinger Bands, SMA, EMA
+- Multiple timeframes (1mo to 5y)
+- Interactive charts with Recharts
+- Signal interpretation badges
+
+### Key Components
+- `/src/components/technical-indicators.tsx` - 369-line component with 5 indicator tabs
+- `/src/components/ui/tabs.tsx` - Accessible tabs with Radix UI
+- `/src/components/ui/badge.tsx` - Reusable badge with 4 variants
 
 ---
