@@ -2,10 +2,7 @@ name: Deploy Server
 
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - 'server/**'
-      - '.github/workflows/deploy-server.yml'
+  workflow_call:
 
 jobs:
   deploy-backend:

@@ -2,10 +2,7 @@ name: Deploy Client
 
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - 'client/**'
-      - '.github/workflows/deploy-client.yml'
+  workflow_call:
 
 jobs:
   deploy-frontend:

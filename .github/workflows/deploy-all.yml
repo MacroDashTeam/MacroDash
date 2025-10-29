@@ -1,0 +1,12 @@
+name: Deploy All
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy-client:
+    uses: ./.github/workflows/deploy-client.yml
+
+  deploy-server:
+    uses: ./.github/workflows/deploy-server.yml
+    needs: deploy-client
