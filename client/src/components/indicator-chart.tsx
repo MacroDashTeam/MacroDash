@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 async function fetchIndicatorData(indicatorKey: string) {
   const res = await fetch(`/api/economic-data/${indicatorKey}/`)
   if (!res.ok) throw new Error('Failed to fetch indicator data')
-  return res.json()
+  return await res.json()
 }
 
 type IndicatorKey = 'DFF' | 'UNRATE' | 'CPIAUCSL' | 'GDP'

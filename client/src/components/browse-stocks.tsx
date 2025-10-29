@@ -36,7 +36,7 @@ async function fetchBrowseStocks(category?: string, sector?: string) {
   const queryString = params.toString() ? `?${params.toString()}` : ''
   const res = await fetch(`/api/stocks/browse/${queryString}`)
   if (!res.ok) throw new Error('Failed to fetch stocks')
-  return res.json()
+  return await res.json()
 }
 
 function formatMarketCap(marketCap: number): string {

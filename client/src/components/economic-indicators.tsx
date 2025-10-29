@@ -2,9 +2,12 @@ import { useQuery } from '@tanstack/react-query'
 import { TrendingUp, TrendingDown } from 'lucide-react'
 
 async function fetchEconomicData() {
-  const res = await fetch('/api/economic-data/')
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
+  const res = await fetch(`${API_BASE}/api/economic-data/`);
+
   if (!res.ok) throw new Error('Failed')
-  return res.json()
+  return await res.json()
 }
 
 export default function EconomicIndicators() {
@@ -27,7 +30,7 @@ export default function EconomicIndicators() {
     )
   }
 
-  if (!data?.data) {
+  if (!data) {
     return (
       <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
         <h2 className="text-xl font-semibold mb-4">📊 Economic Indicators</h2>

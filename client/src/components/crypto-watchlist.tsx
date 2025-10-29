@@ -24,9 +24,11 @@ type CryptoListResponse = {
 }
 
 async function fetchCryptoData(): Promise<CryptoListResponse> {
-  const response = await fetch('/api/crypto/?limit=100')
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
+const response = await fetch(`${API_BASE}/api/crypto/?limit=100`)
   if (!response.ok) throw new Error('Failed to fetch crypto data')
-  return response.json()
+  return await response.json()
 }
 
 function MicroSparkline({ data }: { data: number[] }) {
