@@ -32,9 +32,11 @@ type SentimentResponse = {
 }
 
 async function fetchMarketData(): Promise<MarketResponse> {
-  const response = await fetch('/api/stocks/')
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
+  const response = await fetch(`${API_BASE}/api/stocks/`)
   if (!response.ok) throw new Error('Failed to fetch market data')
-  return response.json()
+  return await response.json()
 }
 
 async function fetchSentiment(symbol: string): Promise<SentimentResponse> {

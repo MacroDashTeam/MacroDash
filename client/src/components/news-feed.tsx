@@ -20,7 +20,9 @@ type AlphaVantageNewsResponse = {
 }
 
 async function fetchNews(): Promise<NewsItem[]> {
-  const response = await fetch('/api/alpha-vantage/news/?limit=20')
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
+  const response = await fetch(`${API_BASE}/api/alpha-vantage/news/?limit=20`)
   if (!response.ok) throw new Error('Failed to fetch news')
   const data: AlphaVantageNewsResponse = await response.json()
   return data.data.feed || []

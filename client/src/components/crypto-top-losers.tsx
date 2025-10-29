@@ -19,9 +19,11 @@ type CryptoResponse = {
 }
 
 async function fetchTopLosers(): Promise<CryptoResponse> {
-  const response = await fetch('/api/crypto/top/losers/?limit=5')
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
+  const response = await fetch(`${API_BASE}/api/crypto/top/losers/?limit=5`)
   if (!response.ok) throw new Error('Failed to fetch crypto losers')
-  return response.json()
+  return await response.json()
 }
 
 export default function CryptoTopLosers() {

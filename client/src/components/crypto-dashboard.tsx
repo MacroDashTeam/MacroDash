@@ -35,19 +35,19 @@ interface CryptoData {
 async function fetchCryptoListings(limit: number = 100) {
   const res = await fetch(`/api/crypto/?limit=${limit}`)
   if (!res.ok) throw new Error('Failed to fetch crypto listings')
-  return res.json()
+  return await res.json()
 }
 
 async function fetchTopGainers(limit: number = 10) {
   const res = await fetch(`/api/crypto/top/gainers/?limit=${limit}`)
   if (!res.ok) throw new Error('Failed to fetch top gainers')
-  return res.json()
+  return await res.json()
 }
 
 async function fetchTopLosers(limit: number = 10) {
   const res = await fetch(`/api/crypto/top/losers/?limit=${limit}`)
   if (!res.ok) throw new Error('Failed to fetch top losers')
-  return res.json()
+  return await res.json()
 }
 
 function formatMarketCap(marketCap: number): string {
