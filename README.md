@@ -2,18 +2,9 @@
 
 A comprehensive financial analytics dashboard integrating macroeconomic indicators, stock market data, and AI-powered insights with professional-grade technical analysis.
 
-
 **Software Engineering Fall 2025 Section 3 Group 6**
 
 Team Members: Bhavana Peruri, Callum Cooper Nissen, Hariharan Loganathan, Pratyush Chatterjee, Taaha Bin Mohsin
-
-### 🚀 Deployment
-
-| Target | Version | Status|
-|--------|---------|-------|
-| React SPA | [![Client Status](https://github.com/MacroDashTeam/MacroDash/actions/workflows/deploy-client.yml/badge.svg)](https://github.com/MacroDashTeam/MacroDash/actions/workflows/deploy-client.yml) | [🔵 Deploy](https://github.com/MacroDashTeam/MacroDash/actions/workflows/deploy-client.yml) |
-| Django API | [![Server Status](https://github.com/MacroDashTeam/MacroDash/actions/workflows/deploy-server.yml/badge.svg)](https://github.com/MacroDashTeam/MacroDash/actions/workflows/deploy-server.yml) | [🟢 Deploy](https://github.com/MacroDashTeam/MacroDash/actions/workflows/deploy-server.yml) |
-| Full Stack | [![Deploy All Status](https://github.com/MacroDashTeam/MacroDash/actions/workflows/deploy-all.yml/badge.svg)](https://github.com/MacroDashTeam/MacroDash/actions/workflows/deploy-all.yml) | [🟣 Deploy](https://github.com/MacroDashTeam/MacroDash/actions/workflows/deploy-all.yml) |
 
 ## Features
 
