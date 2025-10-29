@@ -66,6 +66,6 @@ jobs:
         sed -i "s|image\": \".*|image\": \"taahabmohsin/macrodash-server:$TAG\",|" server/containers.json
         aws lightsail update-container-service \
           --service-name $SERVICE_NAME \
-          --containers file://server/containers.json \
+          --container-definition file://server/containers.json \
           --power small \
           --scale 1
