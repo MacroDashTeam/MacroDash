@@ -37,4 +37,5 @@ urlpatterns = [
     path('crypto/<str:symbol>/historical/', views.crypto_historical, name='crypto_historical'),
     path('crypto/<str:symbol>/ohlc/', views.crypto_ohlc, name='crypto_ohlc'),
     path('crypto/<str:symbol>/', views.crypto_detail, name='crypto_detail'),
+    path('health', views.health_check, name='health')
 ]
