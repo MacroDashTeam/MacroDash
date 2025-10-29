@@ -46,6 +46,12 @@ jobs:
           -t teammacrodash/macrodash-server:latest \
           --push .
 
+    - name: Install Lightsail Control Plugin
+      run: |
+        curl "https://s3.amazonaws.com/amazonlightsail-us-east-2/lightsailctl/latest/linux-amd64/lightsailctl" \
+          -o /usr/local/bin/lightsailctl
+        chmod +x /usr/local/bin/lightsailctl`
+
     - name: Push image to Lightsail registry
       run: |
         TAG=${VERSION_SHA::7}
