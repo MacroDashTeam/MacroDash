@@ -45,19 +45,19 @@ interface CryptoDetailResponse {
 async function fetchCryptoDetail(symbol: string) {
   const res = await fetch(`/api/crypto/${symbol}/`)
   if (!res.ok) throw new Error('Failed to fetch crypto data')
-  return res.json()
+  return await res.json()
 }
 
 async function fetchCryptoHistorical(symbol: string, days: number) {
   const res = await fetch(`/api/crypto/${symbol}/historical/?days=${days}`)
   if (!res.ok) throw new Error('Failed to fetch historical data')
-  return res.json()
+  return await res.json()
 }
 
 async function fetchCryptoOHLC(symbol: string, days: number) {
   const res = await fetch(`/api/crypto/${symbol}/ohlc/?days=${days}`)
   if (!res.ok) throw new Error('Failed to fetch OHLC data')
-  return res.json()
+  return await res.json()
 }
 
 // Candlestick shape component

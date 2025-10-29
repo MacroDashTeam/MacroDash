@@ -19,11 +19,14 @@ type MarketResponse = {
 }
 
 async function fetchMarketData(): Promise<MarketResponse> {
-  const response = await fetch('/api/stocks/', {
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
+const response = await fetch(`${API_BASE}/api/stocks/`, {
     signal: AbortSignal.timeout(30000),
   })
+
   if (!response.ok) throw new Error('Failed to fetch market data')
-  return response.json()
+  return await response.json()
 }
 
 const SECTOR_MAP: Record<string, { name: string; icon: string }> = {
