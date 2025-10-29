@@ -1,0 +1,11 @@
+{
+  "macrodash": {
+    "image": "teammacrodash/macrodash-server:latest",
+    "ports": {
+      "8000": "HTTP"
+    },
+    "environment": {
+      "DJANGO_SETTINGS_MODULE": "macrodash.settings"
+    }
+  }
+}

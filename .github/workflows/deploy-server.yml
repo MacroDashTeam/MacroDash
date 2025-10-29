@@ -4,30 +4,62 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - server/**
-      - .github/workflows/deploy-server.yml
+      - 'server/**'
+      - '.github/workflows/deploy-server.yml'
 
 jobs:
   deploy-backend:
     runs-on: ubuntu-latest
+    env:
+      VERSION_SHA: ${{ github.sha }}
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      SERVICE_NAME: macrodash-server
 
     steps:
     - uses: actions/checkout@v4
 
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
     - name: Log in to Docker Hub
-      run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Build and push backend image
+    - name: Build and Push Docker Image
       run: |
-        cd backend
-        docker build --platform linux/amd64 -t taahabmohsin/macrodash-server:v3 .
-        docker push taahabmohsin/macrodash-server:v3
+        cd server
+        TAG=${VERSION_SHA::7}
+        docker buildx build \
+          --platform linux/amd64 \
+          -t teammacrodash/macrodash-server:$TAG \
+          -t teammacrodash/macrodash-server:latest \
+          --push .
 
-    - name: Deploy to Lightsail
+    - name: Push image to Lightsail registry
       run: |
-        ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.LIGHTSAIL_HOST }} '
-          docker pull taahabmohsin/macrodash-server:v3 &&
-          docker compose -f docker-compose.yml up -d
-        '
-      env:
-        SSH_PRIVATE_KEY: ${{ secrets.SSH_KEY }}
+        TAG=${VERSION_SHA::7}
+        aws lightsail push-container-image \
+          --service-name $SERVICE_NAME \
+          --label macrodash \
+          --image teammacrodash/macrodash-server:$TAG
+
+    - name: Deploy new version to Lightsail
+      run: |
+        TAG=${VERSION_SHA::7}
+        sed -i "s|image\": \".*|image\": \"taahabmohsin/macrodash-server:$TAG\",|" server/containers.json
+        aws lightsail update-container-service \
+          --service-name $SERVICE_NAME \
+          --containers file://server/containers.json \
+          --power small \
+          --scale 1
