@@ -39,6 +39,7 @@ jobs:
 
     - name: Upload build artifacts to S3
       run: |
+        cd client
         aws s3 sync client/dist s3://${{ secrets.S3_BUCKET }} --delete
 
     - name: CloudFront cache refresh
