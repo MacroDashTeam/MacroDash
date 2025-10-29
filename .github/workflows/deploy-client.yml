@@ -1,10 +1,10 @@
-name: Deploy Client
+name: Deploy Client Manual
 
 on:
-  workflow_dispatch:
+  workflow_call:
 
 jobs:
-  deploy-frontend:
+  deploy-client:
     runs-on: ubuntu-latest
     env:
       VERSION_SHA: ${{ github.sha }}
