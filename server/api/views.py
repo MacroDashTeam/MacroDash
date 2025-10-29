@@ -8,6 +8,9 @@ from .models import PriceAlert
 from django.core.mail import send_mail
 from django.conf import settings
 
+@csrf_exempt
+def health_check(request):
+    return JsonResponse({"status": "ok"})
 
 @csrf_exempt
 def economic_data(request):
@@ -38,7 +41,7 @@ def stocks_list(request):
         yahoo_service = YahooFinanceService()
         data = yahoo_service.get_market_data()
         return JsonResponse(data)
-    
+
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
@@ -110,7 +113,7 @@ def stock_news(request, symbol):
             "timestamp": datetime.now().isoformat()
         }
         return JsonResponse(mock_news)
-    
+
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
@@ -154,7 +157,7 @@ def dashboard_config(request):
             "timestamp": datetime.now().isoformat()
         }
         return JsonResponse(mock_config)
-    
+
     elif request.method == 'POST':
         try:
             data = json.loads(request.body)
@@ -167,7 +170,7 @@ def dashboard_config(request):
             return JsonResponse(response)
         except json.JSONDecodeError:
             return JsonResponse({"error": "Invalid JSON"}, status=400)
-    
+
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
@@ -397,9 +400,9 @@ def price_alerts(request):
         email = request.GET.get('email')
         if not email:
             return JsonResponse({"error": "Email parameter required"}, status=400)
-        
+
         alerts = PriceAlert.objects.filter(email=email).order_by('-created_at')
-        
+
         alerts_data = [{
             'id': alert.id,
             'symbol': alert.symbol,
@@ -412,23 +415,23 @@ def price_alerts(request):
             'current_price_at_trigger': str(alert.current_price_at_trigger) if alert.current_price_at_trigger else None,
             'notes': alert.notes
         } for alert in alerts]
-        
+
         return JsonResponse({
             'status': 'success',
             'data': alerts_data,
             'timestamp': datetime.now().isoformat()
         })
-    
+
     elif request.method == 'POST':
         # Create new alert
         try:
             data = json.loads(request.body)
-            
+
             required_fields = ['symbol', 'target_price', 'condition', 'email']
             for field in required_fields:
                 if field not in data:
                     return JsonResponse({"error": f"Missing required field: {field}"}, status=400)
-            
+
             alert = PriceAlert.objects.create(
                 symbol=data['symbol'].upper(),
                 stock_name=data.get('stock_name', ''),
@@ -437,7 +440,7 @@ def price_alerts(request):
                 email=data['email'],
                 notes=data.get('notes', '')
             )
-            
+
             return JsonResponse({
                 'status': 'success',
                 'message': 'Alert created successfully',
@@ -449,12 +452,12 @@ def price_alerts(request):
                 },
                 'timestamp': datetime.now().isoformat()
             })
-            
+
         except json.JSONDecodeError:
             return JsonResponse({"error": "Invalid JSON"}, status=400)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
-    
+
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
@@ -465,7 +468,7 @@ def price_alert_detail(request, alert_id):
         alert = PriceAlert.objects.get(id=alert_id)
     except PriceAlert.DoesNotExist:
         return JsonResponse({"error": "Alert not found"}, status=404)
-    
+
     if request.method == 'GET':
         return JsonResponse({
             'status': 'success',
@@ -483,7 +486,7 @@ def price_alert_detail(request, alert_id):
             },
             'timestamp': datetime.now().isoformat()
         })
-    
+
     elif request.method == 'DELETE':
         alert.status = 'cancelled'
         alert.save()
@@ -492,7 +495,7 @@ def price_alert_detail(request, alert_id):
             'message': 'Alert cancelled successfully',
             'timestamp': datetime.now().isoformat()
         })
-    
+
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
