@@ -13,7 +13,7 @@ Team Members: Bhavana Peruri, Callum Cooper Nissen, Hariharan Loganathan, Pratyu
 |--------|---------|-------|
 | React SPA | [![Client Status](https://github.com/MacroDashTeam/MacroDash/actions/workflows/deploy-client.yml/badge.svg)](https://github.com/MacroDashTeam/MacroDash/actions/workflows/deploy-client.yml) | [🔵 Deploy](https://github.com/MacroDashTeam/MacroDash/actions/workflows/deploy-client.yml) |
 | Django API | [![Server Status](https://github.com/MacroDashTeam/MacroDash/actions/workflows/deploy-server.yml/badge.svg)](https://github.com/MacroDashTeam/MacroDash/actions/workflows/deploy-server.yml) | [🟢 Deploy](https://github.com/MacroDashTeam/MacroDash/actions/workflows/deploy-server.yml) |
-| Full Stack | [![Deploy All Status](https://github.com/MacroDashTeam/MacroDash/actions/workflows/deploy-all.yml/badge.svg)](https://github.com/MacroDashTeam/MacroDash/actions/workflows/deploy-all.yml) | [🟣 Deploy](https://github.com/MacroDashTeam/MacroDash/actions/workflows/deploy-all.yml) |
+
 
 ## Features
 
