@@ -226,19 +226,32 @@ class YahooFinanceService:
                     ticker = yf.Ticker(symbol)
                     hist = ticker.history(period="30d")
                     info = ticker.info
-                    
+
                     if not hist.empty:
-                        latest_close = hist['Close'].iloc[-1]
-                        previous_close = hist['Close'].iloc[-2] if len(hist) > 1 else latest_close
-                        
+                        # Get current price (real-time or most recent)
+                        current_price = info.get('currentPrice') or info.get('regularMarketPrice')
+
+                        # If no current price in info, fall back to latest historical close
+                        if current_price is None:
+                            current_price = hist['Close'].iloc[-1]
+
+                        # Get previous close for comparison
+                        previous_close = info.get('previousClose')
+                        if previous_close is None:
+                            previous_close = hist['Close'].iloc[-2] if len(hist) > 1 else current_price
+
+                        # Calculate change
+                        change = current_price - previous_close
+                        change_percent = ((change / previous_close) * 100) if previous_close != 0 else 0
+
                         data[symbol] = {
                             'name': info.get('longName', symbol),
-                            'current_price': round(float(latest_close), 2),
+                            'current_price': round(float(current_price), 2),
                             'previous_close': round(float(previous_close), 2),
-                            'change': round(float(latest_close - previous_close), 2),
-                            'change_percent': round(float(((latest_close - previous_close) / previous_close) * 100), 2) if previous_close != 0 else 0,
-                            'volume': int(hist['Volume'].iloc[-1]) if 'Volume' in hist.columns else 0,
-                            'last_updated': hist.index[-1].strftime('%Y-%m-%d'),
+                            'change': round(float(change), 2),
+                            'change_percent': round(float(change_percent), 2),
+                            'volume': info.get('volume') or (int(hist['Volume'].iloc[-1]) if 'Volume' in hist.columns else 0),
+                            'last_updated': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                             'historical': [
                                 {
                                     'date': date.strftime('%Y-%m-%d'),
@@ -271,22 +284,35 @@ class YahooFinanceService:
             ticker = yf.Ticker(symbol)
             hist = ticker.history(period="1y")
             info = ticker.info
-            
+
             if hist.empty:
                 return {"error": f"No data found for symbol {symbol}"}
-            
-            latest_close = hist['Close'].iloc[-1]
-            previous_close = hist['Close'].iloc[-2] if len(hist) > 1 else latest_close
-            
+
+            # Get current price (real-time or most recent)
+            current_price = info.get('currentPrice') or info.get('regularMarketPrice')
+
+            # If no current price in info, fall back to latest historical close
+            if current_price is None:
+                current_price = hist['Close'].iloc[-1]
+
+            # Get previous close for comparison
+            previous_close = info.get('previousClose')
+            if previous_close is None:
+                previous_close = hist['Close'].iloc[-2] if len(hist) > 1 else current_price
+
+            # Calculate change
+            change = current_price - previous_close
+            change_percent = ((change / previous_close) * 100) if previous_close != 0 else 0
+
             return {
                 'status': 'success',
                 'data': {
                     'symbol': symbol.upper(),
                     'name': info.get('longName', symbol),
-                    'current_price': round(float(latest_close), 2),
-                    'change': round(float(latest_close - previous_close), 2),
-                    'change_percent': round(float(((latest_close - previous_close) / previous_close) * 100), 2) if previous_close != 0 else 0,
-                    'volume': int(hist['Volume'].iloc[-1]) if 'Volume' in hist.columns else 0,
+                    'current_price': round(float(current_price), 2),
+                    'change': round(float(change), 2),
+                    'change_percent': round(float(change_percent), 2),
+                    'volume': info.get('volume') or (int(hist['Volume'].iloc[-1]) if 'Volume' in hist.columns else 0),
                     'market_cap': info.get('marketCap'),
                     'pe_ratio': info.get('forwardPE'),
                     'dividend_yield': info.get('dividendYield'),
@@ -306,7 +332,7 @@ class YahooFinanceService:
                 },
                 'timestamp': datetime.now().isoformat()
             }
-            
+
         except Exception as e:
             print(f"Error fetching stock detail for {symbol}: {e}")
             return {"error": f"Failed to fetch data for {symbol}"}

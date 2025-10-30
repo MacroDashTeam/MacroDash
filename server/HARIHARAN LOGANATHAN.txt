@@ -1,0 +1,16 @@
+ HARIHARAN LOGANATHAN:
+
+  - User Story 1: Technical Indicators Integration (8 Story Points) - Completed
+  - User Story 3: Cryptocurrency Market Dashboard Foundation (13 Story Points) - Planned for Sprint 5 (40% foundation work completed)
+  - User Story 5: Enhanced Stock Detail Page (5 Story Points) - Completed
+  - User Story 6: Cryptocurrency Detail Page (8 Story Points) - Planned for Sprint 5
+  - User Story 8: Advanced Charting Tools (8 Story Points) - Backlog
+  - User Story 10: Real-time Price Alerts (8 Story Points) - Partially Completed
+  - User Story 11: Multi-user Authentication and Profiles (13 Story Points) - Backlog
+
+  BHAVANA PERURI:
+
+  - User Story 2: Enhanced UI Component Library (3 Story Points) - Completed
+  - User Story 4: Stock Market Gainers and Losers (8 Story Points) - Planned for Sprint 5
+  - User Story 7: Portfolio Management System (13 Story Points) - Backlog
+  - User Story 9: Economic Calendar Integration (5 Story Points) - Backlog
