@@ -2,12 +2,11 @@
 
 A comprehensive financial analytics dashboard integrating macroeconomic indicators, stock market data, and AI-powered insights with professional-grade technical analysis.
 
-
 **Software Engineering Fall 2025 Section 3 Group 6**
 
 Team Members: Bhavana Peruri, Callum Cooper Nissen, Hariharan Loganathan, Pratyush Chatterjee, Taaha Bin Mohsin
 
-### 🚀 Deployment
+### Deployment
 
 | Target | Status | Action|
 |--------|---------|-------|
