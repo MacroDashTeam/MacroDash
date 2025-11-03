@@ -1,0 +1,8 @@
+name: Deploy Client
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-deploy-client:
+    uses: ./.github/workflows/deploy-client.yml

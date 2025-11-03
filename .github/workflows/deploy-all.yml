@@ -1,0 +1,17 @@
+name: Deploy All
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to deploy"
+        required: false
+        default: "production"
+
+jobs:
+  deploy-client:
+    uses: ./.github/workflows/deploy-client.yml
+
+  deploy-server:
+    needs: deploy-client
+    uses: ./.github/workflows/deploy-server.yml
