@@ -7,8 +7,9 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from django_apscheduler.jobstores import DjangoJobStore
 from django.conf import settings
 from django.core.mail import send_mail
-from api.models import PriceAlert
-from api.services import YahooFinanceService
+from api.models import PriceAlert, StockInsight
+from api.services import YahooFinanceService, OpenAIService
+from django.utils import timezone as django_timezone
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +76,98 @@ def check_price_alerts():
     logger.info(
         f"Price alert check complete: {triggered_count} triggered, "
         f"{error_count} errors out of {total_alerts} alerts"
+    )
+
+
+def fetch_stock_insights():
+    """
+    Fetch AI-generated insights for popular stocks
+    This function runs every 24 hours via APScheduler
+    """
+    logger.info("Starting AI stock insights generation...")
+
+    # List of popular stocks to fetch insights for
+    POPULAR_STOCKS = [
+        ('AAPL', 'Apple Inc.'),
+        ('MSFT', 'Microsoft Corporation'),
+        ('GOOGL', 'Alphabet Inc.'),
+        ('AMZN', 'Amazon.com Inc.'),
+        ('NVDA', 'NVIDIA Corporation'),
+        ('TSLA', 'Tesla Inc.'),
+        ('META', 'Meta Platforms Inc.'),
+        ('JPM', 'JPMorgan Chase & Co.'),
+        ('V', 'Visa Inc.'),
+        ('WMT', 'Walmart Inc.'),
+    ]
+
+    openai_service = OpenAIService()
+    total_processed = 0
+    total_insights = 0
+    error_count = 0
+
+    for symbol, stock_name in POPULAR_STOCKS:
+        try:
+            logger.info(f"Generating insights for {symbol} ({stock_name})...")
+
+            # Generate insights using AI
+            insights_data = openai_service.generate_stock_insights(symbol, stock_name)
+
+            if not insights_data:
+                logger.warning(f"No insights generated for {symbol}")
+                error_count += 1
+                continue
+
+            # Save insights to database
+            saved_count = 0
+            for insight_data in insights_data:
+                try:
+                    # Parse published date
+                    published_date = None
+                    if 'published_date' in insight_data:
+                        try:
+                            published_date = django_timezone.datetime.fromisoformat(insight_data['published_date'])
+                        except:
+                            published_date = django_timezone.now()
+
+                    # Create or update insight
+                    insight, created = StockInsight.objects.update_or_create(
+                        symbol=symbol,
+                        title=insight_data['title'],
+                        published_date=published_date,
+                        defaults={
+                            'stock_name': stock_name,
+                            'summary': insight_data.get('summary', ''),
+                            'source': insight_data.get('source', 'AI Generated'),
+                            'content_type': insight_data.get('content_type', 'news'),
+                            'sentiment': insight_data.get('sentiment', 'neutral'),
+                            'sentiment_score': insight_data.get('sentiment_score', 0.0),
+                            'key_points': insight_data.get('key_points', []),
+                            'ai_analysis': insight_data.get('ai_analysis', ''),
+                            'is_active': True,
+                        }
+                    )
+
+                    if created:
+                        saved_count += 1
+                        logger.debug(f"Created new insight: {insight.title[:50]}...")
+                    else:
+                        logger.debug(f"Updated existing insight: {insight.title[:50]}...")
+
+                except Exception as e:
+                    logger.error(f"Error saving insight for {symbol}: {e}")
+                    error_count += 1
+
+            total_processed += 1
+            total_insights += saved_count
+            logger.info(f"Saved {saved_count} new insights for {symbol}")
+
+        except Exception as e:
+            logger.error(f"Error processing insights for {symbol}: {e}")
+            error_count += 1
+
+    logger.info(
+        f"Stock insights generation complete: {total_insights} insights saved "
+        f"for {total_processed}/{len(POPULAR_STOCKS)} stocks, {error_count} errors"
     )
 
 
@@ -148,8 +241,18 @@ def start_scheduler():
     logger.info("Starting APScheduler for price alerts...")
 
     try:
-        scheduler = BackgroundScheduler(timezone=settings.TIME_ZONE)
-        scheduler.add_jobstore(DjangoJobStore(), "default")
+        # Configure scheduler with SQLite-friendly settings
+        scheduler = BackgroundScheduler(
+            timezone=settings.TIME_ZONE,
+            job_defaults={
+                'coalesce': True,  # Combine multiple missed runs into one
+                'max_instances': 1,  # Only one instance of each job at a time
+            }
+        )
+
+        # Use DjangoJobStore with SQLite-friendly configuration
+        jobstore = DjangoJobStore()
+        scheduler.add_jobstore(jobstore, "default")
 
         # Add job to check price alerts every 5 minutes
         scheduler.add_job(
@@ -161,8 +264,18 @@ def start_scheduler():
             replace_existing=True,
         )
 
+        # Add job to fetch AI stock insights every 24 hours
+        scheduler.add_job(
+            fetch_stock_insights,
+            'interval',
+            hours=24,
+            id='fetch_stock_insights',
+            name='Fetch AI-powered stock insights',
+            replace_existing=True,
+        )
+
         scheduler.start()
-        logger.info("APScheduler started successfully! Checking alerts every 5 minutes.")
+        logger.info("APScheduler started successfully! Price alerts every 5min, Stock insights every 24hrs.")
 
     except Exception as e:
         logger.error(f"Failed to start scheduler: {e}")

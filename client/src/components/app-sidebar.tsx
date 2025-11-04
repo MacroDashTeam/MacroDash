@@ -10,13 +10,14 @@ import {
   SidebarRail,
   SidebarInset,
 } from "@/components/ui/sidebar";
-import { Home, Search, Database, LayoutDashboard, Settings, TrendingUp, Bitcoin } from "lucide-react";
+import { Home, Search, Database, LayoutDashboard, Settings, TrendingUp, Bitcoin, Calculator } from "lucide-react";
 
 const navItems = [
   { title: "Home", url: "/", icon: Home, view: "home" },
   { title: "Browse Stocks", url: "/browse", icon: TrendingUp, view: "browse" },
   { title: "Cryptocurrency", url: "/crypto", icon: Bitcoin, view: "crypto" },
-  { title: "Search Time Series", url: "/search", icon: Search, view: null },
+  { title: "Data Explorer", url: "/explorer", icon: Search, view: "explorer" },
+  { title: "Custom Analysis", url: "/custom", icon: Calculator, view: "custom" },
   { title: "Browse Catalog", url: "/catalog", icon: Database, view: null },
   { title: "Manage Displays", url: "/displays", icon: LayoutDashboard, view: null },
   { title: "Settings", url: "/settings", icon: Settings, view: "settings" },

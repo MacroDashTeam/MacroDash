@@ -45,6 +45,12 @@ async function fetchStockInsights(symbol: string) {
   return res.json()
 }
 
+async function fetchAIInsights(symbol: string) {
+  const res = await fetch(`/api/ai-insights/${symbol}/?limit=10`)
+  if (!res.ok) throw new Error('Failed to fetch AI insights')
+  return res.json()
+}
+
 export default function StockDetail({ onBack }: { onBack?: () => void }) {
   const [symbol, setSymbol] = useState<string | null>(null)
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('1M')
@@ -97,6 +103,12 @@ export default function StockDetail({ onBack }: { onBack?: () => void }) {
   const { data: insightsData } = useQuery({
     queryKey: ['stock-insights', symbol],
     queryFn: () => fetchStockInsights(symbol!),
+    enabled: !!symbol,
+  })
+
+  const { data: aiInsightsData } = useQuery({
+    queryKey: ['ai-insights', symbol],
+    queryFn: () => fetchAIInsights(symbol!),
     enabled: !!symbol,
   })
 
@@ -416,7 +428,7 @@ export default function StockDetail({ onBack }: { onBack?: () => void }) {
           </div>
 
           {/* Additional Stats - Using Yahoo Finance Data */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6">
             <div>
               <div className="text-sm text-zinc-400">Market Cap</div>
               <div className="text-lg font-semibold mt-1">
@@ -430,6 +442,12 @@ export default function StockDetail({ onBack }: { onBack?: () => void }) {
             <div>
               <div className="text-sm text-zinc-400">P/E Ratio</div>
               <div className="text-lg font-semibold mt-1">{stock.pe_ratio?.toFixed(2) || 'N/A'}</div>
+            </div>
+            <div>
+              <div className="text-sm text-zinc-400">EPS (TTM)</div>
+              <div className="text-lg font-semibold mt-1">
+                {stock.eps ? `$${stock.eps.toFixed(2)}` : 'N/A'}
+              </div>
             </div>
             <div>
               <div className="text-sm text-zinc-400">Volume</div>
@@ -658,6 +676,113 @@ export default function StockDetail({ onBack }: { onBack?: () => void }) {
 
         {/* Technical Indicators */}
         <TechnicalIndicators symbol={symbol} period="1y" />
+
+        {/* Key Events - AI-Generated Blog Posts, Events, and News */}
+        {aiInsightsData?.insights && aiInsightsData.insights.length > 0 && (
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
+            <h2 className="text-xl font-semibold mb-6">Key Events & Insights</h2>
+            <p className="text-sm text-zinc-400 mb-6">
+              AI-generated analysis of recent blogs, events, and news affecting {symbol}
+            </p>
+
+            <div className="space-y-4">
+              {aiInsightsData.insights.map((insight: any) => {
+                // Determine sentiment badge color
+                const sentimentColor =
+                  insight.sentiment === 'positive' ? 'bg-green-900/30 border-green-700 text-green-400' :
+                  insight.sentiment === 'negative' ? 'bg-red-900/30 border-red-700 text-red-400' :
+                  'bg-zinc-800/50 border-zinc-700 text-zinc-400'
+
+                // Determine content type badge color
+                const typeColor =
+                  insight.content_type === 'blog' ? 'bg-purple-900/30 text-purple-400' :
+                  insight.content_type === 'event' ? 'bg-blue-900/30 text-blue-400' :
+                  insight.content_type === 'news' ? 'bg-emerald-900/30 text-emerald-400' :
+                  insight.content_type === 'research' ? 'bg-orange-900/30 text-orange-400' :
+                  'bg-cyan-900/30 text-cyan-400'
+
+                return (
+                  <div
+                    key={insight.id}
+                    className="p-5 rounded-lg border border-zinc-800 hover:border-zinc-700 bg-zinc-900/30 transition-colors"
+                  >
+                    {/* Header with title and badges */}
+                    <div className="flex items-start justify-between gap-4 mb-3">
+                      <h3 className="font-semibold text-white flex-1">{insight.title}</h3>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${typeColor}`}>
+                          {insight.content_type}
+                        </span>
+                        <span className={`px-2 py-1 rounded text-xs font-medium border ${sentimentColor}`}>
+                          {insight.sentiment}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Summary */}
+                    <p className="text-sm text-zinc-300 mb-4">{insight.summary}</p>
+
+                    {/* Key Points */}
+                    {insight.key_points && insight.key_points.length > 0 && (
+                      <div className="mb-4">
+                        <h4 className="text-xs font-semibold text-zinc-400 mb-2">KEY POINTS</h4>
+                        <ul className="space-y-1.5">
+                          {insight.key_points.map((point: string, idx: number) => (
+                            <li key={idx} className="text-sm text-zinc-300 flex gap-2">
+                              <span className="text-blue-400 flex-shrink-0">•</span>
+                              <span>{point}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* AI Analysis */}
+                    {insight.ai_analysis && (
+                      <div className="mb-4 p-3 rounded bg-blue-900/10 border border-blue-900/30">
+                        <h4 className="text-xs font-semibold text-blue-400 mb-1">AI ANALYSIS</h4>
+                        <p className="text-sm text-zinc-300">{insight.ai_analysis}</p>
+                      </div>
+                    )}
+
+                    {/* Footer with metadata */}
+                    <div className="flex items-center justify-between text-xs text-zinc-500 pt-3 border-t border-zinc-800">
+                      <div className="flex items-center gap-3">
+                        <span>{insight.source}</span>
+                        {insight.published_date && (
+                          <>
+                            <span>•</span>
+                            <span>{new Date(insight.published_date).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric'
+                            })}</span>
+                          </>
+                        )}
+                      </div>
+                      {insight.sentiment_score !== undefined && (
+                        <div className="flex items-center gap-2">
+                          <span>Sentiment Score:</span>
+                          <span className={`font-semibold ${
+                            insight.sentiment_score > 0 ? 'text-green-400' :
+                            insight.sentiment_score < 0 ? 'text-red-400' :
+                            'text-zinc-400'
+                          }`}>
+                            {insight.sentiment_score > 0 ? '+' : ''}{insight.sentiment_score.toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            <div className="mt-4 text-xs text-zinc-500 text-center">
+              Insights generated by AI • Updated every 24 hours
+            </div>
+          </div>
+        )}
 
         {/* AI-Generated Insights */}
         {insightsData?.data && (

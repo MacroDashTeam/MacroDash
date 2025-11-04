@@ -12,6 +12,9 @@ import StockDetail from '@/components/stock-detail'
 import Settings from '@/components/settings'
 import CryptoDashboard from '@/components/crypto-dashboard'
 import CryptoDetail from '@/components/crypto-detail'
+import CustomAnalysis from '@/components/custom-analysis'
+import DataExplorer from '@/components/data-explorer'
+import LoginScreen from '@/components/login/login-screen'
 
 import './App.css'
 
@@ -27,9 +30,30 @@ const queryClient = new QueryClient({
   },
 })
 
+interface User {
+  id: number
+  username: string
+  email: string
+}
+
 function App() {
   const [activeView, setActiveView] = useState<string>('home')
   const [viewMode, setViewMode] = useState<'dashboard' | 'indicator' | 'stock' | 'crypto'>('dashboard')
+  const [user, setUser] = useState<User | null>(null)
+  const [isAuthChecked, setIsAuthChecked] = useState(false)
+
+  // Check authentication status on mount
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user')
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser))
+      } catch (e) {
+        localStorage.removeItem('user')
+      }
+    }
+    setIsAuthChecked(true)
+  }, [])
 
   useEffect(() => {
     // Listen for custom navigation events
@@ -54,10 +78,54 @@ function App() {
     }
   }, [])
 
+  const handleSignIn = () => {
+    const storedUser = localStorage.getItem('user')
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser))
+      } catch (e) {
+        localStorage.removeItem('user')
+      }
+    }
+  }
+
+  const handleSignOut = async () => {
+    try {
+      await fetch('http://localhost:8000/api/auth/logout/', {
+        method: 'POST',
+        credentials: 'include',
+      })
+    } catch (e) {
+      console.error('Logout error:', e)
+    }
+    localStorage.removeItem('user')
+    setUser(null)
+  }
+
   const handleBackToDashboard = () => {
     setTimeout(() => {
       setViewMode('dashboard')
     }, 300)
+  }
+
+  // Show loading state while checking auth
+  if (!isAuthChecked) {
+    return (
+      <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+        <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
+          <div className="text-white text-xl">Loading...</div>
+        </div>
+      </ThemeProvider>
+    )
+  }
+
+  // Show login screen if not authenticated
+  if (!user) {
+    return (
+      <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+        <LoginScreen onSignIn={handleSignIn} />
+      </ThemeProvider>
+    )
   }
 
   // Render based on view mode with transitions
@@ -74,13 +142,15 @@ function App() {
             }`}
           >
             <SidebarProvider>
-              <AppHeader />
+              <AppHeader user={user} onSignOut={handleSignOut} />
               <div className="flex min-h-[calc(100vh-var(--app-header-h))] pt-[var(--app-header-h)] md:pt-0">
                 <AppSidebar activeView={activeView} onNavigate={(view) => setActiveView(view)}>
                   {activeView === 'home' && <DashboardHome />}
                   {activeView === 'browse' && <BrowseStocks />}
                   {activeView === 'crypto' && <CryptoDashboard />}
-                  {activeView === 'settings' && <Settings />}
+                  {activeView === 'explorer' && <DataExplorer />}
+                  {activeView === 'custom' && <CustomAnalysis />}
+                  {activeView === 'settings' && <Settings user={user} onSignOut={handleSignOut} />}
                 </AppSidebar>
               </div>
             </SidebarProvider>

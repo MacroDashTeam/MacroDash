@@ -37,4 +37,20 @@ urlpatterns = [
     path('crypto/<str:symbol>/historical/', views.crypto_historical, name='crypto_historical'),
     path('crypto/<str:symbol>/ohlc/', views.crypto_ohlc, name='crypto_ohlc'),
     path('crypto/<str:symbol>/', views.crypto_detail, name='crypto_detail'),
+    # Custom Analysis
+    path('custom-analysis/', views.custom_analysis, name='custom_analysis'),
+    # AI-Generated Blog/Event Insights
+    path('ai-insights/', views.all_insights, name='all_ai_insights'),
+    path('ai-insights/<str:symbol>/', views.ai_stock_insights, name='ai_stock_insights'),
+    # Authentication
+    path('auth/register/', views.register, name='register'),
+    path('auth/login/', views.user_login, name='user_login'),
+    path('auth/logout/', views.user_logout, name='user_logout'),
+    path('auth/user/', views.current_user, name='current_user'),
+    # Data Explorer
+    path('search/', views.search_data, name='search_data'),
+    path('fred/categories/', views.fred_categories, name='fred_categories'),
+    path('fred/categories/<int:category_id>/series/', views.fred_category_series, name='fred_category_series'),
+    path('fred/series/<str:series_id>/metadata/', views.fred_series_metadata, name='fred_series_metadata'),
+    path('export/', views.export_data, name='export_data'),
 ]

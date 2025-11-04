@@ -1,4 +1,5 @@
 import MarketOverview from './market-overview'
+import MarketSchedule from './market-schedule'
 import EconomicIndicators from './economic-indicators'
 import MarketSectors from './market-sectors'
 import Watchlist from './watchlist'
@@ -22,6 +23,11 @@ export default function DashboardHome() {
       {/* Market Overview - Major Indices */}
       <section>
         <MarketOverview />
+      </section>
+
+      {/* Market Schedule */}
+      <section>
+        <MarketSchedule />
       </section>
 
       {/* Market Sectors */}

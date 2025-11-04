@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Eye, EyeOff, Mail, Lock, ArrowRight } from 'lucide-react'
+import { Eye, EyeOff, User, Lock, ArrowRight, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import GoogleSvg from './google-svg';
 import FacebookSvg from './facebook-svg';
@@ -10,30 +10,72 @@ interface LoginScreenProps {
 }
 
 export default function LoginScreen({ onSignIn }: LoginScreenProps) {
+  const [isSignUp, setIsSignUp] = useState(false)
+  const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setError('')
 
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const response = await fetch('http://localhost:8000/api/auth/login/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ username, password })
+      })
+
+      const data = await response.json()
+
+      if (data.status === 'success') {
+        localStorage.setItem('user', JSON.stringify(data.user))
+        onSignIn()
+      } else {
+        setError(data.error || 'Invalid credentials')
+      }
+    } catch (err) {
+      setError('Failed to connect to server')
+    } finally {
       setIsLoading(false)
-      onSignIn()
-    }, 1500)
+    }
+  }
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+    setError('')
+
+    try {
+      const response = await fetch('http://localhost:8000/api/auth/register/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ username, email, password })
+      })
+
+      const data = await response.json()
+
+      if (data.status === 'success') {
+        localStorage.setItem('user', JSON.stringify(data.user))
+        onSignIn()
+      } else {
+        setError(data.error || 'Registration failed')
+      }
+    } catch (err) {
+      setError('Failed to connect to server')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleSocialSignIn = () => {
-    setIsLoading(true)
-    // Simulate social sign in until backend is built
-    setTimeout(() => {
-      setIsLoading(false)
-      onSignIn()
-    }, 1000)
+    setError('Social sign-in coming soon!')
   }
 
   return (
@@ -52,13 +94,17 @@ export default function LoginScreen({ onSignIn }: LoginScreenProps) {
         <div className="bg-slate-800/60 backdrop-blur-md rounded-xl border border-slate-600/30 shadow-2xl p-6">
           <div className="space-y-4">
             <div className="text-center space-y-1 mb-4">
-              <h2 className="text-xl font-semibold text-white">Welcome back</h2>
-              <p className="text-slate-400 text-sm">Sign in to access your dashboard</p>
+              <h2 className="text-xl font-semibold text-white">
+                {isSignUp ? 'Create your account' : 'Welcome back'}
+              </h2>
+              <p className="text-slate-400 text-sm">
+                {isSignUp ? 'Sign up to get started' : 'Sign in to access your dashboard'}
+              </p>
             </div>
 
             <div className="grid grid-cols-3 gap-2 mb-4">
               <Button
-                onClick={() => handleSocialSignIn()}
+                onClick={handleSocialSignIn}
                 disabled={isLoading}
                 variant="outline"
                 size="sm"
@@ -68,7 +114,7 @@ export default function LoginScreen({ onSignIn }: LoginScreenProps) {
               </Button>
 
               <Button
-                onClick={() => handleSocialSignIn()}
+                onClick={handleSocialSignIn}
                 disabled={isLoading}
                 variant="outline"
                 size="sm"
@@ -78,7 +124,7 @@ export default function LoginScreen({ onSignIn }: LoginScreenProps) {
               </Button>
 
               <Button
-                onClick={() => handleSocialSignIn()}
+                onClick={handleSocialSignIn}
                 disabled={isLoading}
                 variant="outline"
                 size="sm"
@@ -97,98 +143,115 @@ export default function LoginScreen({ onSignIn }: LoginScreenProps) {
               </div>
             </div>
 
-            <form onSubmit={handleSignIn} className="space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
-                  Email address
-                </label>
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-3 py-2 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={isSignUp ? handleSignUp : handleSignIn} className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-sm text-slate-300">Username</label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                   <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter your email"
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="w-full h-10 pl-10 pr-3 rounded-lg bg-slate-700/30 border border-slate-600/50 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                    placeholder="Enter your username"
                     required
-                    className="w-full pl-9 pr-4 py-2.5 bg-slate-700/50 border border-slate-600/50 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition-colors text-sm"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
-                  Password
-                </label>
+              {isSignUp && (
+                <div className="space-y-1">
+                  <label className="text-sm text-slate-300">Email</label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full h-10 pl-10 pr-3 rounded-lg bg-slate-700/30 border border-slate-600/50 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                      placeholder="Enter your email"
+                      required
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <label className="text-sm text-slate-300">Password</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    className="w-full h-10 pl-10 pr-10 rounded-lg bg-slate-700/30 border border-slate-600/50 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                     placeholder="Enter your password"
                     required
-                    className="w-full pl-9 pr-10 py-2.5 bg-slate-700/50 border border-slate-600/50 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition-colors text-sm"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-300 transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
                   >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="rounded border-slate-600 text-green-600 focus:ring-green-500 bg-slate-700"
-                  />
-                  <span className="text-xs text-slate-300">Remember me</span>
-                </label>
-                <button
-                  type="button"
-                  className="text-xs text-green-400 hover:text-green-300 transition-colors"
-                >
-                  Forgot password?
-                </button>
-              </div>
+              {!isSignUp && (
+                <div className="flex items-center justify-between text-sm">
+                  <label className="flex items-center gap-2 text-slate-400 cursor-pointer">
+                    <input type="checkbox" className="rounded border-slate-600 bg-slate-700/30" />
+                    Remember me
+                  </label>
+                  <a href="#" className="text-blue-400 hover:text-blue-300">
+                    Forgot password?
+                  </a>
+                </div>
+              )}
 
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full h-10 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed mt-4"
+                className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
               >
                 {isLoading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    Signing in...
-                  </div>
+                  <span className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                    {isSignUp ? 'Creating account...' : 'Signing in...'}
+                  </span>
                 ) : (
-                  <div className="flex items-center gap-2">
-                    Sign in to Dashboard
-                    <ArrowRight size={16} />
-                  </div>
+                  <>
+                    {isSignUp ? 'Create account' : 'Sign in'}
+                    <ArrowRight className="w-4 h-4" />
+                  </>
                 )}
               </Button>
             </form>
 
-            <div className="text-center pt-2">
-              <p className="text-slate-400 text-xs">
-                Don't have an account?{' '}
-                <button className="text-green-400 hover:text-green-300 font-medium transition-colors">
-                  Create account
-                </button>
-              </p>
+            <div className="text-center text-sm text-slate-400">
+              {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
+              <button
+                onClick={() => {
+                  setIsSignUp(!isSignUp)
+                  setError('')
+                }}
+                className="text-blue-400 hover:text-blue-300 font-medium"
+              >
+                {isSignUp ? 'Sign in' : 'Sign up'}
+              </button>
             </div>
           </div>
         </div>
 
-        <div className="text-center text-xs text-slate-500 mt-4">
-          <p>© 2025 MacroDash. All rights reserved.</p>
+        <div className="text-center mt-6 text-slate-500 text-sm">
+          <p>By continuing, you agree to our Terms of Service and Privacy Policy</p>
         </div>
       </div>
     </div>
