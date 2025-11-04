@@ -14,6 +14,7 @@ interface Stock {
   change_percent: number
   volume: number
   pe_ratio: number | null
+  eps: number | null
   dividend_yield: number | null
   beta: number | null
 }
@@ -77,7 +78,8 @@ export default function BrowseStocks() {
   ]
 
   const handleStockClick = (symbol: string) => {
-    window.dispatchEvent(new CustomEvent('navigate-to-stock', { detail: symbol }))
+    window.dispatchEvent(new CustomEvent('navigate', { detail: { mode: 'stock' } }))
+    window.dispatchEvent(new CustomEvent('navigate-stock', { detail: { symbol } }))
   }
 
   const filteredStocks = browseData?.data?.stocks?.filter(stock =>
@@ -235,6 +237,12 @@ export default function BrowseStocks() {
                   <div className="flex justify-between">
                     <span className="text-zinc-400">P/E Ratio</span>
                     <span className="font-medium">{stock.pe_ratio.toFixed(2)}</span>
+                  </div>
+                )}
+                {stock.eps && (
+                  <div className="flex justify-between">
+                    <span className="text-zinc-400">EPS (TTM)</span>
+                    <span className="font-medium">${stock.eps.toFixed(2)}</span>
                   </div>
                 )}
                 {stock.dividend_yield && (

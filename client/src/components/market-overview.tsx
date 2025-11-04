@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { TrendingUp, TrendingDown } from 'lucide-react'
 
@@ -100,18 +101,51 @@ function IndexCard({ symbol, data }: { symbol: string; data: MarketData }) {
 }
 
 export default function MarketOverview() {
+  const [activeRegion, setActiveRegion] = useState<'us' | 'asia' | 'europe' | 'other'>('us')
+
   const { data, isLoading, isError } = useQuery<MarketResponse>({
     queryKey: ['market-overview'],
     queryFn: fetchMarketData,
     refetchInterval: 30000, // Refresh every 30 seconds
   })
 
+  const regions = {
+    us: {
+      label: '🇺🇸 US Markets',
+      indices: ['^GSPC', '^DJI', '^IXIC']
+    },
+    asia: {
+      label: '🌏 Asian Markets',
+      indices: ['^N225', '^HSI', '000001.SS', '^STI', '^KS11', '^TWII']
+    },
+    europe: {
+      label: '🇪🇺 European Markets',
+      indices: ['^FTSE', '^GDAXI', '^FCHI', '^STOXX50E']
+    },
+    other: {
+      label: '🌎 Other Markets',
+      indices: ['^AXJO', '^BVSP', '^VIX', 'GC=F']
+    }
+  }
+
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {[1, 2, 3].map(i => (
-          <div key={i} className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 h-48 animate-pulse" />
-        ))}
+      <div>
+        <div className="flex gap-2 mb-4 overflow-x-auto">
+          {Object.entries(regions).map(([key, region]) => (
+            <button
+              key={key}
+              className="px-4 py-2 rounded-lg bg-zinc-800/50 animate-pulse"
+            >
+              {region.label}
+            </button>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 h-48 animate-pulse" />
+          ))}
+        </div>
       </div>
     )
   }
@@ -124,15 +158,35 @@ export default function MarketOverview() {
     )
   }
 
-  const majorIndices = ['^GSPC', '^DJI', '^IXIC']
+  const currentIndices = regions[activeRegion].indices
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {majorIndices.map(symbol => {
-        const indexData = data.data[symbol]
-        if (!indexData) return null
-        return <IndexCard key={symbol} symbol={symbol} data={indexData} />
-      })}
+    <div>
+      {/* Region Tabs */}
+      <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+        {Object.entries(regions).map(([key, region]) => (
+          <button
+            key={key}
+            onClick={() => setActiveRegion(key as any)}
+            className={`px-4 py-2 rounded-lg whitespace-nowrap transition-all ${
+              activeRegion === key
+                ? 'bg-blue-500 text-white'
+                : 'bg-zinc-800/50 text-zinc-400 hover:bg-zinc-800'
+            }`}
+          >
+            {region.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Indices Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {currentIndices.map(symbol => {
+          const indexData = data.data[symbol]
+          if (!indexData) return null
+          return <IndexCard key={symbol} symbol={symbol} data={indexData} />
+        })}
+      </div>
     </div>
   )
 }

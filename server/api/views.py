@@ -3,7 +3,7 @@ from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime, timedelta
 import json
 import random
-from .services import FREDService, YahooFinanceService, AlphaVantageService, OpenAIService, TechnicalIndicatorService, CoinMarketCapService, CoinGeckoService
+from .services import FREDService, YahooFinanceService, AlphaVantageService, OpenAIService, TechnicalIndicatorService, CoinMarketCapService, CoinGeckoService, StatsmodelsService
 from .models import PriceAlert
 from django.core.mail import send_mail
 from django.conf import settings
@@ -603,5 +603,380 @@ def crypto_ohlc(request, symbol):
         coingecko_service = CoinGeckoService()
         data = coingecko_service.get_ohlc_data(symbol, days=days)
         return JsonResponse(data)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def custom_analysis(request):
+    """Evaluate custom formulas with stock data"""
+    if request.method == 'POST':
+        try:
+            body = json.loads(request.body)
+            symbols = body.get('symbols', [])
+            formulas = body.get('formulas', [])
+            period = body.get('period', '1y')
+
+            if not symbols:
+                return JsonResponse({
+                    "status": "error",
+                    "error": "At least one stock symbol is required"
+                }, status=400)
+
+            if not formulas:
+                return JsonResponse({
+                    "status": "error",
+                    "error": "At least one formula is required"
+                }, status=400)
+
+            # Fetch stock data for all symbols
+            stats_service = StatsmodelsService()
+            stock_data = {}
+
+            for symbol in symbols:
+                price_data = stats_service.get_price_data(symbol, period=period)
+                if price_data.get('status') == 'success':
+                    stock_data[symbol] = price_data.get('data', {})
+                else:
+                    return JsonResponse({
+                        "status": "error",
+                        "error": f"Failed to fetch data for {symbol}: {price_data.get('error')}"
+                    }, status=400)
+
+            # Evaluate formulas
+            results = stats_service.evaluate_formulas(formulas, stock_data)
+
+            return JsonResponse(results)
+
+        except json.JSONDecodeError:
+            return JsonResponse({
+                "status": "error",
+                "error": "Invalid JSON in request body"
+            }, status=400)
+        except Exception as e:
+            return JsonResponse({
+                "status": "error",
+                "error": str(e)
+            }, status=500)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def ai_stock_insights(request, symbol):
+    """Get AI-generated blog/event insights for a specific stock"""
+    if request.method == 'GET':
+        from .models import StockInsight
+
+        # Get query parameters
+        sentiment = request.GET.get('sentiment', None)  # Optional filter by sentiment
+        limit = int(request.GET.get('limit', 10))
+
+        # Build query
+        query = StockInsight.objects.filter(symbol=symbol.upper(), is_active=True)
+
+        if sentiment:
+            query = query.filter(sentiment=sentiment)
+
+        # Get insights ordered by published date
+        insights = query[:limit]
+
+        # Format response
+        data = [{
+            'id': insight.id,
+            'title': insight.title,
+            'summary': insight.summary,
+            'source': insight.source,
+            'url': insight.url,
+            'content_type': insight.content_type,
+            'sentiment': insight.sentiment,
+            'sentiment_score': insight.sentiment_score,
+            'key_points': insight.key_points,
+            'ai_analysis': insight.ai_analysis,
+            'published_date': insight.published_date.isoformat() if insight.published_date else None,
+            'fetched_at': insight.fetched_at.isoformat(),
+        } for insight in insights]
+
+        return JsonResponse({
+            'status': 'success',
+            'symbol': symbol.upper(),
+            'count': len(data),
+            'insights': data
+        })
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def all_insights(request):
+    """Get recent AI-generated insights across all stocks"""
+    if request.method == 'GET':
+        from .models import StockInsight
+
+        # Get query parameters
+        sentiment = request.GET.get('sentiment', None)
+        content_type = request.GET.get('type', None)
+        limit = int(request.GET.get('limit', 20))
+
+        # Build query
+        query = StockInsight.objects.filter(is_active=True)
+
+        if sentiment:
+            query = query.filter(sentiment=sentiment)
+
+        if content_type:
+            query = query.filter(content_type=content_type)
+
+        # Get insights ordered by published date
+        insights = query[:limit]
+
+        # Format response
+        data = [{
+            'id': insight.id,
+            'symbol': insight.symbol,
+            'stock_name': insight.stock_name,
+            'title': insight.title,
+            'summary': insight.summary,
+            'source': insight.source,
+            'url': insight.url,
+            'content_type': insight.content_type,
+            'sentiment': insight.sentiment,
+            'sentiment_score': insight.sentiment_score,
+            'key_points': insight.key_points,
+            'ai_analysis': insight.ai_analysis,
+            'published_date': insight.published_date.isoformat() if insight.published_date else None,
+            'fetched_at': insight.fetched_at.isoformat(),
+        } for insight in insights]
+
+        return JsonResponse({
+            'status': 'success',
+            'count': len(data),
+            'insights': data
+        })
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+# ==================== USER AUTHENTICATION ENDPOINTS ====================
+
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.models import User
+from .models import Watchlist, WatchlistItem, UserPreferences
+import json
+
+
+@csrf_exempt
+def register(request):
+    """Register a new user"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            username = data.get('username')
+            email = data.get('email')
+            password = data.get('password')
+
+            # Validation
+            if not username or not email or not password:
+                return JsonResponse({'status': 'error', 'error': 'Missing required fields'}, status=400)
+
+            if User.objects.filter(username=username).exists():
+                return JsonResponse({'status': 'error', 'error': 'Username already exists'}, status=400)
+
+            if User.objects.filter(email=email).exists():
+                return JsonResponse({'status': 'error', 'error': 'Email already exists'}, status=400)
+
+            # Create user
+            user = User.objects.create_user(username=username, email=email, password=password)
+
+            # Create default watchlist
+            Watchlist.objects.create(user=user, name='My Watchlist', is_default=True)
+
+            # Create user preferences
+            UserPreferences.objects.create(user=user)
+
+            # Log the user in
+            login(request, user)
+
+            return JsonResponse({
+                'status': 'success',
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email
+                }
+            })
+
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'error': str(e)}, status=500)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def user_login(request):
+    """Login user"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            username = data.get('username')
+            password = data.get('password')
+
+            user = authenticate(request, username=username, password=password)
+
+            if user is not None:
+                login(request, user)
+                return JsonResponse({
+                    'status': 'success',
+                    'user': {
+                        'id': user.id,
+                        'username': user.username,
+                        'email': user.email
+                    }
+                })
+            else:
+                return JsonResponse({'status': 'error', 'error': 'Invalid credentials'}, status=401)
+
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'error': str(e)}, status=500)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def user_logout(request):
+    """Logout user"""
+    if request.method == 'POST':
+        logout(request)
+        return JsonResponse({'status': 'success'})
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def current_user(request):
+    """Get current logged-in user"""
+    if request.method == 'GET':
+        if request.user.is_authenticated:
+            return JsonResponse({
+                'status': 'success',
+                'user': {
+                    'id': request.user.id,
+                    'username': request.user.username,
+                    'email': request.user.email
+                }
+            })
+        else:
+            return JsonResponse({'status': 'error', 'error': 'Not authenticated'}, status=401)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+# ========== Data Explorer Endpoints ==========
+
+@csrf_exempt
+def search_data(request):
+    """Universal search across FRED and Alpha Vantage"""
+    if request.method == 'GET':
+        query = request.GET.get('q', '')
+
+        if not query:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Query parameter "q" is required'
+            }, status=400)
+
+        fred_service = FREDService()
+        data = fred_service.search_combined(query)
+        return JsonResponse(data)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def fred_categories(request):
+    """Browse FRED data categories"""
+    if request.method == 'GET':
+        parent_id = request.GET.get('parent', 0)
+
+        try:
+            parent_id = int(parent_id)
+        except ValueError:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Invalid parent_id parameter'
+            }, status=400)
+
+        fred_service = FREDService()
+        data = fred_service.get_fred_categories(parent_id)
+        return JsonResponse(data)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def fred_category_series(request, category_id):
+    """Get all series in a FRED category"""
+    if request.method == 'GET':
+        try:
+            category_id = int(category_id)
+        except ValueError:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Invalid category_id'
+            }, status=400)
+
+        limit = request.GET.get('limit', 100)
+        try:
+            limit = int(limit)
+        except ValueError:
+            limit = 100
+
+        fred_service = FREDService()
+        data = fred_service.get_series_in_category(category_id, limit)
+        return JsonResponse(data)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def fred_series_metadata(request, series_id):
+    """Get metadata for a specific FRED series"""
+    if request.method == 'GET':
+        fred_service = FREDService()
+        data = fred_service.get_series_metadata(series_id.upper())
+        return JsonResponse(data)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def export_data(request):
+    """Export selected FRED series to JSON"""
+    if request.method == 'POST':
+        try:
+            body = json.loads(request.body)
+            series_ids = body.get('series_ids', [])
+            filename = body.get('filename', None)
+
+            if not series_ids:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'series_ids parameter is required'
+                }, status=400)
+
+            fred_service = FREDService()
+            data = fred_service.export_multiple_series(series_ids, filename)
+            return JsonResponse(data)
+
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Invalid JSON in request body'
+            }, status=400)
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=500)
 
     return JsonResponse({"error": "Method not allowed"}, status=405)

@@ -5,11 +5,17 @@ from datetime import datetime, timedelta
 from django.conf import settings
 from django.core.cache import cache
 import pandas as pd
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 import requests
 from openai import OpenAI
 import talib
 import numpy as np
+from statsmodels.tsa.stattools import adfuller
+from statsmodels.tsa.arima.model import ARIMA
+from statsmodels.tsa.ar_model import AutoReg
+import json
+import time
+import xml.etree.ElementTree as ET
 
 
 class FREDService:
@@ -147,7 +153,348 @@ class FREDService:
         except Exception as e:
             print(f"FRED API error: {e}")
             return self._get_mock_fred_data()
-    
+
+    def search_combined(self, query: str) -> Dict:
+        """
+        Universal search combining FRED and Alpha Vantage results
+        Returns combined dataframe of economic indicators and stock symbols
+        """
+        if not query or len(query) < 2:
+            return {
+                'status': 'error',
+                'message': 'Query must be at least 2 characters',
+                'timestamp': datetime.now().isoformat()
+            }
+
+        results = []
+
+        # Search FRED
+        try:
+            if self.fred:
+                fred_search = self.fred.search(query)
+                if fred_search is not None and not fred_search.empty:
+                    fred_results = [{
+                        "source": "FRED",
+                        "code": fred_search.at[i, "id"],
+                        "name": fred_search.at[i, "title"],
+                        "frequency": fred_search.at[i, "frequency"] if "frequency" in fred_search.columns else None,
+                        "popularity": fred_search.at[i, "popularity"] if "popularity" in fred_search.columns else None,
+                        "last_updated": fred_search.at[i, "last_updated"] if "last_updated" in fred_search.columns else None
+                    } for i in fred_search.index[:20]]  # Limit to 20 results
+                    results.extend(fred_results)
+        except Exception as e:
+            print(f"FRED search error: {e}")
+
+        # Search Alpha Vantage
+        try:
+            alpha_key = os.getenv('ALPHA_VANTAGE_API_KEY')
+            if alpha_key:
+                av_response = requests.get(
+                    f"https://www.alphavantage.co/query",
+                    params={
+                        "function": "SYMBOL_SEARCH",
+                        "keywords": query,
+                        "apikey": alpha_key
+                    },
+                    timeout=10
+                )
+                av_data = av_response.json()
+                if "bestMatches" in av_data and av_data["bestMatches"]:
+                    av_results = [{
+                        "source": "Alpha Vantage",
+                        "code": match["1. symbol"],
+                        "name": match["2. name"],
+                        "type": match["3. type"],
+                        "region": match["4. region"],
+                        "market_open": match.get("5. marketOpen"),
+                        "market_close": match.get("6. marketClose"),
+                        "timezone": match.get("7. timezone"),
+                        "currency": match.get("8. currency"),
+                        "match_score": float(match.get("9. matchScore", 0))
+                    } for match in av_data["bestMatches"][:20]]  # Limit to 20 results
+                    results.extend(av_results)
+        except Exception as e:
+            print(f"Alpha Vantage search error: {e}")
+
+        return {
+            'status': 'success',
+            'data': {
+                'query': query,
+                'total': len(results),
+                'results': results
+            },
+            'timestamp': datetime.now().isoformat()
+        }
+
+    def get_fred_category_name(self, category_id: int) -> str:
+        """Get the name of a FRED category by ID"""
+        try:
+            response = requests.get(
+                f"https://api.stlouisfed.org/fred/category",
+                params={
+                    "category_id": category_id,
+                    "api_key": self.api_key
+                },
+                timeout=10
+            )
+            root = ET.fromstring(response.content)
+            return root[0].get("name", f"Category {category_id}")
+        except Exception as e:
+            print(f"Error fetching category name: {e}")
+            return f"Category {category_id}"
+
+    def get_fred_categories(self, parent_id: int = 0) -> Dict:
+        """
+        Get child categories of a FRED parent category
+        Returns hierarchical category structure
+        """
+        if not self.api_key:
+            return {
+                'status': 'error',
+                'message': 'FRED API key not configured',
+                'timestamp': datetime.now().isoformat()
+            }
+
+        try:
+            # Rate limiting delay
+            time.sleep(0.5)
+
+            response = requests.get(
+                f"https://api.stlouisfed.org/fred/category/children",
+                params={
+                    "category_id": parent_id,
+                    "api_key": self.api_key
+                },
+                timeout=10
+            )
+
+            root = ET.fromstring(response.content)
+            categories = [{
+                "id": int(elem.get("id")),
+                "name": elem.get("name"),
+                "parent_id": int(elem.get("parent_id"))
+            } for elem in root.findall("category")]
+
+            return {
+                'status': 'success',
+                'data': {
+                    'parent_id': parent_id,
+                    'parent_name': self.get_fred_category_name(parent_id) if parent_id > 0 else "Root",
+                    'categories': categories,
+                    'total': len(categories)
+                },
+                'timestamp': datetime.now().isoformat()
+            }
+
+        except Exception as e:
+            print(f"Error fetching FRED categories: {e}")
+            return {
+                'status': 'error',
+                'message': str(e),
+                'timestamp': datetime.now().isoformat()
+            }
+
+    def get_series_in_category(self, category_id: int, limit: int = 100) -> Dict:
+        """
+        Get all time series within a FRED category
+        Returns detailed metadata for each series
+        """
+        if not self.api_key:
+            return {
+                'status': 'error',
+                'message': 'FRED API key not configured',
+                'timestamp': datetime.now().isoformat()
+            }
+
+        try:
+            # Rate limiting delay
+            time.sleep(0.5)
+
+            response = requests.get(
+                f"https://api.stlouisfed.org/fred/category/series",
+                params={
+                    "category_id": category_id,
+                    "api_key": self.api_key,
+                    "limit": limit
+                },
+                timeout=10
+            )
+
+            root = ET.fromstring(response.content)
+            series_list = []
+
+            for elem in root.findall("series"):
+                series_list.append({
+                    "id": elem.get("id"),
+                    "name": elem.get("title"),
+                    "observation_start": elem.get("observation_start"),
+                    "observation_end": elem.get("observation_end"),
+                    "frequency": elem.get("frequency"),
+                    "frequency_short": elem.get("frequency_short"),
+                    "units": elem.get("units"),
+                    "units_short": elem.get("units_short"),
+                    "seasonal_adjustment": elem.get("seasonal_adjustment"),
+                    "seasonal_adjustment_short": elem.get("seasonal_adjustment_short"),
+                    "last_updated": elem.get("last_updated"),
+                    "popularity": int(elem.get("popularity", 0)),
+                    "notes": elem.get("notes")
+                })
+
+            # Sort by popularity
+            series_list.sort(key=lambda x: x['popularity'], reverse=True)
+
+            return {
+                'status': 'success',
+                'data': {
+                    'category_id': category_id,
+                    'category_name': self.get_fred_category_name(category_id),
+                    'series': series_list,
+                    'total': len(series_list)
+                },
+                'timestamp': datetime.now().isoformat()
+            }
+
+        except Exception as e:
+            print(f"Error fetching series in category: {e}")
+            return {
+                'status': 'error',
+                'message': str(e),
+                'timestamp': datetime.now().isoformat()
+            }
+
+    def get_series_metadata(self, series_id: str) -> Dict:
+        """Get detailed metadata for a specific FRED series"""
+        if not self.api_key:
+            return {
+                'status': 'error',
+                'message': 'FRED API key not configured',
+                'timestamp': datetime.now().isoformat()
+            }
+
+        try:
+            # Rate limiting delay
+            time.sleep(0.5)
+
+            response = requests.get(
+                f"https://api.stlouisfed.org/fred/series",
+                params={
+                    "series_id": series_id,
+                    "api_key": self.api_key
+                },
+                timeout=10
+            )
+
+            root = ET.fromstring(response.content)
+            elem = root.find("series")
+
+            if elem is None:
+                return {
+                    'status': 'error',
+                    'message': f'Series {series_id} not found',
+                    'timestamp': datetime.now().isoformat()
+                }
+
+            return {
+                'status': 'success',
+                'data': {
+                    "id": elem.get("id"),
+                    "name": elem.get("title"),
+                    "observation_start": elem.get("observation_start"),
+                    "observation_end": elem.get("observation_end"),
+                    "frequency": elem.get("frequency"),
+                    "frequency_short": elem.get("frequency_short"),
+                    "units": elem.get("units"),
+                    "units_short": elem.get("units_short"),
+                    "seasonal_adjustment": elem.get("seasonal_adjustment"),
+                    "seasonal_adjustment_short": elem.get("seasonal_adjustment_short"),
+                    "last_updated": elem.get("last_updated"),
+                    "popularity": int(elem.get("popularity", 0)),
+                    "notes": elem.get("notes")
+                },
+                'timestamp': datetime.now().isoformat()
+            }
+
+        except Exception as e:
+            print(f"Error fetching series metadata: {e}")
+            return {
+                'status': 'error',
+                'message': str(e),
+                'timestamp': datetime.now().isoformat()
+            }
+
+    def export_multiple_series(self, series_ids: List[str], filename: str = None) -> Dict:
+        """
+        Export multiple FRED series to JSON
+        Returns the data structure and optionally saves to file
+        """
+        if not self.fred:
+            return {
+                'status': 'error',
+                'message': 'FRED API not configured',
+                'timestamp': datetime.now().isoformat()
+            }
+
+        if not series_ids:
+            return {
+                'status': 'error',
+                'message': 'No series IDs provided',
+                'timestamp': datetime.now().isoformat()
+            }
+
+        try:
+            export_data = {
+                'export_date': datetime.now().isoformat(),
+                'series_count': len(series_ids),
+                'series': {}
+            }
+
+            for series_id in series_ids:
+                try:
+                    # Rate limiting
+                    time.sleep(0.5)
+
+                    # Get series data
+                    series = self.fred.get_series(series_id)
+                    metadata = self.get_series_metadata(series_id)
+
+                    if not series.empty:
+                        export_data['series'][series_id] = {
+                            'metadata': metadata.get('data', {}),
+                            'data': [
+                                {
+                                    'date': date.strftime('%Y-%m-%d'),
+                                    'value': float(value) if pd.notna(value) else None
+                                }
+                                for date, value in series.items()
+                            ]
+                        }
+                except Exception as e:
+                    print(f"Error exporting {series_id}: {e}")
+                    continue
+
+            # Save to file if filename provided
+            if filename:
+                try:
+                    with open(filename, 'w') as f:
+                        json.dump(export_data, f, indent=2)
+                except Exception as e:
+                    print(f"Error saving to file: {e}")
+
+            return {
+                'status': 'success',
+                'data': export_data,
+                'message': f'Successfully exported {len(export_data["series"])} series',
+                'timestamp': datetime.now().isoformat()
+            }
+
+        except Exception as e:
+            print(f"Error exporting series: {e}")
+            return {
+                'status': 'error',
+                'message': str(e),
+                'timestamp': datetime.now().isoformat()
+            }
+
     def _get_mock_single_indicator(self, series_id: str) -> Dict:
         """Fallback mock data for single indicator"""
         return {
@@ -191,12 +538,27 @@ class YahooFinanceService:
         """Get default market data for dashboard"""
         try:
             symbols = [
-                # Market Indices
+                # US Market Indices
                 '^GSPC',   # S&P 500
                 '^DJI',    # Dow Jones Industrial Average
                 '^IXIC',   # NASDAQ Composite
                 '^VIX',    # CBOE Volatility Index
                 'GC=F',    # Gold Futures
+                # Asian Market Indices
+                '^N225',   # Nikkei 225 (Japan)
+                '^HSI',    # Hang Seng Index (Hong Kong)
+                '000001.SS', # Shanghai Composite (China)
+                '^STI',    # Straits Times Index (Singapore)
+                '^KS11',   # KOSPI (South Korea)
+                '^TWII',   # Taiwan Weighted Index
+                # European Market Indices
+                '^FTSE',   # FTSE 100 (UK)
+                '^GDAXI',  # DAX (Germany)
+                '^FCHI',   # CAC 40 (France)
+                '^STOXX50E', # EURO STOXX 50
+                # Other Global Indices
+                '^AXJO',   # S&P/ASX 200 (Australia)
+                '^BVSP',   # Bovespa (Brazil)
                 # Sector ETFs
                 'XLK',     # Technology Select Sector SPDR Fund
                 'XLF',     # Financial Select Sector SPDR Fund
@@ -469,14 +831,14 @@ class YahooFinanceService:
         try:
             # Define stock lists by category
             stocks_by_category = {
-                'mega_cap': ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA', 'BRK-B', 'UNH', 'XOM', 'JNJ', 'JPM'],
+                'mega_cap': ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA', 'TSM', 'BRK-B', 'UNH', 'XOM', 'JNJ', 'JPM'],
                 'large_cap': ['V', 'PG', 'MA', 'HD', 'CVX', 'MRK', 'ABBV', 'PEP', 'COST', 'AVGO', 'ADBE', 'CRM'],
                 'mid_cap': ['ALGN', 'ANSS', 'CBOE', 'CDNS', 'CERN', 'CHTR', 'CSCO', 'CTSH', 'DXCM', 'EXPD', 'FAST', 'FFIV'],
                 'small_cap': ['AAL', 'ALK', 'JBLU', 'UAL', 'DAL', 'SAVE', 'HA', 'LUV']
             }
 
             stocks_by_sector = {
-                'technology': ['AAPL', 'MSFT', 'GOOGL', 'NVDA', 'META', 'ADBE', 'CRM', 'INTC', 'CSCO', 'ORCL', 'AMD', 'QCOM'],
+                'technology': ['AAPL', 'MSFT', 'GOOGL', 'NVDA', 'TSM', 'META', 'ADBE', 'CRM', 'INTC', 'CSCO', 'ORCL', 'AMD', 'QCOM'],
                 'healthcare': ['UNH', 'JNJ', 'PFE', 'ABBV', 'TMO', 'MRK', 'ABT', 'DHR', 'LLY', 'BMY', 'AMGN', 'GILD'],
                 'financial': ['JPM', 'BAC', 'WFC', 'C', 'GS', 'MS', 'BLK', 'SCHW', 'AXP', 'USB', 'PNC', 'TFC'],
                 'consumer': ['AMZN', 'TSLA', 'HD', 'NKE', 'MCD', 'SBUX', 'TGT', 'LOW', 'TJX', 'DG', 'ROST', 'ULTA'],
@@ -519,6 +881,7 @@ class YahooFinanceService:
                             'change_percent': round(float(((latest_close - previous_close) / previous_close) * 100), 2) if previous_close != 0 else 0,
                             'volume': int(hist['Volume'].iloc[-1]) if 'Volume' in hist.columns else 0,
                             'pe_ratio': info.get('forwardPE'),
+                            'eps': info.get('trailingEps'),
                             'dividend_yield': info.get('dividendYield'),
                             'beta': info.get('beta')
                         })
@@ -1555,6 +1918,96 @@ Guidelines:
                 'timestamp': datetime.now().isoformat()
             }
 
+    def generate_stock_insights(self, symbol: str, stock_name: str) -> List[Dict]:
+        """
+        Generate AI-powered insights for a stock including recent events, blogs, and news
+        Returns a list of 10 insights with sentiment analysis
+
+        Args:
+            symbol: Stock ticker symbol
+            stock_name: Full name of the company
+
+        Returns:
+            List of insight dictionaries with title, summary, sentiment, etc.
+        """
+        if not self.client:
+            return []
+
+        try:
+            prompt = f"""You are a financial analyst researching {stock_name} ({symbol}).
+Generate 10 recent and relevant insights about this company. Include a mix of:
+- Recent news events
+- Blog posts or analyst opinions
+- Company announcements
+- Industry trends affecting the company
+- Market sentiment
+
+For EACH of the 10 insights, provide:
+1. A compelling title (max 100 characters)
+2. A detailed summary (2-3 sentences)
+3. The type (news/blog/event/research/announcement)
+4. Sentiment (positive/negative/neutral)
+5. A sentiment score from -1.0 (very negative) to 1.0 (very positive)
+6. 2-3 key points (brief bullet points)
+7. Source name (e.g., "Financial Times", "Bloomberg", "Company Press Release")
+
+Make the content realistic, timely, and relevant to current market conditions.
+Focus on information that would be valuable to investors.
+
+Return your response as a JSON array with this exact structure:
+[
+  {{
+    "title": "string",
+    "summary": "string",
+    "content_type": "news|blog|event|research|announcement",
+    "sentiment": "positive|negative|neutral",
+    "sentiment_score": float,
+    "key_points": ["point1", "point2", "point3"],
+    "source": "string",
+    "ai_analysis": "brief analysis in 1-2 sentences"
+  }},
+  ...
+]"""
+
+            response = self.client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "You are a financial research assistant providing factual, balanced analysis of stocks and companies. Return only valid JSON."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.8,
+                max_tokens=2000
+            )
+
+            # Parse the response
+            content = response.choices[0].message.content
+
+            # Clean up the response to ensure it's valid JSON
+            content = content.strip()
+            if content.startswith('```json'):
+                content = content[7:]
+            if content.startswith('```'):
+                content = content[3:]
+            if content.endswith('```'):
+                content = content[:-3]
+            content = content.strip()
+
+            insights = json.loads(content)
+
+            # Add published_date (simulate recent dates)
+            from datetime import timedelta
+            base_date = datetime.now()
+            for i, insight in enumerate(insights):
+                # Spread insights over the last 14 days
+                days_ago = (i * 14) // len(insights)
+                insight['published_date'] = (base_date - timedelta(days=days_ago)).isoformat()
+
+            return insights
+
+        except Exception as e:
+            print(f"Error generating stock insights for {symbol}: {e}")
+            return []
+
 class TechnicalIndicatorService:
     """Service for calculating technical indicators using TA-Lib"""
     
@@ -2277,3 +2730,533 @@ class CoinGeckoService:
                 'error': str(e),
                 'timestamp': datetime.now().isoformat()
             }
+
+
+class StatsmodelsService:
+    """Service for time series analysis and statistical modeling using statsmodels"""
+
+    def __init__(self):
+        self.yahoo_service = YahooFinanceService()
+
+    def get_price_data(self, symbol: str, period: str = '1y') -> Dict[str, Any]:
+        """
+        Get historical price data for a stock symbol
+
+        Args:
+            symbol: Stock ticker symbol (e.g., 'AAPL')
+            period: Time period (1mo, 3mo, 6mo, 1y, 2y, 5y)
+
+        Returns:
+            Dict with dates and close prices
+        """
+        try:
+            stock = yf.Ticker(symbol.upper())
+            hist = stock.history(period=period)
+
+            if hist.empty:
+                return {
+                    'status': 'error',
+                    'error': f'No data found for symbol {symbol}'
+                }
+
+            return {
+                'status': 'success',
+                'data': {
+                    'symbol': symbol.upper(),
+                    'dates': hist.index.strftime('%Y-%m-%d').tolist(),
+                    'prices': hist['Close'].tolist(),
+                    'period': period
+                }
+            }
+        except Exception as e:
+            return {
+                'status': 'error',
+                'error': str(e)
+            }
+
+    def calculate_sma(self, prices: List[float], period: int) -> Dict[str, Any]:
+        """
+        Calculate Simple Moving Average
+
+        Args:
+            prices: List of price values
+            period: Number of periods for SMA
+
+        Returns:
+            Dict with SMA values
+        """
+        try:
+            prices_array = np.array(prices)
+            sma = pd.Series(prices_array).rolling(window=period).mean()
+
+            return {
+                'status': 'success',
+                'data': {
+                    'values': sma.tolist(),
+                    'period': period,
+                    'latest': float(sma.iloc[-1]) if not pd.isna(sma.iloc[-1]) else None
+                }
+            }
+        except Exception as e:
+            return {
+                'status': 'error',
+                'error': str(e)
+            }
+
+    def calculate_ema(self, prices: List[float], period: int) -> Dict[str, Any]:
+        """
+        Calculate Exponential Moving Average
+
+        Args:
+            prices: List of price values
+            period: Number of periods for EMA
+
+        Returns:
+            Dict with EMA values
+        """
+        try:
+            prices_array = np.array(prices)
+            ema = pd.Series(prices_array).ewm(span=period, adjust=False).mean()
+
+            return {
+                'status': 'success',
+                'data': {
+                    'values': ema.tolist(),
+                    'period': period,
+                    'latest': float(ema.iloc[-1]) if not pd.isna(ema.iloc[-1]) else None
+                }
+            }
+        except Exception as e:
+            return {
+                'status': 'error',
+                'error': str(e)
+            }
+
+    def calculate_returns(self, prices: List[float]) -> Dict[str, Any]:
+        """
+        Calculate percentage returns from price series
+
+        Args:
+            prices: List of price values
+
+        Returns:
+            Dict with returns data
+        """
+        try:
+            prices_series = pd.Series(prices)
+            returns = prices_series.pct_change()
+
+            return {
+                'status': 'success',
+                'data': {
+                    'returns': returns.tolist(),
+                    'mean_return': float(returns.mean()) if not pd.isna(returns.mean()) else None,
+                    'std_return': float(returns.std()) if not pd.isna(returns.std()) else None,
+                    'cumulative_return': float((1 + returns).prod() - 1) if not returns.isna().any() else None
+                }
+            }
+        except Exception as e:
+            return {
+                'status': 'error',
+                'error': str(e)
+            }
+
+    def run_adf_test(self, prices: List[float]) -> Dict[str, Any]:
+        """
+        Run Augmented Dickey-Fuller test for stationarity
+
+        Args:
+            prices: List of price values
+
+        Returns:
+            Dict with ADF test results
+        """
+        try:
+            prices_array = np.array(prices)
+
+            # Remove NaN values
+            clean_prices = prices_array[~np.isnan(prices_array)]
+
+            if len(clean_prices) < 12:
+                return {
+                    'status': 'error',
+                    'error': 'Insufficient data points for ADF test (minimum 12 required)'
+                }
+
+            # Run ADF test
+            result = adfuller(clean_prices, autolag='AIC')
+
+            # Interpret results
+            p_value = float(result[1])
+            test_stat = float(result[0])
+            is_stationary = p_value < 0.05  # p-value < 0.05 means stationary
+
+            # Generate detailed insights
+            if is_stationary:
+                summary = "✓ Data is stationary"
+                explanation = "The data fluctuates around a constant mean and is suitable for time series modeling."
+                recommendation = "This data can be used directly in forecasting models like ARIMA."
+                confidence = "High" if p_value < 0.01 else "Moderate"
+                suggested_action = None
+            else:
+                summary = "✗ Data is non-stationary"
+                explanation = "The data has a trend or changing mean over time, which is typical for raw stock prices."
+                if p_value > 0.5:
+                    recommendation = "Transform the data to make it stationary before modeling."
+                    confidence = "Very High"
+                else:
+                    recommendation = "Consider transforming the data, though it's borderline."
+                    confidence = "Moderate"
+                suggested_action = "Try using returns() to calculate percentage changes, which are typically stationary."
+
+            return {
+                'status': 'success',
+                'data': {
+                    'test_statistic': test_stat,
+                    'p_value': p_value,
+                    'critical_values': {
+                        '1%': float(result[4]['1%']),
+                        '5%': float(result[4]['5%']),
+                        '10%': float(result[4]['10%'])
+                    },
+                    'is_stationary': bool(is_stationary),
+                    'summary': summary,
+                    'explanation': explanation,
+                    'recommendation': recommendation,
+                    'confidence': confidence,
+                    'suggested_action': suggested_action
+                }
+            }
+        except Exception as e:
+            return {
+                'status': 'error',
+                'error': str(e)
+            }
+
+    def fit_arima(self, prices: List[float], order: tuple = (1, 1, 1)) -> Dict[str, Any]:
+        """
+        Fit ARIMA model and generate forecast
+
+        Args:
+            prices: List of price values
+            order: ARIMA order (p, d, q) tuple
+
+        Returns:
+            Dict with ARIMA model results and forecast
+        """
+        try:
+            prices_array = np.array(prices)
+
+            # Remove NaN values
+            clean_prices = prices_array[~np.isnan(prices_array)]
+
+            if len(clean_prices) < 30:
+                return {
+                    'status': 'error',
+                    'error': 'Insufficient data points for ARIMA (minimum 30 required)'
+                }
+
+            # Fit ARIMA model
+            model = ARIMA(clean_prices, order=order)
+            fitted_model = model.fit()
+
+            # Generate forecast for next 10 periods
+            forecast = fitted_model.forecast(steps=10)
+
+            # Get model metrics
+            aic = fitted_model.aic
+            bic = fitted_model.bic
+
+            # Calculate forecast insights
+            last_actual = float(clean_prices[-1])
+            first_forecast = float(forecast[0])
+            last_forecast = float(forecast[-1])
+            forecast_change = last_forecast - last_actual
+            forecast_pct = (forecast_change / last_actual) * 100
+
+            # Generate insights
+            if forecast_pct > 5:
+                trend = "upward"
+                trend_icon = "📈"
+                summary = f"Model predicts strong upward trend (+{forecast_pct:.2f}%)"
+            elif forecast_pct > 1:
+                trend = "upward"
+                trend_icon = "📈"
+                summary = f"Model predicts moderate upward trend (+{forecast_pct:.2f}%)"
+            elif forecast_pct < -5:
+                trend = "downward"
+                trend_icon = "📉"
+                summary = f"Model predicts strong downward trend ({forecast_pct:.2f}%)"
+            elif forecast_pct < -1:
+                trend = "downward"
+                trend_icon = "📉"
+                summary = f"Model predicts moderate downward trend ({forecast_pct:.2f}%)"
+            else:
+                trend = "stable"
+                trend_icon = "➡️"
+                summary = f"Model predicts relatively stable prices ({forecast_pct:.2f}%)"
+
+            explanation = f"Based on ARIMA({order[0]},{order[1]},{order[2]}) analysis of {len(clean_prices)} data points, the model forecasts prices will move from ${last_actual:.2f} to approximately ${last_forecast:.2f} over the next 10 periods."
+
+            recommendation = f"The forecast shows a {trend} trend. Use this as one input among many for decision-making."
+
+            # Assess model quality based on residuals
+            residuals_std = np.std(fitted_model.resid)
+            residuals_mean = np.abs(np.mean(fitted_model.resid))
+            if residuals_mean < 1 and residuals_std < 5:
+                model_quality = "Good"
+                quality_note = "Model fits the data well with small residuals."
+            elif residuals_mean < 3 and residuals_std < 10:
+                model_quality = "Moderate"
+                quality_note = "Model has moderate fit. Consider trying different parameters."
+            else:
+                model_quality = "Poor"
+                quality_note = "Model may not fit well. Try different ARIMA parameters or check data quality."
+
+            return {
+                'status': 'success',
+                'data': {
+                    'order': list(order),
+                    'aic': float(aic),
+                    'bic': float(bic),
+                    'forecast': forecast.tolist(),
+                    'fitted_values': fitted_model.fittedvalues.tolist(),
+                    'residuals': fitted_model.resid.tolist(),
+                    # Insights
+                    'summary': f"{trend_icon} {summary}",
+                    'explanation': explanation,
+                    'recommendation': recommendation,
+                    'model_quality': model_quality,
+                    'quality_note': quality_note,
+                    'forecast_range': f"${first_forecast:.2f} - ${last_forecast:.2f}",
+                    'trend': trend
+                }
+            }
+        except Exception as e:
+            return {
+                'status': 'error',
+                'error': str(e)
+            }
+
+    def evaluate_formulas(self, formulas: List[str], stock_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Evaluate custom formulas with stock data
+
+        Args:
+            formulas: List of formula strings (e.g., ["x = price(AAPL) / price(MSFT)", "y = sma(x, 20)"])
+            stock_data: Dict mapping symbols to price data
+
+        Returns:
+            Dict with evaluated results for each formula (including time series)
+        """
+        try:
+            results = {}
+            variables = {}
+
+            # Get dates from the first stock (all stocks should have same dates)
+            first_symbol = list(stock_data.keys())[0]
+            dates = stock_data[first_symbol].get('dates', [])
+
+            # Store stock prices and dates as variables
+            for symbol, data in stock_data.items():
+                variables[symbol] = np.array(data.get('prices', []))
+
+            # Process each formula
+            for idx, formula in enumerate(formulas):
+                try:
+                    # Simple formula parser (this is a basic implementation)
+                    # In production, you'd use a proper expression parser
+
+                    if '=' in formula:
+                        var_name, expression = formula.split('=', 1)
+                        var_name = var_name.strip()
+                        expression = expression.strip()
+
+                        # Evaluate expression (returns numpy array for time series or dict for test results)
+                        result_value = self._evaluate_expression(expression, variables, time_series=True)
+
+                        # Handle dict results (from adf_test, arima, etc.)
+                        if isinstance(result_value, dict):
+                            variables[var_name] = result_value
+                            results[var_name] = {
+                                'formula': formula,
+                                'value': result_value,  # The entire dict
+                                'type': 'dict',
+                                'data': result_value  # Include full data for display
+                            }
+                        # Handle numpy arrays (time series)
+                        elif isinstance(result_value, np.ndarray):
+                            variables[var_name] = result_value
+                            value_list = result_value.tolist()
+                            final_value = value_list[-1] if len(value_list) > 0 else None
+                            results[var_name] = {
+                                'formula': formula,
+                                'value': final_value,
+                                'series': value_list,
+                                'dates': dates,
+                                'type': type(final_value).__name__
+                            }
+                        else:
+                            # Handle scalar values
+                            variables[var_name] = result_value
+                            results[var_name] = {
+                                'formula': formula,
+                                'value': result_value,
+                                'series': [result_value],
+                                'dates': dates,
+                                'type': type(result_value).__name__
+                            }
+
+                except Exception as e:
+                    results[f'formula_{idx}'] = {
+                        'formula': formula,
+                        'error': str(e)
+                    }
+
+            return {
+                'status': 'success',
+                'data': results
+            }
+        except Exception as e:
+            return {
+                'status': 'error',
+                'error': str(e)
+            }
+
+    def _evaluate_expression(self, expression: str, variables: Dict, time_series: bool = False) -> Any:
+        """
+        Evaluate a mathematical expression with custom functions
+
+        Args:
+            expression: The expression to evaluate
+            variables: Dict of available variables
+            time_series: If True, returns full time series array; if False, returns single value
+
+        This is a simplified implementation. In production, use a proper
+        expression parser library.
+        """
+        import re
+
+        # Replace function calls with actual data
+        expr = expression
+
+        # Replace ^ with ** for exponentiation (user-friendly syntax)
+        expr = expr.replace('^', '**')
+
+        # IMPORTANT: Handle price() function FIRST before other functions
+        # This allows nested calls like adf_test(price(AAPL)) to work
+        if 'price(' in expr:
+            matches = re.findall(r'price\((\w+)\)', expr)
+            for symbol in matches:
+                if symbol in variables:
+                    if time_series:
+                        # For time series, use the variable name directly (it's a numpy array)
+                        expr = expr.replace(f'price({symbol})', symbol)
+                    else:
+                        # Use the last price value
+                        last_price = variables[symbol][-1] if hasattr(variables[symbol], '__getitem__') else variables[symbol]
+                        expr = expr.replace(f'price({symbol})', str(last_price))
+
+        # Handle adf_test() function - returns dict, not time series
+        if 'adf_test(' in expr:
+            match = re.search(r'adf_test\(([^)]+)\)', expr)
+            if match:
+                arg = match.group(1).strip()
+                # Get the series data
+                if arg in variables:
+                    series_data = variables[arg]
+                    if isinstance(series_data, np.ndarray):
+                        result = self.run_adf_test(series_data.tolist())
+                        if result.get('status') == 'success':
+                            # Return the dict directly - can't do math operations on it
+                            return result.get('data')
+                        else:
+                            raise ValueError(result.get('error', 'ADF test failed'))
+                else:
+                    raise ValueError(f"Variable '{arg}' not found for adf_test")
+
+        # Handle arima() function - returns dict with forecast
+        if 'arima(' in expr:
+            match = re.search(r'arima\(([^,]+),\s*\[(\d+),(\d+),(\d+)\]\)', expr)
+            if match:
+                arg = match.group(1).strip()
+                p, d, q = int(match.group(2)), int(match.group(3)), int(match.group(4))
+                if arg in variables:
+                    series_data = variables[arg]
+                    if isinstance(series_data, np.ndarray):
+                        result = self.fit_arima(series_data.tolist(), order=(p, d, q))
+                        if result.get('status') == 'success':
+                            return result.get('data')
+                        else:
+                            raise ValueError(result.get('error', 'ARIMA failed'))
+                else:
+                    raise ValueError(f"Variable '{arg}' not found for arima")
+
+        # Handle sma() function
+        if 'sma(' in expr:
+            matches = re.findall(r'sma\(([^,]+),\s*(\d+)\)', expr)
+            for arg, period in matches:
+                arg = arg.strip()
+                period = int(period)
+                if arg in variables:
+                    series_data = variables[arg]
+                    if isinstance(series_data, np.ndarray):
+                        result = self.calculate_sma(series_data.tolist(), period)
+                        if result.get('status') == 'success':
+                            sma_values = np.array(result['data']['values'])
+                            # Store in variables for use in expression
+                            temp_var = f'_sma_{arg}_{period}'
+                            variables[temp_var] = sma_values
+                            expr = expr.replace(f'sma({arg}, {period})', temp_var)
+                        else:
+                            raise ValueError(result.get('error', 'SMA calculation failed'))
+                else:
+                    raise ValueError(f"Variable '{arg}' not found for sma")
+
+        # Handle ema() function
+        if 'ema(' in expr:
+            matches = re.findall(r'ema\(([^,]+),\s*(\d+)\)', expr)
+            for arg, period in matches:
+                arg = arg.strip()
+                period = int(period)
+                if arg in variables:
+                    series_data = variables[arg]
+                    if isinstance(series_data, np.ndarray):
+                        result = self.calculate_ema(series_data.tolist(), period)
+                        if result.get('status') == 'success':
+                            ema_values = np.array(result['data']['values'])
+                            temp_var = f'_ema_{arg}_{period}'
+                            variables[temp_var] = ema_values
+                            expr = expr.replace(f'ema({arg}, {period})', temp_var)
+                        else:
+                            raise ValueError(result.get('error', 'EMA calculation failed'))
+                else:
+                    raise ValueError(f"Variable '{arg}' not found for ema")
+
+        # Handle returns() function
+        if 'returns(' in expr:
+            matches = re.findall(r'returns\(([^)]+)\)', expr)
+            for arg in matches:
+                arg = arg.strip()
+                if arg in variables:
+                    series_data = variables[arg]
+                    if isinstance(series_data, np.ndarray):
+                        result = self.calculate_returns(series_data.tolist())
+                        if result.get('status') == 'success':
+                            returns_values = np.array(result['data']['returns'])
+                            temp_var = f'_returns_{arg}'
+                            variables[temp_var] = returns_values
+                            expr = expr.replace(f'returns({arg})', temp_var)
+                        else:
+                            raise ValueError(result.get('error', 'Returns calculation failed'))
+                else:
+                    raise ValueError(f"Variable '{arg}' not found for returns")
+
+        # Evaluate the expression (basic math operations)
+        try:
+            # For time series, add numpy to the eval context
+            eval_globals = {"__builtins__": {}, "np": np} if time_series else {"__builtins__": {}}
+            result = eval(expr, eval_globals, variables)
+            return result
+        except Exception as e:
+            raise ValueError(f"Failed to evaluate expression: {e}")

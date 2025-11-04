@@ -55,9 +55,16 @@ export default function TopGainers() {
     )
   }
 
+  // Define sector ETFs to exclude
+  const sectorETFs = ['XLK', 'XLF', 'XLY', 'XLC', 'XLV', 'XLI', 'XLP', 'XLE', 'XLB', 'XLRE', 'XLU']
+
   // Get top gainers by sorting by change_percent
   const topGainers = Object.entries(data.data)
-    .filter(([symbol]) => !symbol.startsWith('^') && !symbol.endsWith('=F')) // Filter out indices and futures
+    .filter(([symbol]) =>
+      !symbol.startsWith('^') &&           // Filter out indices
+      !symbol.endsWith('=F') &&            // Filter out futures
+      !sectorETFs.includes(symbol)         // Filter out sector ETFs
+    )
     .sort(([, a], [, b]) => b.change_percent - a.change_percent)
     .slice(0, 5)
 
