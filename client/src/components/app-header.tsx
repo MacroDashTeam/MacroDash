@@ -1,11 +1,18 @@
 import Bull from '../assets/bull.jpeg';
 import { Button } from '@/components/ui/button';
-import { LogOut } from 'lucide-react';
+import { LogOut, User as UserIcon } from 'lucide-react';
 
 const APP_HEADER_H = "56px";
 
+interface User {
+  id: number;
+  username: string;
+  email: string;
+}
+
 type AppHeaderProps = {
-  onLogout?: () => void;
+  user?: User;
+  onSignOut?: () => void;
 };
 
 interface style {
@@ -13,7 +20,7 @@ interface style {
   "--app-header-h": string;
 }
 
-export default function AppHeader({ onLogout }: AppHeaderProps) {
+export default function AppHeader({ user, onSignOut }: AppHeaderProps) {
   return (
     <header
       className="fixed top-0 left-0 right-0 z-40 w-full bg-[#0B1320]/95 backdrop-blur"
@@ -27,17 +34,26 @@ export default function AppHeader({ onLogout }: AppHeaderProps) {
           </span>
         </a>
 
-        {onLogout && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onLogout}
-            className="text-gray-300 hover:text-white hover:bg-white/10"
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            Logout
-          </Button>
-        )}
+        <div className="flex items-center gap-3">
+          {user && (
+            <div className="flex items-center gap-2 text-sm text-gray-300">
+              <UserIcon className="h-4 w-4" />
+              <span>{user.username}</span>
+            </div>
+          )}
+
+          {onSignOut && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onSignOut}
+              className="text-gray-300 hover:text-white hover:bg-white/10"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
+            </Button>
+          )}
+        </div>
       </div>
     </header>
   );

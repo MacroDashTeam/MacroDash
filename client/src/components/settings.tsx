@@ -2,9 +2,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useState } from 'react'
-import { Key, Database, Brain, Lock, CheckCircle, AlertCircle, ExternalLink } from 'lucide-react'
+import { Key, Database, Brain, Lock, CheckCircle, AlertCircle, ExternalLink, User as UserIcon, LogOut } from 'lucide-react'
 
-export default function Settings() {
+interface User {
+  id: number
+  username: string
+  email: string
+}
+
+interface SettingsProps {
+  user?: User
+  onSignOut?: () => void
+}
+
+export default function Settings({ user, onSignOut }: SettingsProps) {
   const [showKeys, setShowKeys] = useState(false)
 
   const apiKeys = [
@@ -56,6 +67,43 @@ export default function Settings() {
             Configure API keys and application settings
           </p>
         </div>
+
+        {/* User Account Section */}
+        {user && (
+          <Card className="bg-zinc-900/50 border-zinc-800">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <UserIcon className="w-5 h-5" />
+                Account Information
+              </CardTitle>
+              <CardDescription>Your account details and preferences</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm text-zinc-400">Username</label>
+                  <p className="text-white mt-1">{user.username}</p>
+                </div>
+                <div>
+                  <label className="text-sm text-zinc-400">Email</label>
+                  <p className="text-white mt-1">{user.email}</p>
+                </div>
+              </div>
+              {onSignOut && (
+                <div className="pt-4 border-t border-zinc-800">
+                  <Button
+                    onClick={onSignOut}
+                    variant="outline"
+                    className="border-red-900/50 bg-red-950/20 text-red-400 hover:bg-red-900/30 hover:text-red-300"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sign Out
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Important Notice */}
         <Card className="bg-amber-950/20 border-amber-900/50">
