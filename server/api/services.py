@@ -3088,6 +3088,8 @@ class StatsmodelsService:
                         elif isinstance(result_value, np.ndarray):
                             variables[var_name] = result_value
                             value_list = result_value.tolist()
+                            # Replace NaN with None for JSON serialization
+                            value_list = [None if (isinstance(v, float) and np.isnan(v)) else v for v in value_list]
                             final_value = value_list[-1] if len(value_list) > 0 else None
                             results[var_name] = {
                                 'formula': formula,
@@ -3194,31 +3196,31 @@ class StatsmodelsService:
 
         # Handle sma() function
         if 'sma(' in expr:
-            matches = re.findall(r'sma\(([^,]+),\s*(\d+)\)', expr)
-            for arg, period in matches:
-                arg = arg.strip()
-                period = int(period)
+            # Use re.sub to replace while preserving the exact match
+            def replace_sma(match):
+                arg = match.group(1).strip()
+                period = int(match.group(2))
                 if arg in variables:
                     series_data = variables[arg]
                     if isinstance(series_data, np.ndarray):
                         result = self.calculate_sma(series_data.tolist(), period)
                         if result.get('status') == 'success':
                             sma_values = np.array(result['data']['values'])
-                            # Store in variables for use in expression
                             temp_var = f'_sma_{arg}_{period}'
                             variables[temp_var] = sma_values
-                            expr = expr.replace(f'sma({arg}, {period})', temp_var)
+                            return temp_var
                         else:
                             raise ValueError(result.get('error', 'SMA calculation failed'))
                 else:
                     raise ValueError(f"Variable '{arg}' not found for sma")
+            expr = re.sub(r'sma\(([^,]+),\s*(\d+)\)', replace_sma, expr)
 
         # Handle ema() function
         if 'ema(' in expr:
-            matches = re.findall(r'ema\(([^,]+),\s*(\d+)\)', expr)
-            for arg, period in matches:
-                arg = arg.strip()
-                period = int(period)
+            # Use re.sub to replace while preserving the exact match
+            def replace_ema(match):
+                arg = match.group(1).strip()
+                period = int(match.group(2))
                 if arg in variables:
                     series_data = variables[arg]
                     if isinstance(series_data, np.ndarray):
@@ -3227,17 +3229,18 @@ class StatsmodelsService:
                             ema_values = np.array(result['data']['values'])
                             temp_var = f'_ema_{arg}_{period}'
                             variables[temp_var] = ema_values
-                            expr = expr.replace(f'ema({arg}, {period})', temp_var)
+                            return temp_var
                         else:
                             raise ValueError(result.get('error', 'EMA calculation failed'))
                 else:
                     raise ValueError(f"Variable '{arg}' not found for ema")
+            expr = re.sub(r'ema\(([^,]+),\s*(\d+)\)', replace_ema, expr)
 
         # Handle returns() function
         if 'returns(' in expr:
-            matches = re.findall(r'returns\(([^)]+)\)', expr)
-            for arg in matches:
-                arg = arg.strip()
+            # Use re.sub to replace while preserving the exact match
+            def replace_returns(match):
+                arg = match.group(1).strip()
                 if arg in variables:
                     series_data = variables[arg]
                     if isinstance(series_data, np.ndarray):
@@ -3246,11 +3249,12 @@ class StatsmodelsService:
                             returns_values = np.array(result['data']['returns'])
                             temp_var = f'_returns_{arg}'
                             variables[temp_var] = returns_values
-                            expr = expr.replace(f'returns({arg})', temp_var)
+                            return temp_var
                         else:
                             raise ValueError(result.get('error', 'Returns calculation failed'))
                 else:
                     raise ValueError(f"Variable '{arg}' not found for returns")
+            expr = re.sub(r'returns\(([^)]+)\)', replace_returns, expr)
 
         # Evaluate the expression (basic math operations)
         try:

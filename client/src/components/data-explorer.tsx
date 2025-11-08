@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Search, FolderOpen, Download, TrendingUp, Database, ChevronRight, LineChart, Table, BarChart3, FileSpreadsheet } from 'lucide-react'
+import { Search, FolderOpen, Download, TrendingUp, Database, ChevronRight, LineChart, Table, BarChart3, FileSpreadsheet, Plus, Save } from 'lucide-react'
 import { Input } from './ui/input'
 import { Button } from './ui/button'
 import { Card } from './ui/card'
@@ -125,6 +125,11 @@ export default function DataExplorer() {
   // Preview modal states
   const [previewSeriesId, setPreviewSeriesId] = useState<string | null>(null)
   const [previewMode, setPreviewMode] = useState<'chart' | 'table' | 'stats'>('chart')
+
+  // Save chart dialog states
+  const [showSaveDialog, setShowSaveDialog] = useState(false)
+  const [chartName, setChartName] = useState('')
+  const [saving, setSaving] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
 
   const { data: searchResults, isLoading: searchLoading } = useQuery({
@@ -237,6 +242,66 @@ export default function DataExplorer() {
       alert(`Successfully exported ${selectedSeries.size} series as CSV!`)
     } catch (error) {
       alert('Export failed: ' + error)
+    }
+  }
+
+  const handleSaveToDisplay = async () => {
+    if (!chartName.trim()) {
+      alert('Please enter a chart name')
+      return
+    }
+
+    if (selectedSeries.size < 2) {
+      alert('Please select at least 2 series to create a chart')
+      return
+    }
+
+    setSaving(true)
+    try {
+      const seriesIds = Array.from(selectedSeries)
+      const seriesMetadata: Record<string, any> = {}
+
+      // Collect metadata for each selected series
+      seriesIds.forEach(id => {
+        // Find series in current data
+        const series = seriesData?.data?.series?.find((s: any) => s.id === id)
+        if (series) {
+          seriesMetadata[id] = {
+            name: series.name,
+            frequency: series.frequency,
+            units: series.units
+          }
+        }
+      })
+
+      const API_BASE = import.meta.env.VITE_API_BASE_URL
+
+      const res = await fetch(`${API_BASE}/api/charts/`, {
+        method: 'POST',
+        credentials: 'include', // Include cookies for session
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chart_name: chartName,
+          series_ids: seriesIds,
+          series_metadata: seriesMetadata
+        })
+      })
+
+      if (!res.ok) throw new Error('Failed to save chart')
+
+      const result = await res.json()
+
+      // Dispatch event to notify dashboard to refresh
+      window.dispatchEvent(new CustomEvent('chart-saved'))
+
+      alert(`Chart "${chartName}" saved successfully! Go to "Manage Display" tab to view it.`)
+      setShowSaveDialog(false)
+      setChartName('')
+    } catch (error) {
+      console.error('Error saving chart:', error)
+      alert('Failed to save chart. Please try again.')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -459,6 +524,17 @@ export default function DataExplorer() {
               </div>
               {selectedSeries.size > 0 && (
                 <div className="flex gap-2">
+                  {selectedSeries.size >= 2 && (
+                    <Button
+                      onClick={() => setShowSaveDialog(true)}
+                      size="sm"
+                      variant="default"
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add to Dashboard ({selectedSeries.size})
+                    </Button>
+                  )}
                   <Button onClick={handleExportJSON} size="sm">
                     <Download className="w-4 h-4 mr-2" />
                     JSON ({selectedSeries.size})
@@ -647,6 +723,61 @@ export default function DataExplorer() {
               )}
             </TabsContent>
           </Tabs>
+        </DialogContent>
+      </Dialog>
+
+      {/* Save Chart Dialog */}
+      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Save Chart to Dashboard</DialogTitle>
+            <DialogDescription>
+              Create a multi-series chart from the {selectedSeries.size} selected series
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Chart Name</label>
+              <Input
+                placeholder="e.g., GDP vs Unemployment"
+                value={chartName}
+                onChange={(e) => setChartName(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSaveToDisplay()}
+              />
+            </div>
+
+            <div className="text-sm text-zinc-400">
+              Selected series ({selectedSeries.size}):
+              <ul className="mt-2 space-y-1">
+                {Array.from(selectedSeries).slice(0, 5).map(id => (
+                  <li key={id} className="text-zinc-300">• {id}</li>
+                ))}
+                {selectedSeries.size > 5 && (
+                  <li className="text-zinc-500">• ... and {selectedSeries.size - 5} more</li>
+                )}
+              </ul>
+            </div>
+          </div>
+
+          <div className="flex gap-2 justify-end">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowSaveDialog(false)
+                setChartName('')
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveToDisplay}
+              disabled={saving || !chartName.trim()}
+            >
+              <Save className="w-4 h-4 mr-2" />
+              {saving ? 'Saving...' : 'Save Chart'}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

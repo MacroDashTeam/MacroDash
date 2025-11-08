@@ -1,646 +1,686 @@
-import { useState, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Plus, X, Play, TrendingUp, AlertCircle, CheckCircle2, Loader2, Search } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Plus, Play, Trash2, Calculator, TrendingUp, Database, Save, X } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
-type Stock = {
-  symbol: string
-  name: string
-}
+import 'katex/dist/katex.min.css'
+import { InlineMath } from 'react-katex'
 
-type Formula = {
+type Series = {
   id: string
-  expression: string
-  result?: any
-  error?: string
+  label: string
+  source: string
+  show: boolean
+  formula?: string
+  color: string
 }
 
-type AnalysisResult = {
-  [key: string]: {
-    formula: string
-    value: any
-    type: string
-    error?: string
-    series?: number[]
-    dates?: string[]
-    data?: {
-      summary?: string
-      is_stationary?: boolean
-      trend?: string
-      explanation?: string
-      recommendation?: string
-      model_quality?: string
-      quality_note?: string
-      forecast_range?: string
-      suggested_action?: string
-      [key: string]: any
-    }
+const CHART_COLORS = [
+  '#3b82f6', '#ef4444', '#10b981', '#f59e0b',
+  '#8b5cf6', '#ec4899', '#14b8a6', '#f97316',
+]
+
+const PRESET_FUNCTIONS = [
+  { name: 'SMA', description: 'Simple Moving Average', example: 'sma(AAPL, 20)' },
+  { name: 'EMA', description: 'Exponential Moving Average', example: 'ema(AAPL, 20)' },
+  { name: 'Returns', description: 'Calculate returns', example: 'returns(AAPL)' },
+  { name: 'Quantile', description: 'Calculate quantile (static)', example: 'quantile(AAPL, 0.25)' },
+  { name: 'ADF Test', description: 'Stationarity test (static)', example: 'adf_test(AAPL)' },
+  { name: 'ARIMA', description: 'ARIMA forecast (dict result)', example: 'arima(AAPL, [1,1,1])' },
+]
+
+// Convert formula to LaTeX notation
+function formulaToLatex(formula: string): string {
+  if (!formula) return ''
+
+  let latex = formula
+
+  // Handle sma(AAPL, 20) -> \text{SMA}_{20}(\text{AAPL})
+  latex = latex.replace(/sma\(([^,]+),\s*(\d+)\)/g, (_, symbol, period) =>
+    `\\text{SMA}_{${period}}(\\text{${symbol.trim()}})`
+  )
+
+  // Handle ema(AAPL, 20) -> \text{EMA}_{20}(\text{AAPL})
+  latex = latex.replace(/ema\(([^,]+),\s*(\d+)\)/g, (_, symbol, period) =>
+    `\\text{EMA}_{${period}}(\\text{${symbol.trim()}})`
+  )
+
+  // Handle returns(AAPL) -> R(\text{AAPL})
+  latex = latex.replace(/returns\(([^)]+)\)/g, (_, symbol) =>
+    `R(\\text{${symbol.trim()}})`
+  )
+
+  // Handle adf_test(AAPL) -> \text{ADF}(\text{AAPL})
+  latex = latex.replace(/adf_test\(([^)]+)\)/g, (_, symbol) =>
+    `\\text{ADF}(\\text{${symbol.trim()}})`
+  )
+
+  // Handle arima(AAPL, [1,1,1]) -> \text{ARIMA}_{(1,1,1)}(\text{AAPL})
+  latex = latex.replace(/arima\(([^,]+),\s*\[([^\]]+)\]\)/g, (_, symbol, order) =>
+    `\\text{ARIMA}_{(${order})}(\\text{${symbol.trim()}})`
+  )
+
+  // Handle price(AAPL) -> \text{price}(\text{AAPL})
+  latex = latex.replace(/price\(([^)]+)\)/g, (_, symbol) =>
+    `\\text{price}(\\text{${symbol.trim()}})`
+  )
+
+  // Handle plain symbols (stock tickers like AAPL)
+  // Only if not already wrapped in \text{}
+  if (!latex.includes('\\text{')) {
+    latex = `\\text{${latex}}`
   }
+
+  return latex
 }
 
 export default function CustomAnalysis() {
-  const [selectedStocks, setSelectedStocks] = useState<Stock[]>([
-    { symbol: 'AAPL', name: 'Apple Inc.' },
-    { symbol: 'MSFT', name: 'Microsoft Corporation' }
+  const [series, setSeries] = useState<Series[]>([
+    { id: 'AAPL', label: 'AAPL', source: 'NASDAQ: AAPL', show: false, color: CHART_COLORS[0] },
+    { id: 'MSFT', label: 'MSFT', source: 'NASDAQ: MSFT', show: false, color: CHART_COLORS[1] },
   ])
-  const [stockInput, setStockInput] = useState('')
-  const [availableStocks, setAvailableStocks] = useState<Stock[]>([])
-  const [filteredStocks, setFilteredStocks] = useState<Stock[]>([])
-  const [showStockDropdown, setShowStockDropdown] = useState(false)
-  const [formulas, setFormulas] = useState<Formula[]>([
-    { id: '1', expression: 'x = price(AAPL) / price(MSFT)' },
-    { id: '2', expression: 'y = x^2 + 2' }
-  ])
-  const [formulaInput, setFormulaInput] = useState('')
-  const [results, setResults] = useState<AnalysisResult | null>(null)
+
+  const [chartData, setChartData] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [suggestions, setSuggestions] = useState<string[]>([])
+  const [staticVars, setStaticVars] = useState<any>(null)
 
-  const availableFunctions = [
-    'price(symbol)',
-    'sma(series, period)',
-    'ema(series, period)',
-    'adf_test(series)',
-    'arima(series, [p,d,q])',
-    'returns(series)'
-  ]
+  // Modals
+  const [showAddStock, setShowAddStock] = useState(false)
+  const [showAddFunction, setShowAddFunction] = useState(false)
+  const [showSaveDialog, setShowSaveDialog] = useState(false)
 
-  // Fetch available stocks
-  useEffect(() => {
-    const fetchStocks = async () => {
-      try {
-        const response = await fetch('http://localhost:8000/api/stocks/')
-        const data = await response.json()
-        if (data.status === 'success' && data.data) {
-          const stocks = Object.entries(data.data).map(([symbol, info]: [string, any]) => ({
-            symbol,
-            name: info.name || symbol
-          }))
-          setAvailableStocks(stocks)
-        }
-      } catch (err) {
-        console.error('Failed to fetch stocks:', err)
-      }
-    }
-    fetchStocks()
-  }, [])
+  // Form inputs
+  const [newStockSymbol, setNewStockSymbol] = useState('')
+  const [newFunctionName, setNewFunctionName] = useState('')
+  const [newFunctionFormula, setNewFunctionFormula] = useState('')
+  const [chartName, setChartName] = useState('')
+  const [saving, setSaving] = useState(false)
 
-  const handleStockInputChange = (value: string) => {
-    setStockInput(value)
-    if (value.trim()) {
-      const filtered = availableStocks.filter(stock =>
-        stock.symbol.toLowerCase().includes(value.toLowerCase()) ||
-        stock.name.toLowerCase().includes(value.toLowerCase())
-      ).slice(0, 10)
-      setFilteredStocks(filtered)
-      setShowStockDropdown(true)
-    } else {
-      setFilteredStocks([])
-      setShowStockDropdown(false)
-    }
+  // Memoize visible series to prevent chart re-renders on every keystroke
+  const visibleSeries = useMemo(() => series.filter(s => s.show), [series])
+
+  const handleToggleSeries = (id: string) => {
+    setSeries(series.map(s => s.id === id ? { ...s, show: !s.show } : s))
   }
 
-  const addStock = (stock?: Stock) => {
-    let stockToAdd: Stock | undefined
+  const handleDeleteSeries = (id: string) => {
+    setSeries(series.filter(s => s.id !== id))
+  }
 
-    if (stock) {
-      stockToAdd = stock
-    } else if (stockInput.trim()) {
-      const symbol = stockInput.toUpperCase()
-      stockToAdd = availableStocks.find(s => s.symbol === symbol) || { symbol, name: '' }
+  const handleAddStock = () => {
+    const symbol = newStockSymbol.trim().toUpperCase()
+    if (!symbol) {
+      alert('Please enter a stock symbol')
+      return
     }
-
-    if (stockToAdd && !selectedStocks.find(s => s.symbol === stockToAdd!.symbol)) {
-      setSelectedStocks([...selectedStocks, stockToAdd])
-    }
-
-    setStockInput('')
-    setShowStockDropdown(false)
-    setFilteredStocks([])
-  }
-
-  const removeStock = (symbol: string) => {
-    setSelectedStocks(selectedStocks.filter(s => s.symbol !== symbol))
-  }
-
-  const addFormula = () => {
-    if (formulaInput.trim()) {
-      setFormulas([...formulas, {
-        id: Date.now().toString(),
-        expression: formulaInput
-      }])
-      setFormulaInput('')
-      setSuggestions([])
-    }
-  }
-
-  const removeFormula = (id: string) => {
-    setFormulas(formulas.filter(f => f.id !== id))
-  }
-
-  const handleFormulaInputChange = (value: string) => {
-    setFormulaInput(value)
-
-    // Simple autocomplete for functions
-    if (value.includes('(') && !value.endsWith(')')) {
-      const matches = availableFunctions.filter(fn =>
-        fn.toLowerCase().includes(value.toLowerCase())
-      )
-      setSuggestions(matches.slice(0, 5))
-    } else {
-      setSuggestions([])
-    }
-  }
-
-  const runAnalysis = async () => {
-    if (selectedStocks.length === 0) {
-      setError('Please add at least one stock')
+    if (series.find(s => s.id === symbol)) {
+      alert('Stock already added')
       return
     }
 
-    if (formulas.length === 0) {
-      setError('Please add at least one formula')
+    setSeries([...series, {
+      id: symbol,
+      label: symbol,
+      source: `Stock: ${symbol}`,
+      show: true,
+      color: CHART_COLORS[series.length % CHART_COLORS.length]
+    }])
+    setNewStockSymbol('')
+    setShowAddStock(false)
+  }
+
+  const handleAddFunction = () => {
+    if (!newFunctionName.trim() || !newFunctionFormula.trim()) {
+      alert('Please enter both name and formula')
+      return
+    }
+
+    setSeries([...series, {
+      id: `custom_${Date.now()}`,
+      label: newFunctionName,
+      source: newFunctionFormula,
+      formula: newFunctionFormula,
+      show: true,
+      color: CHART_COLORS[series.length % CHART_COLORS.length]
+    }])
+    setNewFunctionName('')
+    setNewFunctionFormula('')
+    setShowAddFunction(false)
+  }
+
+  const handleAddPreset = (preset: typeof PRESET_FUNCTIONS[0]) => {
+    setSeries([...series, {
+      id: `preset_${Date.now()}`,
+      label: preset.name,
+      source: preset.example,
+      formula: preset.example,
+      show: true,
+      color: CHART_COLORS[series.length % CHART_COLORS.length]
+    }])
+  }
+
+  const handleRunAnalysis = async () => {
+    const selectedSeries = visibleSeries
+    if (selectedSeries.length === 0) {
+      alert('Please select at least one series')
       return
     }
 
     setLoading(true)
-    setError(null)
-
     try {
-      const response = await fetch('http://localhost:8000/api/custom-analysis/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          symbols: selectedStocks.map(s => s.symbol),
-          formulas: formulas.map(f => f.expression),
-          period: '1y'
-        }),
+      // Collect all symbols that are needed
+      const allSymbols = new Set<string>()
+
+      // Build formulas - create price() formulas for plain stocks
+      const formulas: Record<string, string> = {}
+
+      selectedSeries.forEach(s => {
+        if (s.formula) {
+          // Custom formula - extract symbols from it
+          formulas[s.label] = s.formula
+          // Extract symbols from formula (simple regex for AAPL, MSFT, etc.)
+          const symbolMatches = s.formula.match(/\b[A-Z]{1,5}\b/g)
+          if (symbolMatches) {
+            symbolMatches.forEach(sym => allSymbols.add(sym))
+          }
+        } else {
+          // Plain stock - create a price() formula
+          formulas[s.label] = `price(${s.id})`
+          allSymbols.add(s.id)
+        }
       })
 
-      const data = await response.json()
+      const API_BASE = import.meta.env.VITE_API_BASE_URL
 
-      if (data.status === 'success') {
-        setResults(data.data)
-      } else {
-        setError(data.error || 'Failed to evaluate formulas')
+      // Convert formulas dict to list of "label = expression" strings
+      const formulasList = Object.entries(formulas).map(([label, expr]) => `${label} = ${expr}`)
+
+      console.log('Sending to API:', {
+        symbols: Array.from(allSymbols),
+        formulas: formulasList
+      })
+
+      const response = await fetch(`${API_BASE}/api/custom-analysis/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          symbols: Array.from(allSymbols),
+          formulas: formulasList
+        })
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('API Error:', errorText)
+        throw new Error(`Analysis failed: ${errorText}`)
       }
-    } catch (err) {
-      console.error('Analysis error:', err)
-      setError('Failed to connect to the server. Make sure the backend is running.')
+
+      const result = await response.json()
+      console.log('API Result:', result)
+
+      // Build chart data - handle both result.data and direct result
+      const chartPoints: any[] = []
+      const dataObj = result.data || result
+
+      // Filter out non-time-series results (like ADF test which returns dict)
+      const timeSeriesData: any = {}
+      const statisticalResults: any = {}
+      Object.entries(dataObj).forEach(([key, value]: [string, any]) => {
+        // Only include results that have a series field (time series data)
+        if (value.series && Array.isArray(value.series)) {
+          timeSeriesData[key] = value
+        } else if (value.type === 'dict') {
+          console.log(`Storing statistical result for ${key}:`, value.data || value.value)
+          statisticalResults[key] = value.data || value.value || value
+        }
+      })
+
+      // Store statistical results
+      setStaticVars(Object.keys(statisticalResults).length > 0 ? statisticalResults : null)
+
+      // Get the first time series to extract dates
+      const firstSeriesKey = Object.keys(timeSeriesData)[0]
+      const firstSeries = timeSeriesData[firstSeriesKey]
+
+      if (firstSeries?.dates) {
+        firstSeries.dates.forEach((date: string, idx: number) => {
+          const point: any = { date }
+
+          // Add all series data for this date
+          Object.entries(timeSeriesData).forEach(([key, value]: [string, any]) => {
+            if (value.series && value.series[idx] !== undefined) {
+              point[key] = value.series[idx]
+            }
+          })
+
+          chartPoints.push(point)
+        })
+      }
+
+      console.log('Chart data points:', chartPoints.length, chartPoints.slice(0, 3))
+
+      if (chartPoints.length === 0) {
+        alert('No plottable data returned. Note: ADF Test returns statistical results, not time series data.')
+      }
+
+      setChartData(chartPoints)
+    } catch (error) {
+      console.error('Analysis error:', error)
+      alert(`Failed to run analysis: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setLoading(false)
     }
   }
 
+  const handleSaveToDashboard = async () => {
+    if (!chartName.trim()) {
+      alert('Please enter a chart name')
+      return
+    }
+
+    if (chartData.length === 0) {
+      alert('Please run analysis first')
+      return
+    }
+
+    setSaving(true)
+    try {
+      const API_BASE = import.meta.env.VITE_API_BASE_URL
+      const selectedSeries = visibleSeries
+      const seriesIds = selectedSeries.map(s => s.label)
+      const seriesMetadata = selectedSeries.reduce((acc, s) => {
+        acc[s.label] = {
+          name: s.label,
+          frequency: 'Daily',
+          units: s.formula ? 'Custom' : 'Price'
+        }
+        return acc
+      }, {} as Record<string, any>)
+
+      // Collect formulas for re-execution in Dashboard
+      const formulas = selectedSeries.map(s => {
+        if (s.formula) {
+          return `${s.label} = ${s.formula}`
+        } else {
+          // Base stock price series
+          return `${s.label} = price(${s.id})`
+        }
+      })
+
+      // Extract unique stock symbols needed
+      const symbolsSet = new Set<string>()
+      selectedSeries.forEach(s => {
+        if (s.formula) {
+          // Extract symbols from formula (e.g., "sma(AAPL, 20)" -> "AAPL")
+          const matches = s.formula.match(/([A-Z]{1,5})(?=[,)])/g)
+          if (matches) {
+            matches.forEach(sym => symbolsSet.add(sym))
+          }
+        } else {
+          // Base stock symbol (no formula)
+          symbolsSet.add(s.id)
+        }
+      })
+      const symbols = Array.from(symbolsSet)
+
+      const res = await fetch(`${API_BASE}/api/charts/`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chart_name: chartName,
+          series_ids: seriesIds,
+          series_metadata: seriesMetadata,
+          source_type: 'custom_analysis',
+          formulas: formulas,
+          symbols: symbols
+        })
+      })
+
+      if (!res.ok) throw new Error('Failed to save chart')
+
+      // Dispatch event to notify dashboard to refresh
+      window.dispatchEvent(new CustomEvent('chart-saved'))
+
+      alert('Chart saved to Dashboard successfully!')
+      setChartName('')
+      setShowSaveDialog(false)
+    } catch (error) {
+      console.error('Save error:', error)
+      alert('Failed to save chart to Dashboard')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
-    <div className="flex-1 p-8 overflow-auto">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Custom Analysis</h1>
-            <p className="text-zinc-400">
-              Create custom formulas using stock data and statistical functions
-            </p>
-          </div>
-          <Button onClick={runAnalysis} disabled={loading} className="gap-2">
+    <div className="p-6 pt-12 space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Custom Analysis</h1>
+          <p className="text-sm text-zinc-400 mt-1">Create custom formulas with SMA, EMA, ARIMA and more</p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            onClick={handleRunAnalysis}
+            disabled={loading || visibleSeries.length === 0}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
             {loading ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 Running...
               </>
             ) : (
               <>
-                <Play className="w-4 h-4" />
+                <Play className="w-4 h-4 mr-2" />
                 Run Analysis
               </>
             )}
           </Button>
+          <Button
+            onClick={() => setShowSaveDialog(true)}
+            disabled={chartData.length === 0}
+            variant="outline"
+          >
+            <Save className="w-4 h-4 mr-2" />
+            Save to Dashboard
+          </Button>
         </div>
+      </div>
 
-        {/* Error Display */}
-        {error && (
-          <Card className="p-4 bg-red-900/20 border-red-800">
-            <div className="flex items-center gap-2 text-red-400">
-              <AlertCircle className="w-5 h-5" />
-              <p>{error}</p>
-            </div>
-          </Card>
-        )}
-
-        {/* Stock Selection */}
-        <Card className="p-6 bg-zinc-900/50 border-zinc-800">
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="w-5 h-5 text-blue-500" />
-            <h2 className="text-lg font-semibold">Select Stocks</h2>
+      <div className="grid grid-cols-12 gap-4">
+        {/* Left Panel - Series */}
+        <Card className="col-span-3 p-4 border-zinc-800 bg-zinc-900/50">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold">Series</h2>
+            <span className="text-xs text-zinc-500">{visibleSeries.length} selected</span>
           </div>
 
-          <div className="relative">
-            <div className="flex gap-2 mb-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                <Input
-                  value={stockInput}
-                  onChange={(e) => handleStockInputChange(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && addStock()}
-                  onFocus={() => stockInput && setShowStockDropdown(true)}
-                  placeholder="Search stocks (e.g., AAPL, Apple)"
-                  className="pl-10 bg-zinc-800 border-zinc-700"
+          <div className="space-y-2 max-h-96 overflow-y-auto mb-4">
+            {series.map((s) => (
+              <div
+                key={s.id}
+                className="flex items-center gap-2 p-2 rounded hover:bg-zinc-800/50 group"
+              >
+                <Checkbox
+                  checked={s.show}
+                  onCheckedChange={() => handleToggleSeries(s.id)}
                 />
-              </div>
-              <Button onClick={() => addStock()} variant="outline" size="sm" className="gap-2">
-                <Plus className="w-4 h-4" />
-                Add
-              </Button>
-            </div>
-
-            {/* Dropdown */}
-            {showStockDropdown && filteredStocks.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                {filteredStocks.map((stock) => (
-                  <button
-                    key={stock.symbol}
-                    onClick={() => addStock(stock)}
-                    className="w-full px-4 py-3 text-left hover:bg-zinc-700 transition-colors flex items-center justify-between group"
-                  >
-                    <div>
-                      <div className="font-semibold text-blue-400">{stock.symbol}</div>
-                      <div className="text-sm text-zinc-500">{stock.name}</div>
-                    </div>
-                    <Plus className="w-4 h-4 text-zinc-600 group-hover:text-zinc-400" />
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {selectedStocks.map(stock => (
-              <div
-                key={stock.symbol}
-                className="flex items-center gap-2 px-3 py-2 bg-zinc-800 rounded-lg border border-zinc-700"
-              >
-                <span className="font-mono font-semibold text-blue-400">{stock.symbol}</span>
-                {stock.name && <span className="text-sm text-zinc-500">{stock.name}</span>}
-                <button
-                  onClick={() => removeStock(stock.symbol)}
-                  className="ml-2 text-zinc-500 hover:text-red-400 transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        {/* Formula Editor */}
-        <Card className="p-6 bg-zinc-900/50 border-zinc-800">
-          <h2 className="text-lg font-semibold mb-4">Formulas</h2>
-
-          <div className="relative">
-            <div className="flex gap-2 mb-2">
-              <Input
-                value={formulaInput}
-                onChange={(e) => handleFormulaInputChange(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && addFormula()}
-                placeholder="Enter formula (e.g., x = price(AAPL) / price(MSFT))"
-                className="flex-1 bg-zinc-800 border-zinc-700 font-mono"
-              />
-              <Button onClick={addFormula} variant="outline" size="sm" className="gap-2">
-                <Plus className="w-4 h-4" />
-                Add
-              </Button>
-            </div>
-
-            {/* Autocomplete Suggestions */}
-            {suggestions.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg">
-                {suggestions.map((suggestion, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => {
-                      setFormulaInput(suggestion)
-                      setSuggestions([])
-                    }}
-                    className="w-full px-4 py-2 text-left text-sm font-mono text-zinc-300 hover:bg-zinc-700 first:rounded-t-lg last:rounded-b-lg transition-colors"
-                  >
-                    {suggestion}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-2 mt-4">
-            {formulas.map(formula => (
-              <div
-                key={formula.id}
-                className="flex items-center gap-3 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700/50 hover:border-zinc-600 transition-colors"
-              >
-                <span className="flex-1 font-mono text-sm text-zinc-200">{formula.expression}</span>
-                <button
-                  onClick={() => removeFormula(formula.id)}
-                  className="text-zinc-500 hover:text-red-400 transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
-          </div>
-
-          {/* Function Reference */}
-          <div className="mt-6 p-4 bg-zinc-800/30 rounded-lg border border-zinc-700/50">
-            <h3 className="text-sm font-semibold text-zinc-400 mb-2">Available Functions:</h3>
-            <div className="grid grid-cols-2 gap-2 text-xs text-zinc-500">
-              <div><code className="text-blue-400">price(symbol)</code> - Get price data</div>
-              <div><code className="text-blue-400">sma(series, period)</code> - Simple moving average</div>
-              <div><code className="text-blue-400">ema(series, period)</code> - Exponential moving average</div>
-              <div><code className="text-blue-400">adf_test(series)</code> - Stationarity test</div>
-              <div><code className="text-blue-400">arima(series, [p,d,q])</code> - ARIMA model</div>
-              <div><code className="text-blue-400">returns(series)</code> - Calculate returns</div>
-            </div>
-          </div>
-        </Card>
-
-        {/* Results Area */}
-        <Card className="p-6 bg-zinc-900/50 border-zinc-800">
-          <h2 className="text-lg font-semibold mb-4">Results</h2>
-
-          {loading ? (
-            <div className="text-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-4" />
-              <p className="text-zinc-400">Evaluating formulas...</p>
-            </div>
-          ) : results ? (
-            <div className="space-y-6">
-              {/* Combined Time Series Chart */}
-              {(() => {
-                // Check if we have any time series data
-                const timeSeriesVars = Object.entries(results).filter(
-                  ([, result]) => result.series && result.dates && result.series.length > 1 && !result.error
-                )
-
-                if (timeSeriesVars.length > 0) {
-                  // Get dates from first variable (all should have same dates)
-                  const dates = timeSeriesVars[0][1].dates || []
-
-                  // Build combined data
-                  const chartData = dates.map((date: string, idx: number) => {
-                    const dataPoint: any = { date }
-                    timeSeriesVars.forEach(([key, result]) => {
-                      dataPoint[key] = result.series?.[idx]
-                    })
-                    return dataPoint
-                  })
-
-                  // Color palette for different variables
-                  const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316']
-
-                  return (
-                    <div>
-                      <div className="text-sm text-zinc-500 mb-2">Time Series Chart:</div>
-                      <div className="bg-zinc-900 rounded p-4">
-                        <ResponsiveContainer width="100%" height={400}>
-                          <LineChart data={chartData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                            <XAxis
-                              dataKey="date"
-                              stroke="#71717a"
-                              tick={{ fill: '#71717a', fontSize: 11 }}
-                              tickFormatter={(value) => {
-                                const date = new Date(value)
-                                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                              }}
-                            />
-                            <YAxis
-                              stroke="#71717a"
-                              tick={{ fill: '#71717a', fontSize: 11 }}
-                              tickFormatter={(value) => value.toFixed(2)}
-                            />
-                            <Tooltip
-                              contentStyle={{
-                                backgroundColor: '#18181b',
-                                border: '1px solid #27272a',
-                                borderRadius: '8px',
-                                color: '#fff'
-                              }}
-                              labelFormatter={(label) => {
-                                const date = new Date(label)
-                                return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-                              }}
-                              formatter={(value: number) => value.toFixed(4)}
-                            />
-                            <Legend />
-                            {timeSeriesVars.map(([key], idx) => (
-                              <Line
-                                key={key}
-                                type="monotone"
-                                dataKey={key}
-                                name={key}
-                                stroke={colors[idx % colors.length]}
-                                strokeWidth={2}
-                                dot={false}
-                              />
-                            ))}
-                          </LineChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </div>
-                  )
-                }
-                return null
-              })()}
-
-              {/* Variable Summary */}
-              <div>
-                <div className="text-sm text-zinc-500 mb-3">Variable Summary:</div>
-                <div className="grid gap-3">
-                  {Object.entries(results).map(([key, result]) => (
-                    <div
-                      key={key}
-                      className="p-4 bg-zinc-800/50 rounded-lg border border-zinc-700/50"
-                    >
-                      <div className="flex items-start gap-3">
-                        {result.error ? (
-                          <AlertCircle className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
-                        ) : (
-                          <CheckCircle2 className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="font-semibold text-blue-400">{key}</span>
-                            <span className="text-xs text-zinc-500 px-2 py-0.5 bg-zinc-700 rounded">
-                              {result.type}
-                            </span>
-                          </div>
-                          <div className="font-mono text-sm text-zinc-400 mb-2">
-                            {result.formula}
-                          </div>
-                          {result.error ? (
-                            <div className="text-sm text-red-400">
-                              Error: {result.error}
-                            </div>
-                          ) : result.type === 'dict' && result.data ? (
-                            <div className="mt-3 space-y-3">
-                              {/* Insights Summary */}
-                              {result.data.summary && (
-                                <div className={`p-4 rounded-lg border-2 ${
-                                  // Handle ADF test results
-                                  result.data.is_stationary !== undefined
-                                    ? result.data.is_stationary
-                                      ? 'bg-green-500/10 border-green-500/30'
-                                      : 'bg-yellow-500/10 border-yellow-500/30'
-                                    // Handle ARIMA forecast results
-                                    : result.data.trend === 'upward'
-                                      ? 'bg-blue-500/10 border-blue-500/30'
-                                      : result.data.trend === 'downward'
-                                        ? 'bg-purple-500/10 border-purple-500/30'
-                                        : 'bg-zinc-500/10 border-zinc-500/30'
-                                }`}>
-                                  <div className="flex items-start gap-3">
-                                    <div className={`text-2xl ${
-                                      // Handle ADF test results
-                                      result.data.is_stationary !== undefined
-                                        ? result.data.is_stationary ? 'text-green-400' : 'text-yellow-400'
-                                        // Handle ARIMA forecast results
-                                        : result.data.trend === 'upward'
-                                          ? 'text-blue-400'
-                                          : result.data.trend === 'downward'
-                                            ? 'text-purple-400'
-                                            : 'text-zinc-400'
-                                    }`}>
-                                      {/* Display appropriate icon */}
-                                      {result.data.is_stationary !== undefined
-                                        ? (result.data.is_stationary ? '✓' : '⚠')
-                                        : result.data.summary.substring(0, 2)}
-                                    </div>
-                                    <div className="flex-1">
-                                      <div className={`font-semibold text-lg mb-1 ${
-                                        result.data.is_stationary !== undefined
-                                          ? result.data.is_stationary ? 'text-green-400' : 'text-yellow-400'
-                                          : result.data.trend === 'upward'
-                                            ? 'text-blue-400'
-                                            : result.data.trend === 'downward'
-                                              ? 'text-purple-400'
-                                              : 'text-zinc-400'
-                                      }`}>
-                                        {result.data.summary}
-                                      </div>
-                                      {result.data.explanation && (
-                                        <p className="text-sm text-zinc-300 mb-2">
-                                          {result.data.explanation}
-                                        </p>
-                                      )}
-                                      {result.data.recommendation && (
-                                        <div className="flex items-center gap-2 text-sm">
-                                          <span className="text-zinc-400">Recommendation:</span>
-                                          <span className="text-zinc-200">{result.data.recommendation}</span>
-                                        </div>
-                                      )}
-                                      {/* ARIMA-specific: Model Quality */}
-                                      {result.data.model_quality && (
-                                        <div className="mt-2 flex items-center gap-2 text-sm">
-                                          <span className="text-zinc-400">Model Quality:</span>
-                                          <span className={`font-semibold ${
-                                            result.data.model_quality === 'Good' ? 'text-green-400' :
-                                            result.data.model_quality === 'Moderate' ? 'text-yellow-400' :
-                                            'text-red-400'
-                                          }`}>
-                                            {result.data.model_quality}
-                                          </span>
-                                          <span className="text-zinc-400">-</span>
-                                          <span className="text-zinc-300">{result.data.quality_note}</span>
-                                        </div>
-                                      )}
-                                      {/* ARIMA-specific: Forecast Range */}
-                                      {result.data.forecast_range && (
-                                        <div className="mt-2 flex items-center gap-2 text-sm">
-                                          <span className="text-zinc-400">Forecast Range:</span>
-                                          <span className="text-zinc-200 font-mono">{result.data.forecast_range}</span>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Suggested Action */}
-                              {result.data.suggested_action && (
-                                <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                                  <div className="flex items-start gap-2">
-                                    <TrendingUp className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
-                                    <div className="flex-1">
-                                      <div className="text-sm font-medium text-blue-400 mb-1">
-                                        Next Step:
-                                      </div>
-                                      <p className="text-sm text-zinc-300">
-                                        {result.data.suggested_action}
-                                      </p>
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Technical Details (Collapsible) */}
-                              <details className="group">
-                                <summary className="cursor-pointer text-sm text-zinc-400 hover:text-zinc-300 flex items-center gap-2">
-                                  <span>View Technical Details</span>
-                                  <span className="text-xs">▼</span>
-                                </summary>
-                                <div className="mt-2 p-3 bg-zinc-900 rounded space-y-2">
-                                  {Object.entries(result.data).map(([k, v]) => {
-                                    // Skip the insight fields, show only technical data
-                                    if (['summary', 'explanation', 'recommendation', 'confidence', 'suggested_action',
-                                         'model_quality', 'quality_note', 'forecast_range', 'trend'].includes(k)) {
-                                      return null
-                                    }
-                                    return (
-                                      <div key={k} className="flex justify-between text-sm">
-                                        <span className="text-zinc-400">{k.replace(/_/g, ' ')}:</span>
-                                        <span className="text-zinc-200 font-mono">
-                                          {typeof v === 'number' ? v.toFixed(6) :
-                                           typeof v === 'object' ? JSON.stringify(v) :
-                                           String(v)}
-                                        </span>
-                                      </div>
-                                    )
-                                  })}
-                                </div>
-                              </details>
-                            </div>
-                          ) : (
-                            <div className="mt-2">
-                              <div className="text-sm text-zinc-500 mb-1">Current Value:</div>
-                              <div className="p-3 bg-zinc-900 rounded font-mono text-sm text-zinc-200">
-                                {typeof result.value === 'number' ? result.value.toFixed(4) : String(result.value)}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                <div
+                  className="w-3 h-3 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: s.color }}
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium truncate">{s.label}</div>
+                  <div className="text-xs text-zinc-500 truncate">
+                    {s.formula ? (
+                      <InlineMath math={formulaToLatex(s.formula)} />
+                    ) : (
+                      s.source
+                    )}
+                  </div>
                 </div>
+                <button
+                  onClick={() => handleDeleteSeries(s.id)}
+                  className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-400"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </div>
+            ))}
+          </div>
 
-              <div className="pt-4 border-t border-zinc-800">
-                <p className="text-sm text-zinc-500 text-center">
-                  Analysis complete! {Object.keys(results).length} variable(s) evaluated.
-                </p>
-              </div>
+          <div className="space-y-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAddStock(true)}
+              className="w-full text-xs"
+            >
+              <Database className="w-3 h-3 mr-1" />
+              Add Stock
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAddFunction(true)}
+              className="w-full text-xs"
+            >
+              <Calculator className="w-3 h-3 mr-1" />
+              Add Formula
+            </Button>
+          </div>
+
+          <div className="mt-4 pt-4 border-t border-zinc-800">
+            <h3 className="text-xs font-semibold mb-2 text-zinc-400">Preset Functions</h3>
+            <div className="space-y-1">
+              {PRESET_FUNCTIONS.map((preset, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleAddPreset(preset)}
+                  className="w-full text-left p-2 rounded hover:bg-zinc-800 text-xs"
+                >
+                  <div className="font-semibold text-blue-400">{preset.name}</div>
+                  <div className="text-zinc-500 text-[10px]">{preset.description}</div>
+                  <div className="mt-1 text-zinc-600">
+                    <InlineMath math={formulaToLatex(preset.example)} />
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </Card>
+
+        {/* Center Panel - Chart */}
+        <Card className="col-span-9 p-6 border-zinc-800 bg-zinc-900/50">
+          <h2 className="font-semibold mb-4">Chart</h2>
+
+          {chartData.length > 0 ? (
+            <div className="h-[500px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                  <XAxis
+                    dataKey="date"
+                    stroke="#71717a"
+                    tick={{ fill: '#71717a', fontSize: 11 }}
+                  />
+                  <YAxis
+                    stroke="#71717a"
+                    tick={{ fill: '#71717a', fontSize: 11 }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#18181b',
+                      border: '1px solid #3f3f46',
+                      borderRadius: '6px',
+                    }}
+                  />
+                  <Legend />
+                  {visibleSeries.map((s) => (
+                    <Line
+                      key={s.id}
+                      type="monotone"
+                      dataKey={s.label}
+                      stroke={s.color}
+                      strokeWidth={2}
+                      dot={false}
+                      connectNulls
+                    />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
             </div>
           ) : (
-            <div className="text-center py-12 text-zinc-500">
-              <p className="mb-2">No results yet</p>
-              <p className="text-sm">Click "Run Analysis" to evaluate your formulas</p>
+            <div className="h-[500px] flex items-center justify-center text-zinc-500">
+              <div className="text-center">
+                <TrendingUp className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                <p className="text-lg">Select series and click "Run Analysis"</p>
+                <p className="text-sm mt-2">Available functions: sma(), ema(), returns(), adf_test(), arima()</p>
+              </div>
             </div>
           )}
         </Card>
       </div>
+
+      {/* Static Variables Panel */}
+      {staticVars && Object.keys(staticVars).length > 0 && (
+        <Card className="p-6 bg-zinc-900/50 border-zinc-800">
+            <h3 className="text-xl font-semibold mb-6 flex items-center gap-2 text-zinc-100">
+              <Database className="w-6 h-6" />
+              Static Variables
+            </h3>
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 w-full">
+              {Object.entries(staticVars).map(([key, value]: [string, any]) => (
+                <div key={key} className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-5 hover:border-zinc-600 transition-colors">
+                  <div className="mb-4 pb-3 border-b border-zinc-700">
+                    <h4 className="font-semibold text-base text-blue-400">{key}</h4>
+                  </div>
+                  <div className="space-y-2.5">
+                    {typeof value === 'object' && value !== null ? (
+                      Object.entries(value).map(([k, v]: [string, any]) => (
+                        <div key={k} className="flex justify-between items-start gap-4 py-1">
+                          <span className="text-zinc-400 text-sm font-medium min-w-[120px]">{k}:</span>
+                          <span className="text-zinc-100 font-mono text-sm text-right flex-1">
+                            {typeof v === 'number'
+                              ? v.toFixed(4)
+                              : Array.isArray(v)
+                              ? <span className="text-zinc-400 italic text-xs">Array ({v.length} values)</span>
+                              : typeof v === 'object' && v !== null
+                              ? Object.entries(v).map(([nk, nv]: [string, any]) => (
+                                  <div key={nk} className="text-xs mb-1">
+                                    <span className="text-zinc-500">{nk}: </span>
+                                    <span className="text-zinc-300">{typeof nv === 'number' ? nv.toFixed(4) : String(nv)}</span>
+                                  </div>
+                                ))
+                              : String(v)}
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-zinc-200 text-sm">{String(value)}</div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+
+      {/* Add Stock Modal */}
+      {showAddStock && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowAddStock(false)}>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 w-96" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Add Stock</h3>
+              <button onClick={() => setShowAddStock(false)} className="text-zinc-400 hover:text-zinc-200">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <Input
+              placeholder="Enter stock symbol (e.g., TSLA)"
+              value={newStockSymbol}
+              onChange={(e) => setNewStockSymbol(e.target.value.toUpperCase())}
+              onKeyPress={(e) => e.key === 'Enter' && handleAddStock()}
+              className="mb-4"
+              autoFocus
+            />
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowAddStock(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button onClick={handleAddStock} className="flex-1 bg-blue-600 hover:bg-blue-700">
+                Add
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Function Modal */}
+      {showAddFunction && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowAddFunction(false)}>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 w-[500px]" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Add Custom Formula</h3>
+              <button onClick={() => setShowAddFunction(false)} className="text-zinc-400 hover:text-zinc-200">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-3 mb-4">
+              <div>
+                <label className="text-sm text-zinc-400 mb-1 block">Formula Name</label>
+                <Input
+                  placeholder="e.g., AAPL SMA 20"
+                  value={newFunctionName}
+                  onChange={(e) => setNewFunctionName(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-sm text-zinc-400 mb-1 block">Formula</label>
+                <Input
+                  placeholder="e.g., sma(AAPL, 20)"
+                  value={newFunctionFormula}
+                  onChange={(e) => setNewFunctionFormula(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleAddFunction()}
+                />
+              </div>
+              <div className="text-xs text-zinc-500">
+                Available: sma(symbol, period), ema(symbol, period), returns(symbol), adf_test(symbol), arima(symbol, [p,d,q])
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowAddFunction(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button onClick={handleAddFunction} className="flex-1 bg-blue-600 hover:bg-blue-700">
+                Add Formula
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Save to Dashboard Modal */}
+      {showSaveDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowSaveDialog(false)}>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 w-96" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Save to Dashboard</h3>
+              <button onClick={() => setShowSaveDialog(false)} className="text-zinc-400 hover:text-zinc-200">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-4 mb-4">
+              <div>
+                <label className="text-sm text-zinc-400 mb-2 block">Chart Name</label>
+                <Input
+                  placeholder="e.g., AAPL SMA Analysis"
+                  value={chartName}
+                  onChange={(e) => setChartName(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSaveToDashboard()}
+                  autoFocus
+                />
+              </div>
+              <div className="text-xs text-zinc-500">
+                This will save {visibleSeries.length} series to your Dashboard
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowSaveDialog(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button onClick={handleSaveToDashboard} disabled={saving} className="flex-1 bg-blue-600 hover:bg-blue-700">
+                {saving ? 'Saving...' : 'Save'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

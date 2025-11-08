@@ -125,13 +125,41 @@ function CryptoWatchlistRow({ crypto }: { crypto: CryptoData }) {
 }
 
 export default function CryptoWatchlist() {
-  const [watchlistSymbols] = useState(['BTC', 'ETH', 'BNB', 'SOL', 'XRP'])
+  const [watchlistSymbols, setWatchlistSymbols] = useState(['BTC', 'ETH', 'BNB', 'SOL', 'XRP'])
+  const [showAddDialog, setShowAddDialog] = useState(false)
 
   const { data, isLoading, isError } = useQuery<CryptoListResponse>({
     queryKey: ['crypto-watchlist-data'],
     queryFn: fetchCryptoData,
     refetchInterval: 60000, // Refresh every minute
   })
+
+  const handleAddCrypto = (symbol: string) => {
+    if (!watchlistSymbols.includes(symbol)) {
+      setWatchlistSymbols([...watchlistSymbols, symbol])
+      setShowAddDialog(false)
+    }
+  }
+
+  const handleRemoveCrypto = (symbol: string) => {
+    setWatchlistSymbols(watchlistSymbols.filter(s => s !== symbol))
+  }
+
+  // Popular cryptos to add
+  const popularCryptos = [
+    { symbol: 'BTC', name: 'Bitcoin' },
+    { symbol: 'ETH', name: 'Ethereum' },
+    { symbol: 'BNB', name: 'BNB' },
+    { symbol: 'SOL', name: 'Solana' },
+    { symbol: 'XRP', name: 'XRP' },
+    { symbol: 'ADA', name: 'Cardano' },
+    { symbol: 'AVAX', name: 'Avalanche' },
+    { symbol: 'DOGE', name: 'Dogecoin' },
+    { symbol: 'DOT', name: 'Polkadot' },
+    { symbol: 'MATIC', name: 'Polygon' },
+    { symbol: 'LINK', name: 'Chainlink' },
+    { symbol: 'UNI', name: 'Uniswap' }
+  ]
 
   if (isLoading) {
     return (
@@ -175,11 +203,46 @@ export default function CryptoWatchlist() {
           <div className="text-2xl">₿</div>
           <h2 className="text-lg font-semibold">Crypto Watchlist</h2>
         </div>
-        <button className="flex items-center gap-1 text-sm text-zinc-400 hover:text-zinc-200 transition-colors px-3 py-1.5 rounded hover:bg-zinc-800/50">
+        <button
+          onClick={() => setShowAddDialog(!showAddDialog)}
+          className="flex items-center gap-1 text-sm text-zinc-400 hover:text-zinc-200 transition-colors px-3 py-1.5 rounded hover:bg-zinc-800/50"
+        >
           <Plus className="w-4 h-4" />
           <span>Add Crypto</span>
         </button>
       </div>
+
+      {/* Add Crypto Dialog */}
+      {showAddDialog && (
+        <div className="mb-4 p-4 rounded-lg bg-zinc-800/50 border border-zinc-700">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold">Add Cryptocurrency</h3>
+            <button
+              onClick={() => setShowAddDialog(false)}
+              className="text-zinc-400 hover:text-zinc-200"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            {popularCryptos.filter(c => !watchlistSymbols.includes(c.symbol)).map(crypto => (
+              <button
+                key={crypto.symbol}
+                onClick={() => handleAddCrypto(crypto.symbol)}
+                className="px-3 py-2 bg-zinc-700 hover:bg-zinc-600 rounded text-sm transition-colors text-left"
+              >
+                <div className="font-semibold">{crypto.symbol}</div>
+                <div className="text-xs text-zinc-400">{crypto.name}</div>
+              </button>
+            ))}
+          </div>
+          {popularCryptos.filter(c => !watchlistSymbols.includes(c.symbol)).length === 0 && (
+            <div className="text-center text-sm text-zinc-500 py-4">
+              All popular cryptocurrencies are already in your watchlist
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="space-y-1">
         <div className="grid grid-cols-6 gap-4 pb-2 px-2 text-xs text-zinc-500 font-medium border-b border-zinc-800">

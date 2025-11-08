@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
-import { TrendingUp, TrendingDown, Plus } from 'lucide-react'
+import { TrendingUp, TrendingDown, Plus, X } from 'lucide-react'
 import { useState } from 'react'
+import { Input } from './ui/input'
+import { Button } from './ui/button'
 
 type StockData = {
   name: string
@@ -40,7 +42,8 @@ async function fetchMarketData(): Promise<MarketResponse> {
 }
 
 async function fetchSentiment(symbol: string): Promise<SentimentResponse> {
-  const response = await fetch(`/api/sentiment/${symbol}/`)
+  const API_BASE = import.meta.env.VITE_API_BASE_URL
+  const response = await fetch(`${API_BASE}/api/sentiment/${symbol}/`)
   if (!response.ok) throw new Error('Failed to fetch sentiment')
   return response.json()
 }
@@ -93,18 +96,30 @@ function SentimentBadge({ symbol }: { symbol: string }) {
   )
 }
 
-function WatchlistRow({ symbol, data }: { symbol: string; data: StockData }) {
+function WatchlistRow({ symbol, data, onRemove }: { symbol: string; data: StockData; onRemove: () => void }) {
   const isPositive = data.change >= 0
   const sparklineData = data.historical?.slice(-7).map(h => h.close) || []
 
   return (
-    <div
-      className="grid grid-cols-6 gap-4 py-3 px-2 hover:bg-zinc-800/30 rounded transition-colors cursor-pointer"
-      onClick={() => {
-        window.dispatchEvent(new CustomEvent('navigate', { detail: { mode: 'stock' } }))
-        window.dispatchEvent(new CustomEvent('navigate-stock', { detail: { symbol } }))
-      }}
-    >
+    <div className="grid grid-cols-6 gap-4 py-3 px-2 hover:bg-zinc-800/30 rounded transition-colors group relative">
+      <button
+        onClick={(e) => {
+          e.stopPropagation()
+          onRemove()
+        }}
+        className="absolute -left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded p-1"
+        title="Remove from watchlist"
+      >
+        <X className="w-4 h-4" />
+      </button>
+
+      <div
+        className="col-span-6 grid grid-cols-6 gap-4 cursor-pointer"
+        onClick={() => {
+          window.dispatchEvent(new CustomEvent('navigate', { detail: { mode: 'stock' } }))
+          window.dispatchEvent(new CustomEvent('navigate-stock', { detail: { symbol } }))
+        }}
+      >
       <div className="col-span-2">
         <div className="font-semibold text-zinc-200">{symbol}</div>
         <div className="text-xs text-zinc-500 truncate">{data.name}</div>
@@ -131,18 +146,52 @@ function WatchlistRow({ symbol, data }: { symbol: string; data: StockData }) {
       <div className={`flex items-center justify-end ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
         <MicroSparkline data={sparklineData} />
       </div>
+      </div>
     </div>
   )
 }
 
 export default function Watchlist() {
-  const [watchlistSymbols] = useState(['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA'])
+  const [watchlistSymbols, setWatchlistSymbols] = useState(() => {
+    // Load from localStorage or use default
+    const saved = localStorage.getItem('watchlist')
+    return saved ? JSON.parse(saved) : ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA']
+  })
+  const [showAddDialog, setShowAddDialog] = useState(false)
+  const [newSymbol, setNewSymbol] = useState('')
 
   const { data, isLoading, isError } = useQuery<MarketResponse>({
     queryKey: ['watchlist-data'],
     queryFn: fetchMarketData,
     refetchInterval: 60000, // Refresh every minute
   })
+
+  const handleAddStock = () => {
+    const symbol = newSymbol.trim().toUpperCase()
+
+    if (!symbol) {
+      alert('Please enter a stock symbol')
+      return
+    }
+
+    if (watchlistSymbols.includes(symbol)) {
+      alert(`${symbol} is already in your watchlist`)
+      return
+    }
+
+    const updatedList = [...watchlistSymbols, symbol]
+    setWatchlistSymbols(updatedList)
+    localStorage.setItem('watchlist', JSON.stringify(updatedList))
+
+    setNewSymbol('')
+    setShowAddDialog(false)
+  }
+
+  const handleRemoveStock = (symbol: string) => {
+    const updatedList = watchlistSymbols.filter((s: string) => s !== symbol)
+    setWatchlistSymbols(updatedList)
+    localStorage.setItem('watchlist', JSON.stringify(updatedList))
+  }
 
   if (isLoading) {
     return (
@@ -181,7 +230,10 @@ export default function Watchlist() {
           <div className="text-2xl">📈</div>
           <h2 className="text-lg font-semibold">Your Watchlist</h2>
         </div>
-        <button className="flex items-center gap-1 text-sm text-zinc-400 hover:text-zinc-200 transition-colors px-3 py-1.5 rounded hover:bg-zinc-800/50">
+        <button
+          onClick={() => setShowAddDialog(true)}
+          className="flex items-center gap-1 text-sm text-zinc-400 hover:text-zinc-200 transition-colors px-3 py-1.5 rounded hover:bg-zinc-800/50"
+        >
           <Plus className="w-4 h-4" />
           <span>Add Stock</span>
         </button>
@@ -199,7 +251,14 @@ export default function Watchlist() {
         {watchlistSymbols.map(symbol => {
           const stockData = data.data[symbol]
           if (!stockData) return null
-          return <WatchlistRow key={symbol} symbol={symbol} data={stockData} />
+          return (
+            <WatchlistRow
+              key={symbol}
+              symbol={symbol}
+              data={stockData}
+              onRemove={() => handleRemoveStock(symbol)}
+            />
+          )
         })}
       </div>
 
@@ -207,6 +266,54 @@ export default function Watchlist() {
         <div className="text-center py-12 text-zinc-500">
           <p className="mb-2">No stocks in your watchlist</p>
           <p className="text-sm">Click "Add Stock" to start tracking</p>
+        </div>
+      )}
+
+      {/* Add Stock Dialog */}
+      {showAddDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowAddDialog(false)}>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Add Stock to Watchlist</h3>
+              <button
+                onClick={() => setShowAddDialog(false)}
+                className="text-zinc-400 hover:text-zinc-200"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm text-zinc-400 mb-2 block">Stock Symbol</label>
+                <Input
+                  type="text"
+                  placeholder="e.g., TSLA, NFLX, META"
+                  value={newSymbol}
+                  onChange={(e) => setNewSymbol(e.target.value.toUpperCase())}
+                  onKeyPress={(e) => e.key === 'Enter' && handleAddStock()}
+                  className="bg-zinc-800 border-zinc-700"
+                  autoFocus
+                />
+              </div>
+
+              <div className="flex gap-2 justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowAddDialog(false)}
+                  className="border-zinc-700"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleAddStock}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Add Stock
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

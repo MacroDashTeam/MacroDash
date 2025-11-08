@@ -980,3 +980,344 @@ def export_data(request):
             }, status=500)
 
     return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def saved_charts(request):
+    """Get, create, or delete saved chart displays"""
+    from api.models import SavedChartDisplay
+
+    # Get session ID from cookies or generate one
+    session_id = request.COOKIES.get('session_id', f"anon_{datetime.now().timestamp()}")
+
+    if request.method == 'GET':
+        # Get all saved charts for this session
+        try:
+            charts = SavedChartDisplay.objects.filter(user_session=session_id)
+            charts_data = [{
+                'id': chart.id,
+                'chart_name': chart.chart_name,
+                'series_ids': chart.series_ids,
+                'series_metadata': chart.series_metadata,
+                'chart_type': chart.chart_type,
+                'show_legend': chart.show_legend,
+                'created_at': chart.created_at.isoformat(),
+                'updated_at': chart.updated_at.isoformat(),
+            } for chart in charts]
+
+            response = JsonResponse({
+                'status': 'success',
+                'data': charts_data,
+                'timestamp': datetime.now().isoformat()
+            })
+            response.set_cookie(
+                'session_id',
+                session_id,
+                max_age=31536000,  # 1 year
+                samesite='Lax',    # Allow same-site cross-origin (localhost to localhost)
+                secure=False,      # Set to True in production with HTTPS
+                httponly=False     # Allow JavaScript access if needed
+            )
+            return response
+
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=500)
+
+    elif request.method == 'POST':
+        # Create new saved chart
+        try:
+            body = json.loads(request.body)
+            chart_name = body.get('chart_name')
+            series_ids = body.get('series_ids', [])
+            series_metadata = body.get('series_metadata', {})
+            source_type = body.get('source_type', 'fred')
+            formulas = body.get('formulas')
+            symbols = body.get('symbols')
+
+            if not chart_name or not series_ids:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'chart_name and series_ids are required'
+                }, status=400)
+
+            chart = SavedChartDisplay.objects.create(
+                user_session=session_id,
+                chart_name=chart_name,
+                series_ids=series_ids,
+                series_metadata=series_metadata,
+                source_type=source_type,
+                formulas=formulas,
+                symbols=symbols
+            )
+
+            response = JsonResponse({
+                'status': 'success',
+                'data': {
+                    'id': chart.id,
+                    'chart_name': chart.chart_name,
+                    'series_ids': chart.series_ids,
+                    'series_metadata': chart.series_metadata,
+                    'source_type': chart.source_type
+                },
+                'message': 'Chart saved successfully',
+                'timestamp': datetime.now().isoformat()
+            })
+            response.set_cookie(
+                'session_id',
+                session_id,
+                max_age=31536000,  # 1 year
+                samesite='Lax',    # Allow same-site cross-origin (localhost to localhost)
+                secure=False,      # Set to True in production with HTTPS
+                httponly=False     # Allow JavaScript access if needed
+            )
+            return response
+
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Invalid JSON in request body'
+            }, status=400)
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=500)
+
+    elif request.method == 'DELETE':
+        # Delete a saved chart
+        try:
+            body = json.loads(request.body)
+            chart_id = body.get('chart_id')
+
+            if not chart_id:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'chart_id is required'
+                }, status=400)
+
+            chart = SavedChartDisplay.objects.filter(
+                id=chart_id,
+                user_session=session_id
+            ).first()
+
+            if not chart:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Chart not found or access denied'
+                }, status=404)
+
+            chart.delete()
+
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Chart deleted successfully',
+                'timestamp': datetime.now().isoformat()
+            })
+
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Invalid JSON in request body'
+            }, status=400)
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=500)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def chart_data(request, chart_id):
+    """Get full data for a saved chart including series data"""
+    from api.models import SavedChartDisplay
+    from api.services import FREDService, StatsmodelsService
+
+    session_id = request.COOKIES.get('session_id')
+
+    if request.method == 'GET':
+        try:
+            chart = SavedChartDisplay.objects.filter(
+                id=chart_id,
+                user_session=session_id
+            ).first()
+
+            if not chart:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Chart not found or access denied'
+                }, status=404)
+
+            chart_data = []
+
+            # Check if this is a custom analysis chart
+            if chart.source_type == 'custom_analysis':
+                # Re-execute custom analysis formulas for real-time data
+                if not chart.formulas or not chart.symbols:
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': 'Custom analysis chart missing formulas or symbols'
+                    }, status=400)
+
+                stats_service = StatsmodelsService()
+                stock_data = {}
+
+                # Fetch stock data for all symbols
+                for symbol in chart.symbols:
+                    price_data = stats_service.get_price_data(symbol, period='1y')
+                    if price_data.get('status') == 'success':
+                        stock_data[symbol] = price_data.get('data', {})
+                    else:
+                        return JsonResponse({
+                            'status': 'error',
+                            'message': f"Failed to fetch data for {symbol}"
+                        }, status=400)
+
+                # Evaluate formulas
+                results = stats_service.evaluate_formulas(chart.formulas, stock_data)
+
+                if results.get('status') == 'success':
+                    # Transform data from dict format to array format for Recharts
+                    results_dict = results.get('data', {})
+
+                    # Get dates from the first series
+                    dates = []
+                    for series_data in results_dict.values():
+                        if 'dates' in series_data and series_data['dates']:
+                            dates = series_data['dates']
+                            break
+
+                    # Build chart data array
+                    chart_data = []
+                    for i, date in enumerate(dates):
+                        data_point = {'date': date}
+                        for series_id, series_data in results_dict.items():
+                            if 'series' in series_data and i < len(series_data['series']):
+                                data_point[series_id] = series_data['series'][i]
+                        chart_data.append(data_point)
+                else:
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': results.get('error', 'Failed to evaluate formulas')
+                    }, status=500)
+
+            elif chart.source_type == 'crypto':
+                # Fetch crypto historical data
+                if not chart.symbols or len(chart.symbols) == 0:
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': 'Crypto chart missing symbols'
+                    }, status=400)
+
+                import requests
+
+                # Mapping of crypto symbols to CoinGecko IDs
+                symbol_to_coingecko = {
+                    'BTC': 'bitcoin',
+                    'ETH': 'ethereum',
+                    'BNB': 'binancecoin',
+                    'SOL': 'solana',
+                    'XRP': 'ripple',
+                    'ADA': 'cardano',
+                    'DOGE': 'dogecoin',
+                    'AVAX': 'avalanche-2',
+                    'DOT': 'polkadot',
+                    'MATIC': 'matic-network',
+                    'LINK': 'chainlink',
+                    'UNI': 'uniswap',
+                    'ATOM': 'cosmos',
+                }
+
+                # Fetch historical data for each crypto (1 year of daily data)
+                for symbol in chart.symbols:
+                    try:
+                        # Convert symbol to CoinGecko ID
+                        coin_id = symbol_to_coingecko.get(symbol.upper(), symbol.lower())
+
+                        # Use CoinGecko API for historical crypto data (free, no API key)
+                        url = f'https://api.coingecko.com/api/v3/coins/{coin_id}/market_chart'
+                        params = {
+                            'vs_currency': 'usd',
+                            'days': '365',  # 1 year of data
+                            'interval': 'daily'
+                        }
+
+                        response = requests.get(url, params=params, timeout=10)
+                        if response.status_code == 200:
+                            data = response.json()
+                            prices = data.get('prices', [])
+
+                            # Convert timestamps and prices to chart format
+                            for timestamp_ms, price in prices:
+                                date_str = datetime.fromtimestamp(timestamp_ms / 1000).strftime('%Y-%m-%d')
+
+                                # Find or create data point for this date
+                                existing_point = next((p for p in chart_data if p['date'] == date_str), None)
+                                if existing_point:
+                                    existing_point[symbol] = price
+                                else:
+                                    chart_data.append({'date': date_str, symbol: price})
+                        else:
+                            print(f"Error fetching crypto data for {symbol}: {response.status_code}")
+                    except Exception as e:
+                        print(f"Error fetching crypto {symbol}: {e}")
+
+                # Sort chart_data by date
+                chart_data.sort(key=lambda x: x['date'])
+
+            else:
+                # FRED data - original logic
+                fred_service = FREDService()
+                all_series_data = {}
+
+                # Fetch all series data
+                for series_id in chart.series_ids:
+                    try:
+                        series = fred_service.fred.get_series(series_id)
+                        all_series_data[series_id] = series
+                    except Exception as e:
+                        print(f"Error fetching series {series_id}: {e}")
+                        all_series_data[series_id] = pd.Series()
+
+                # Merge all series into a single DataFrame
+                df = pd.DataFrame(all_series_data)
+
+                # Convert to format suitable for Recharts: [{date, series1, series2, ...}]
+                for date_idx, row in df.iterrows():
+                    data_point = {
+                        'date': date_idx.strftime('%Y-%m-%d')
+                    }
+                    # Add each series value
+                    for series_id in chart.series_ids:
+                        if series_id in row and pd.notna(row[series_id]):
+                            data_point[series_id] = float(row[series_id])
+                        else:
+                            data_point[series_id] = None
+
+                    chart_data.append(data_point)
+
+            return JsonResponse({
+                'status': 'success',
+                'chart': {
+                    'id': chart.id,
+                    'chart_name': chart.chart_name,
+                    'series_ids': chart.series_ids,
+                    'series_metadata': chart.series_metadata,
+                    'created_at': chart.created_at.isoformat(),
+                    'last_viewed': chart.last_viewed.isoformat() if chart.last_viewed else None
+                },
+                'data': chart_data,
+                'timestamp': datetime.now().isoformat()
+            })
+
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=500)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
