@@ -19,7 +19,7 @@ const navItems = [
   { title: "Data Explorer", url: "/explorer", icon: Search, view: "explorer" },
   { title: "Custom Analysis", url: "/custom", icon: Calculator, view: "custom" },
   { title: "Browse Catalog", url: "/catalog", icon: Database, view: null },
-  { title: "Manage Displays", url: "/displays", icon: LayoutDashboard, view: null },
+  { title: "Manage Displays", url: "/displays", icon: LayoutDashboard, view: "manage-display" },
   { title: "Settings", url: "/settings", icon: Settings, view: "settings" },
 ] as const;
 

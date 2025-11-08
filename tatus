@@ -1,0 +1,39 @@
+[33m0553158[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Merge pull request #22 from MacroDashTeam/HL/SCRUM-1
+[33m5a22107[m [SCRUM-34] Followup: Added missing file
+[33mb4ffce4[m Added missing file
+[33m630ad16[m [SCRUM-34] Create CD pipeline for MacroDash deployments
+[33mbe66c6f[m Merge remote-tracking branch 'origin/main' into tbm/SCRUM-34
+[33maa19df8[m [SCRUM-20] Added more comprehensive documentation for AWS deployments
+[33m2dde993[m Added more comprehensive documentation
+[33m1443327[m Merge pull request #18 from MacroDashTeam/revert-15-ci-test
+[33mc015ae7[m Revert "CI/CD enablement"
+[33m9066ef8[m[33m ([m[1;31morigin/ci-test[m[33m)[m Fixed deployment workflow
+[33mb325b3a[m Merge pull request #17 from MacroDashTeam/revert-16-ci-test
+[33mb805837[m Revert "Fixed issues with deployments"
+[33m28522bb[m Merge pull request #16 from MacroDashTeam/ci-test
+[33m41de3a1[m Fixed issues with deployments
+[33me247329[m Merge pull request #15 from MacroDashTeam/ci-test
+[33m93e7084[m Merge remote-tracking branch 'origin/main' into ci-test
+[33m4ab63d7[m Fixed client file
+[33m0a71a65[m Removed workflow call
+[33mcda1539[m Fixed health check
+[33mb5a2dfe[m One more for the road
+[33mdbb18e5[m woops
+[33m78d6e42[m One more time
+[33me7ab23f[m Fixed deploy flag
+[33m2eddf86[m Fixed lightsail url
+[33m023b5e7[m Fixed lightsail plugin issue
+[33m72dcc89[m Modified server deployment
+[33mb060da6[m Merge remote-tracking branch 'origin/main' into ci-test
+[33m09c831e[m Updated AWS credentials
+[33m3c5bf6e[m Added AWS secrets
+[33m7d5dd1e[m Merge pull request #14 from MacroDashTeam/tbm/fix-frontend
+[33mbfb853a[m Removed extraneous files
+[33mf0a125b[m Fixed integration issues
+[33m5b5bdd8[m Merge pull request #13 from MacroDashTeam/HL/SCRUM-1
+[33m9a48bc2[m Merge remote-tracking branch 'origin/main' into ci-test
+[33m80f1f65[m Fixed cleint build
+[33m0265693[m Merge pull request #12 from CallumCN/HL/SCRUM-1
+[33mdffefac[m Init
+[33m773600d[m Merge pull request #11 from CallumCN/HL/SCRUM-1
+[33m1113455[m Merge pull request #10 from CallumCN/HL/SCRUM-1

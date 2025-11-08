@@ -197,3 +197,33 @@ class UserPreferences(models.Model):
 
     def __str__(self):
         return f"{self.user.username} preferences"
+
+
+class SavedChartDisplay(models.Model):
+    """Saved multi-series charts from Data Explorer"""
+
+    # User identification (optional - can be anonymous)
+    user_session = models.CharField(max_length=255, db_index=True, help_text="Session ID for anonymous users")
+
+    # Chart details
+    chart_name = models.CharField(max_length=255)
+    series_ids = models.JSONField(help_text="List of FRED series IDs in this chart")
+    series_metadata = models.JSONField(default=dict, help_text="Metadata about each series (name, frequency, etc.)")
+
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    last_viewed = models.DateTimeField(null=True, blank=True)
+
+    # Display preferences
+    chart_type = models.CharField(max_length=20, default='line', choices=[('line', 'Line'), ('area', 'Area')])
+    show_legend = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+        indexes = [
+            models.Index(fields=['user_session', 'created_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.chart_name} ({len(self.series_ids)} series)"

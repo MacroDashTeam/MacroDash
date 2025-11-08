@@ -14,6 +14,7 @@ import CryptoDashboard from '@/components/crypto-dashboard'
 import CryptoDetail from '@/components/crypto-detail'
 import CustomAnalysis from '@/components/custom-analysis'
 import DataExplorer from '@/components/data-explorer'
+import ManageDisplay from '@/components/manage-display'
 import LoginScreen from '@/components/login/login-screen'
 
 import './App.css'
@@ -150,6 +151,7 @@ function App() {
                   {activeView === 'crypto' && <CryptoDashboard />}
                   {activeView === 'explorer' && <DataExplorer />}
                   {activeView === 'custom' && <CustomAnalysis />}
+                  {activeView === 'manage-display' && <ManageDisplay />}
                   {activeView === 'settings' && <Settings user={user} onSignOut={handleSignOut} />}
                 </AppSidebar>
               </div>

@@ -53,4 +53,7 @@ urlpatterns = [
     path('fred/categories/<int:category_id>/series/', views.fred_category_series, name='fred_category_series'),
     path('fred/series/<str:series_id>/metadata/', views.fred_series_metadata, name='fred_series_metadata'),
     path('export/', views.export_data, name='export_data'),
+    # Saved Charts
+    path('charts/', views.saved_charts, name='saved_charts'),
+    path('charts/<int:chart_id>/data/', views.chart_data, name='chart_data'),
 ]
