@@ -207,8 +207,21 @@ class SavedChartDisplay(models.Model):
 
     # Chart details
     chart_name = models.CharField(max_length=255)
-    series_ids = models.JSONField(help_text="List of FRED series IDs in this chart")
+    series_ids = models.JSONField(help_text="List of FRED series IDs or custom series labels")
     series_metadata = models.JSONField(default=dict, help_text="Metadata about each series (name, frequency, etc.)")
+
+    # Data source type
+    source_type = models.CharField(max_length=20, default='fred',
+                                   choices=[('fred', 'FRED Economic Data'),
+                                           ('custom_analysis', 'Custom Analysis'),
+                                           ('crypto', 'Cryptocurrency')],
+                                   help_text="Source of the chart data")
+
+    # Custom analysis fields
+    formulas = models.JSONField(null=True, blank=True,
+                               help_text="List of formulas for custom analysis (e.g., ['AAPL = price(AAPL)', 'SMA = sma(AAPL, 20)'])")
+    symbols = models.JSONField(null=True, blank=True,
+                              help_text="List of stock symbols needed for custom analysis (e.g., ['AAPL', 'MSFT'])")
 
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)

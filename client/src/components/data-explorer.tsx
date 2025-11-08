@@ -290,6 +290,10 @@ export default function DataExplorer() {
       if (!res.ok) throw new Error('Failed to save chart')
 
       const result = await res.json()
+
+      // Dispatch event to notify dashboard to refresh
+      window.dispatchEvent(new CustomEvent('chart-saved'))
+
       alert(`Chart "${chartName}" saved successfully! Go to "Manage Display" tab to view it.`)
       setShowSaveDialog(false)
       setChartName('')
@@ -528,7 +532,7 @@ export default function DataExplorer() {
                       className="bg-green-600 hover:bg-green-700"
                     >
                       <Plus className="w-4 h-4 mr-2" />
-                      Add to Display ({selectedSeries.size})
+                      Add to Dashboard ({selectedSeries.size})
                     </Button>
                   )}
                   <Button onClick={handleExportJSON} size="sm">
@@ -726,7 +730,7 @@ export default function DataExplorer() {
       <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Save Chart to Display</DialogTitle>
+            <DialogTitle>Save Chart to Dashboard</DialogTitle>
             <DialogDescription>
               Create a multi-series chart from the {selectedSeries.size} selected series
             </DialogDescription>

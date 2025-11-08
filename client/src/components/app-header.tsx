@@ -26,7 +26,7 @@ export default function AppHeader({ user, onSignOut }: AppHeaderProps) {
       className="fixed top-0 left-0 right-0 z-40 w-full bg-[#0B1320]/95 backdrop-blur"
       style={{ height: APP_HEADER_H, ["--app-header-h"]: APP_HEADER_H } as style}
     >
-      <div className="flex h-full w-full items-center justify-between px-4">
+      <div className="flex h-full w-full items-center justify-between px-6">
         <a href="#/home" className="group flex items-center gap-2">
           <img src={Bull} alt="MacroDash Logo" className="h-7 w-7 shrink-0" />
           <span className="text-lg font-semibold tracking-tight">

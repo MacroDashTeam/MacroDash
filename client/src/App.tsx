@@ -144,7 +144,7 @@ function App() {
           >
             <SidebarProvider>
               <AppHeader user={user} onSignOut={handleSignOut} />
-              <div className="flex min-h-[calc(100vh-var(--app-header-h))] pt-[var(--app-header-h)] md:pt-0">
+              <div className="flex min-h-[calc(100vh-var(--app-header-h))] pt-[var(--app-header-h)] md:pt-0 w-full">
                 <AppSidebar activeView={activeView} onNavigate={(view) => setActiveView(view)}>
                   {activeView === 'home' && <DashboardHome />}
                   {activeView === 'browse' && <BrowseStocks />}

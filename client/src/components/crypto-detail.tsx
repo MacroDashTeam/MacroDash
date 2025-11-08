@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
-import { TrendingUp, TrendingDown, ArrowLeft, ExternalLink, Globe, ChevronDown } from 'lucide-react'
+import { TrendingUp, TrendingDown, ArrowLeft, ExternalLink, Globe, ChevronDown, BookmarkPlus } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, ComposedChart } from 'recharts'
 import { Card } from './ui/card'
 import { Badge } from './ui/badge'
+import { saveCryptoPriceChart } from '@/lib/save-to-dashboard'
 
 type TimePeriod = '1' | '7' | '30' | '90' | '180' | '365'
 type ChartType = 'line' | 'candle' | 'bar'
@@ -43,19 +44,22 @@ interface CryptoDetailResponse {
 }
 
 async function fetchCryptoDetail(symbol: string) {
-  const res = await fetch(`/api/crypto/${symbol}/`)
+  const API_BASE = import.meta.env.VITE_API_BASE_URL
+  const res = await fetch(`${API_BASE}/api/crypto/${symbol}/`)
   if (!res.ok) throw new Error('Failed to fetch crypto data')
   return await res.json()
 }
 
 async function fetchCryptoHistorical(symbol: string, days: number) {
-  const res = await fetch(`/api/crypto/${symbol}/historical/?days=${days}`)
+  const API_BASE = import.meta.env.VITE_API_BASE_URL
+  const res = await fetch(`${API_BASE}/api/crypto/${symbol}/historical/?days=${days}`)
   if (!res.ok) throw new Error('Failed to fetch historical data')
   return await res.json()
 }
 
 async function fetchCryptoOHLC(symbol: string, days: number) {
-  const res = await fetch(`/api/crypto/${symbol}/ohlc/?days=${days}`)
+  const API_BASE = import.meta.env.VITE_API_BASE_URL
+  const res = await fetch(`${API_BASE}/api/crypto/${symbol}/ohlc/?days=${days}`)
   if (!res.ok) throw new Error('Failed to fetch OHLC data')
   return await res.json()
 }
@@ -161,6 +165,17 @@ export default function CryptoDetail({ onBack }: { onBack?: () => void }) {
   })
 
   const crypto = cryptoData?.data
+
+  const handleSaveToDashboard = async () => {
+    if (!symbol || !crypto) return
+
+    const success = await saveCryptoPriceChart(symbol, crypto.name)
+    if (success) {
+      alert('Chart saved to Dashboard!')
+    } else {
+      alert('Failed to save chart to Dashboard')
+    }
+  }
 
   if (!symbol) {
     return (
@@ -291,6 +306,15 @@ export default function CryptoDetail({ onBack }: { onBack?: () => void }) {
             <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
               <h3 className="text-xl font-semibold">Price Chart</h3>
               <div className="flex items-center gap-3">
+                {/* Save to Dashboard button */}
+                <button
+                  onClick={handleSaveToDashboard}
+                  className="p-2 rounded bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors"
+                  title="Save to Dashboard"
+                >
+                  <BookmarkPlus className="w-5 h-5" />
+                </button>
+
                 {/* Chart Type Selector */}
                 <div className="relative">
                   <select

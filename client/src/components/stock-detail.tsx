@@ -1,52 +1,60 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from 'recharts'
-import { TrendingUp, TrendingDown, ArrowLeft, ExternalLink, Download, Bell } from 'lucide-react'
+import { TrendingUp, TrendingDown, ArrowLeft, ExternalLink, Download, Bell, BookmarkPlus } from 'lucide-react'
 import { Chatbot } from './chatbot'
 import { PriceAlertDialog } from './price-alert-dialog'
 import { TechnicalIndicators } from './technical-indicators'
+import { saveStockPriceChart } from '@/lib/save-to-dashboard'
 
 type TimePeriod = '1D' | '1W' | '1M' | '3M' | '1Y' | '5Y'
 type FinancialPeriod = 'annual' | 'quarterly'
 
 async function fetchStockDetail(symbol: string) {
-  const res = await fetch(`/api/stocks/${symbol}/`)
+  const API_BASE = import.meta.env.VITE_API_BASE_URL
+  const res = await fetch(`${API_BASE}/api/stocks/${symbol}/`)
   if (!res.ok) throw new Error('Failed to fetch stock data')
   return res.json()
 }
 
 async function fetchStockNews(symbol: string) {
-  const res = await fetch(`/api/alpha-vantage/news/?tickers=${symbol}&limit=20`)
+  const API_BASE = import.meta.env.VITE_API_BASE_URL
+  const res = await fetch(`${API_BASE}/api/alpha-vantage/news/?tickers=${symbol}&limit=20`)
   if (!res.ok) throw new Error('Failed to fetch news')
   return res.json()
 }
 
 async function fetchCompanyOverview(symbol: string) {
-  const res = await fetch(`/api/company/${symbol}/overview/`)
+  const API_BASE = import.meta.env.VITE_API_BASE_URL
+  const res = await fetch(`${API_BASE}/api/company/${symbol}/overview/`)
   if (!res.ok) throw new Error('Failed to fetch company overview')
   return res.json()
 }
 
 async function fetchAnalystRecommendations(symbol: string) {
-  const res = await fetch(`/api/company/${symbol}/analyst-recommendations/`)
+  const API_BASE = import.meta.env.VITE_API_BASE_URL
+  const res = await fetch(`${API_BASE}/api/company/${symbol}/analyst-recommendations/`)
   if (!res.ok) throw new Error('Failed to fetch analyst recommendations')
   return res.json()
 }
 
 async function fetchCompanyFinancials(symbol: string, type: string) {
-  const res = await fetch(`/api/company/${symbol}/financials/?type=${type}`)
+  const API_BASE = import.meta.env.VITE_API_BASE_URL
+  const res = await fetch(`${API_BASE}/api/company/${symbol}/financials/?type=${type}`)
   if (!res.ok) throw new Error('Failed to fetch company financials')
   return res.json()
 }
 
 async function fetchStockInsights(symbol: string) {
-  const res = await fetch(`/api/company/${symbol}/insights/`)
+  const API_BASE = import.meta.env.VITE_API_BASE_URL
+  const res = await fetch(`${API_BASE}/api/company/${symbol}/insights/`)
   if (!res.ok) throw new Error('Failed to fetch stock insights')
   return res.json()
 }
 
 async function fetchAIInsights(symbol: string) {
-  const res = await fetch(`/api/ai-insights/${symbol}/?limit=10`)
+  const API_BASE = import.meta.env.VITE_API_BASE_URL
+  const res = await fetch(`${API_BASE}/api/ai-insights/${symbol}/?limit=10`)
   if (!res.ok) throw new Error('Failed to fetch AI insights')
   return res.json()
 }
@@ -264,6 +272,22 @@ export default function StockDetail({ onBack }: { onBack?: () => void }) {
     document.body.removeChild(link)
   }
 
+  const handleSaveToDashboard = async () => {
+    console.log('Save button clicked!', { symbol, stockName: stockData?.name })
+    if (!symbol) {
+      console.error('No symbol available')
+      return
+    }
+
+    const success = await saveStockPriceChart(symbol, stockData?.name)
+    console.log('Save result:', success)
+    if (success) {
+      alert('Chart saved to Dashboard!')
+    } else {
+      alert('Failed to save chart to Dashboard')
+    }
+  }
+
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
       {/* Header */}
@@ -317,20 +341,32 @@ export default function StockDetail({ onBack }: { onBack?: () => void }) {
         <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold">Price Chart</h2>
-            <div className="flex gap-2">
-              {(['1D', '1W', '1M', '3M', '1Y', '5Y'] as TimePeriod[]).map((period) => (
-                <button
-                  key={period}
-                  onClick={() => setTimePeriod(period)}
-                  className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                    timePeriod === period
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
-                  }`}
-                >
-                  {period}
-                </button>
-              ))}
+            <div className="flex gap-3 items-center">
+              {/* Save to Dashboard button */}
+              <button
+                onClick={handleSaveToDashboard}
+                className="p-2 rounded bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors"
+                title="Save to Dashboard"
+              >
+                <BookmarkPlus className="w-5 h-5" />
+              </button>
+
+              {/* Time period buttons */}
+              <div className="flex gap-2">
+                {(['1D', '1W', '1M', '3M', '1Y', '5Y'] as TimePeriod[]).map((period) => (
+                  <button
+                    key={period}
+                    onClick={() => setTimePeriod(period)}
+                    className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                      timePeriod === period
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                    }`}
+                  >
+                    {period}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
