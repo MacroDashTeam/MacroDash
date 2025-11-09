@@ -23,27 +23,23 @@ interface style {
 export default function AppHeader({ user, onSignOut }: AppHeaderProps) {
   return (
     <header
-      className="fixed top-0 left-0 right-0 z-40 w-full bg-[#0B1320]/95 backdrop-blur"
+      className="fixed top-0 left-0 right-0 z-50 w-full bg-[#0B1320]/95 backdrop-blur"
       style={{ height: APP_HEADER_H, ["--app-header-h"]: APP_HEADER_H } as style}
     >
-      <div className="flex h-full w-full items-center justify-between px-6">
-        {/* Left spacer for balance */}
-        <div className="flex items-center gap-3 w-1/3">
-          {/* Empty spacer to balance the layout */}
-        </div>
-
-        {/* Centered MacroDash branding */}
-        <div className="flex justify-center w-1/3">
-          <a href="#/home" className="group flex items-center gap-2">
+      <div className="flex h-full w-full items-center px-6 relative">
+        {/* Centered MacroDash branding - accounting for sidebar */}
+        <div className="absolute left-1/2 transform -translate-x-1/2 flex flex-col items-center" style={{ marginLeft: 'calc(var(--sidebar-width, 230px) / 2)' }}>
+          <div className="flex items-center gap-2">
             <img src={Bull} alt="MacroDash Logo" className="h-7 w-7 shrink-0" />
-            <span className="text-lg font-semibold tracking-tight">
+            <span className="text-xl font-semibold tracking-tight text-white">
               MacroDash
             </span>
-          </a>
+          </div>
+          <span className="text-xs text-zinc-400 mt-0.5 tracking-wide font-light">Complete Market Intelligence, One Platform</span>
         </div>
 
-        {/* Right side - User info and logout */}
-        <div className="flex items-center justify-end gap-3 w-1/3">
+        {/* Right side - User info and logout (positioned absolutely) */}
+        <div className="absolute right-6 flex items-center gap-3">
           {user && (
             <div className="flex items-center gap-2 text-sm text-gray-300">
               <UserIcon className="h-4 w-4" />

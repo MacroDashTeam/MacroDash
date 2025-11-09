@@ -14,13 +14,6 @@ import CryptoTopLosers from './crypto-top-losers'
 export default function DashboardHome() {
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold">MacroDash</h1>
-          <p className="text-sm text-zinc-500 mt-1">Real-time market insights and economic data</p>
-        </div>
-      </div>
-
       {/* Market Overview - Major Indices */}
       <section>
         <MarketOverview />
