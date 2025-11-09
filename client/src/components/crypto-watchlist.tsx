@@ -141,10 +141,6 @@ export default function CryptoWatchlist() {
     }
   }
 
-  const handleRemoveCrypto = (symbol: string) => {
-    setWatchlistSymbols(watchlistSymbols.filter(s => s !== symbol))
-  }
-
   // Popular cryptos to add
   const popularCryptos = [
     { symbol: 'BTC', name: 'Bitcoin' },

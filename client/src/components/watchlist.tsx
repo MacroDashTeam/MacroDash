@@ -248,7 +248,7 @@ export default function Watchlist() {
           <div className="text-right">Trend</div>
         </div>
 
-        {watchlistSymbols.map(symbol => {
+        {watchlistSymbols.map((symbol: string) => {
           const stockData = data.data[symbol]
           if (!stockData) return null
           return (

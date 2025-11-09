@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { TrendingUp, TrendingDown } from 'lucide-react'
+import { TrendingDown } from 'lucide-react'
 
 type CryptoData = {
   id: number

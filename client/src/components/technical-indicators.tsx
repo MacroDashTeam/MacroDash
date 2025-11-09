@@ -102,7 +102,7 @@ export function TechnicalIndicators({ symbol, period = '1y' }: TechnicalIndicato
   }, [symbol, period])
 
   const handleSaveIndicator = async (indicatorType: string, period?: number) => {
-    const success = await saveTechnicalIndicatorChart(symbol, indicatorType, period)
+    const success = await saveTechnicalIndicatorChart(symbol, [indicatorType], period?.toString())
     if (success) {
       alert(`${indicatorType} chart saved to Dashboard!`)
     } else {
