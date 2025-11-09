@@ -14,5 +14,7 @@ class ApiConfig(AppConfig):
                 cursor.execute('PRAGMA journal_mode=WAL;')
                 cursor.execute('PRAGMA busy_timeout=20000;')  # 20 seconds timeout
 
-        from api import scheduler
-        scheduler.start_scheduler()
+        # Scheduler disabled to speed up server startup
+        # Uncomment to enable price alerts and stock insights
+        # from api import scheduler
+        # scheduler.start_scheduler()

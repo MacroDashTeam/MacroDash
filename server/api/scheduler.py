@@ -277,12 +277,13 @@ def start_scheduler():
         scheduler.start()
         logger.info("APScheduler started successfully! Price alerts every 5min, Stock insights every 6hrs.")
 
-        # Run insight generation immediately on startup
-        logger.info("Triggering immediate stock insights generation...")
-        try:
-            fetch_stock_insights()
-        except Exception as e:
-            logger.error(f"Error in initial insights generation: {e}")
+        # Disabled immediate insights generation to speed up startup
+        # Insights will be generated on the first scheduled run (every 6 hours)
+        # logger.info("Triggering immediate stock insights generation...")
+        # try:
+        #     fetch_stock_insights()
+        # except Exception as e:
+        #     logger.error(f"Error in initial insights generation: {e}")
 
     except Exception as e:
         logger.error(f"Failed to start scheduler: {e}")
