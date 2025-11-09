@@ -28,6 +28,9 @@ requests==2.32.5
 # OpenAI for chatbot and AI features
 openai==2.6.1
 
+# MongoDB database for user activity tracking
+pymongo==4.15.3
+
 # Task scheduling for price alerts
 APScheduler==3.11.0
 django-apscheduler==0.7.0
