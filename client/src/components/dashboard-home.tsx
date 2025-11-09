@@ -2,6 +2,7 @@ import MarketOverview from './market-overview'
 import MarketSchedule from './market-schedule'
 import EconomicIndicators from './economic-indicators'
 import MarketSectors from './market-sectors'
+import CommoditiesOverview from './commodities-overview'
 import Watchlist from './watchlist'
 import NewsFeed from './news-feed'
 import TopGainers from './top-gainers'
@@ -33,6 +34,11 @@ export default function DashboardHome() {
       {/* Market Sectors */}
       <section>
         <MarketSectors />
+      </section>
+
+      {/* Commodities & Indices */}
+      <section>
+        <CommoditiesOverview />
       </section>
 
       {/* Economic Indicators */}

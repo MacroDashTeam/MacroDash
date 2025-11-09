@@ -64,6 +64,13 @@ function formatVolume(volume: number): string {
   return `$${volume.toFixed(2)}`
 }
 
+function formatSupply(supply: number): string {
+  if (supply >= 1e9) return `${(supply / 1e9).toFixed(2)}B`
+  if (supply >= 1e6) return `${(supply / 1e6).toFixed(2)}M`
+  if (supply >= 1e3) return `${(supply / 1e3).toFixed(2)}K`
+  return supply.toFixed(2)
+}
+
 export default function CryptoDashboard() {
   const [activeTab, setActiveTab] = useState<'all' | 'gainers' | 'losers'>('all')
   const [searchQuery, setSearchQuery] = useState('')
@@ -239,7 +246,7 @@ export default function CryptoDashboard() {
                   <td className="py-4 px-4 text-right text-sm text-zinc-400">
                     {crypto.max_supply ? (
                       <div>
-                        <div>{formatVolume(crypto.max_supply)}</div>
+                        <div>{formatSupply(crypto.max_supply)}</div>
                         <div className="text-xs text-zinc-600">
                           {crypto.circulating_supply && ((crypto.circulating_supply / crypto.max_supply) * 100).toFixed(1)}% circ.
                         </div>

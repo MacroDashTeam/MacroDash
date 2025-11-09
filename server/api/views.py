@@ -797,12 +797,16 @@ def register(request):
             # Log the user in
             login(request, user)
 
+            # Get user preferences to check admin status
+            preferences = UserPreferences.objects.get(user=user)
+
             return JsonResponse({
                 'status': 'success',
                 'user': {
                     'id': user.id,
                     'username': user.username,
-                    'email': user.email
+                    'email': user.email,
+                    'is_admin': preferences.is_admin
                 }
             })
 
@@ -825,12 +829,23 @@ def user_login(request):
 
             if user is not None:
                 login(request, user)
+
+                # Get user preferences to check admin status
+                try:
+                    preferences = UserPreferences.objects.get(user=user)
+                    is_admin = preferences.is_admin
+                except UserPreferences.DoesNotExist:
+                    # Create preferences if they don't exist
+                    preferences = UserPreferences.objects.create(user=user)
+                    is_admin = False
+
                 return JsonResponse({
                     'status': 'success',
                     'user': {
                         'id': user.id,
                         'username': user.username,
-                        'email': user.email
+                        'email': user.email,
+                        'is_admin': is_admin
                     }
                 })
             else:
@@ -857,16 +872,128 @@ def current_user(request):
     """Get current logged-in user"""
     if request.method == 'GET':
         if request.user.is_authenticated:
+            # Get user preferences to check admin status
+            try:
+                preferences = UserPreferences.objects.get(user=request.user)
+                is_admin = preferences.is_admin
+            except UserPreferences.DoesNotExist:
+                is_admin = False
+
             return JsonResponse({
                 'status': 'success',
                 'user': {
                     'id': request.user.id,
                     'username': request.user.username,
-                    'email': request.user.email
+                    'email': request.user.email,
+                    'is_admin': is_admin
                 }
             })
         else:
             return JsonResponse({'status': 'error', 'error': 'Not authenticated'}, status=401)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def admin_users(request):
+    """Admin-only endpoint to manage users"""
+    if request.method == 'GET':
+        # Check if user is authenticated and is admin
+        if not request.user.is_authenticated:
+            return JsonResponse({'status': 'error', 'error': 'Not authenticated'}, status=401)
+
+        try:
+            preferences = UserPreferences.objects.get(user=request.user)
+            if not preferences.is_admin:
+                return JsonResponse({'status': 'error', 'error': 'Admin access required'}, status=403)
+        except UserPreferences.DoesNotExist:
+            return JsonResponse({'status': 'error', 'error': 'Admin access required'}, status=403)
+
+        # Get all users with their admin status
+        users = []
+        for user in User.objects.all().order_by('-date_joined'):
+            try:
+                user_prefs = UserPreferences.objects.get(user=user)
+                is_admin = user_prefs.is_admin
+            except UserPreferences.DoesNotExist:
+                is_admin = False
+
+            users.append({
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'is_admin': is_admin,
+                'date_joined': user.date_joined.isoformat(),
+                'last_login': user.last_login.isoformat() if user.last_login else None
+            })
+
+        return JsonResponse({'status': 'success', 'users': users})
+
+    elif request.method == 'PUT':
+        # Update user admin status
+        if not request.user.is_authenticated:
+            return JsonResponse({'status': 'error', 'error': 'Not authenticated'}, status=401)
+
+        try:
+            preferences = UserPreferences.objects.get(user=request.user)
+            if not preferences.is_admin:
+                return JsonResponse({'status': 'error', 'error': 'Admin access required'}, status=403)
+        except UserPreferences.DoesNotExist:
+            return JsonResponse({'status': 'error', 'error': 'Admin access required'}, status=403)
+
+        try:
+            data = json.loads(request.body)
+            user_id = data.get('user_id')
+            is_admin = data.get('is_admin')
+
+            if user_id is None or is_admin is None:
+                return JsonResponse({'status': 'error', 'error': 'Missing user_id or is_admin'}, status=400)
+
+            target_user = User.objects.get(id=user_id)
+            user_prefs, created = UserPreferences.objects.get_or_create(user=target_user)
+            user_prefs.is_admin = is_admin
+            user_prefs.save()
+
+            return JsonResponse({'status': 'success', 'message': f'User {target_user.username} admin status updated'})
+
+        except User.DoesNotExist:
+            return JsonResponse({'status': 'error', 'error': 'User not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'error': str(e)}, status=500)
+
+    elif request.method == 'DELETE':
+        # Delete user (admin only)
+        if not request.user.is_authenticated:
+            return JsonResponse({'status': 'error', 'error': 'Not authenticated'}, status=401)
+
+        try:
+            preferences = UserPreferences.objects.get(user=request.user)
+            if not preferences.is_admin:
+                return JsonResponse({'status': 'error', 'error': 'Admin access required'}, status=403)
+        except UserPreferences.DoesNotExist:
+            return JsonResponse({'status': 'error', 'error': 'Admin access required'}, status=403)
+
+        try:
+            data = json.loads(request.body)
+            user_id = data.get('user_id')
+
+            if user_id is None:
+                return JsonResponse({'status': 'error', 'error': 'Missing user_id'}, status=400)
+
+            # Prevent admin from deleting themselves
+            if user_id == request.user.id:
+                return JsonResponse({'status': 'error', 'error': 'Cannot delete your own account'}, status=400)
+
+            target_user = User.objects.get(id=user_id)
+            username = target_user.username
+            target_user.delete()
+
+            return JsonResponse({'status': 'success', 'message': f'User {username} deleted successfully'})
+
+        except User.DoesNotExist:
+            return JsonResponse({'status': 'error', 'error': 'User not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'error': str(e)}, status=500)
 
     return JsonResponse({"error": "Method not allowed"}, status=405)
 

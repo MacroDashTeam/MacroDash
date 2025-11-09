@@ -60,12 +60,13 @@ export default function StockTopLosers() {
   // Define sector ETFs to exclude
   const sectorETFs = ['XLK', 'XLF', 'XLY', 'XLC', 'XLV', 'XLI', 'XLP', 'XLE', 'XLB', 'XLRE', 'XLU']
 
-  // Get top losers by sorting by change_percent (lowest first)
+  // Get top losers by sorting by change_percent (lowest first) - only negative changes
   const topLosers = Object.entries(data.data)
-    .filter(([symbol]) =>
+    .filter(([symbol, stock]) =>
       !symbol.startsWith('^') &&           // Filter out indices
       !symbol.endsWith('=F') &&            // Filter out futures
-      !sectorETFs.includes(symbol)         // Filter out sector ETFs
+      !sectorETFs.includes(symbol) &&      // Filter out sector ETFs
+      stock.change_percent < 0             // Only negative changes
     )
     .sort(([, a], [, b]) => a.change_percent - b.change_percent)
     .slice(0, 5)
@@ -80,9 +81,7 @@ export default function StockTopLosers() {
       </div>
 
       <div className="space-y-2">
-        {topLosers.map(([symbol, stock], index) => {
-          const isPositive = stock.change_percent >= 0
-          return (
+        {topLosers.map(([symbol, stock], index) => (
             <div
               key={symbol}
               className="flex items-center justify-between py-2 px-3 rounded hover:bg-zinc-800/30 transition-colors cursor-pointer"
@@ -99,13 +98,12 @@ export default function StockTopLosers() {
                 </div>
               </div>
 
-              <div className={`flex items-center gap-1 font-semibold ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
-                {isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                <span>{isPositive ? '+' : ''}{stock.change_percent.toFixed(2)}%</span>
+              <div className="flex items-center gap-1 font-semibold text-red-500">
+                <TrendingDown className="w-4 h-4" />
+                <span>{stock.change_percent.toFixed(2)}%</span>
               </div>
             </div>
-          )
-        })}
+          ))}
       </div>
 
       {topLosers.length === 0 && (

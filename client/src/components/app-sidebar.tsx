@@ -10,25 +10,29 @@ import {
   SidebarRail,
   SidebarInset,
 } from "@/components/ui/sidebar";
-import { Home, Search, Database, LayoutDashboard, Settings, TrendingUp, Bitcoin, Calculator } from "lucide-react";
+import { Home, Search, Database, LayoutDashboard, Settings, TrendingUp, Bitcoin, Calculator, Users } from "lucide-react";
 
 const navItems = [
-  { title: "Home", url: "/", icon: Home, view: "home" },
-  { title: "Browse Stocks", url: "/browse", icon: TrendingUp, view: "browse" },
-  { title: "Cryptocurrency", url: "/crypto", icon: Bitcoin, view: "crypto" },
-  { title: "Data Explorer", url: "/explorer", icon: Search, view: "explorer" },
-  { title: "Custom Analysis", url: "/custom", icon: Calculator, view: "custom" },
-  { title: "Browse Catalog", url: "/catalog", icon: Database, view: null },
-  { title: "Dashboard", url: "/displays", icon: LayoutDashboard, view: "manage-display" },
-  { title: "Settings", url: "/settings", icon: Settings, view: "settings" },
+  { title: "Home", url: "/", icon: Home, view: "home", adminOnly: false },
+  { title: "Browse Stocks", url: "/browse", icon: TrendingUp, view: "browse", adminOnly: false },
+  { title: "Cryptocurrency", url: "/crypto", icon: Bitcoin, view: "crypto", adminOnly: false },
+  { title: "Data Explorer", url: "/explorer", icon: Search, view: "explorer", adminOnly: false },
+  { title: "Custom Analysis", url: "/custom", icon: Calculator, view: "custom", adminOnly: false },
+  { title: "Dashboard", url: "/displays", icon: LayoutDashboard, view: "manage-display", adminOnly: false },
+  { title: "User Management", url: "/users", icon: Users, view: "user-management", adminOnly: true },
+  { title: "Settings", url: "/settings", icon: Settings, view: "settings", adminOnly: false },
 ] as const;
 
 type AppSidebarProps = {
   onNavigate?: (view: string) => void;
   activeView?: string;
+  isAdmin?: boolean;
 };
 
-export default function AppSidebar({ onNavigate, activeView, children }: React.PropsWithChildren<AppSidebarProps>) {
+export default function AppSidebar({ onNavigate, activeView, isAdmin = false, children }: React.PropsWithChildren<AppSidebarProps>) {
+  // Filter nav items based on admin status
+  const filteredNavItems = navItems.filter(item => !item.adminOnly || isAdmin);
+
   return (
     <>
       <Sidebar
@@ -38,7 +42,7 @@ export default function AppSidebar({ onNavigate, activeView, children }: React.P
         <SidebarContent>
           <SidebarGroup>
             <SidebarMenu>
-              {navItems.map((item) => (
+              {filteredNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     isActive={item.view === activeView}

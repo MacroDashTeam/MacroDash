@@ -15,6 +15,7 @@ import CryptoDetail from '@/components/crypto-detail'
 import CustomAnalysis from '@/components/custom-analysis'
 import DataExplorer from '@/components/data-explorer'
 import ManageDisplay from '@/components/manage-display'
+import UserManagement from '@/components/user-management'
 import LoginScreen from '@/components/login/login-screen'
 
 import './App.css'
@@ -35,6 +36,7 @@ interface User {
   id: number
   username: string
   email: string
+  is_admin: boolean
 }
 
 function App() {
@@ -145,13 +147,14 @@ function App() {
             <SidebarProvider>
               <AppHeader user={user} onSignOut={handleSignOut} />
               <div className="flex min-h-[calc(100vh-var(--app-header-h))] pt-[var(--app-header-h)] md:pt-0 w-full">
-                <AppSidebar activeView={activeView} onNavigate={(view) => setActiveView(view)}>
+                <AppSidebar activeView={activeView} onNavigate={(view) => setActiveView(view)} isAdmin={user?.is_admin || false}>
                   {activeView === 'home' && <DashboardHome />}
                   {activeView === 'browse' && <BrowseStocks />}
                   {activeView === 'crypto' && <CryptoDashboard />}
                   {activeView === 'explorer' && <DataExplorer />}
                   {activeView === 'custom' && <CustomAnalysis />}
                   {activeView === 'manage-display' && <ManageDisplay />}
+                  {activeView === 'user-management' && <UserManagement />}
                   {activeView === 'settings' && <Settings user={user} onSignOut={handleSignOut} />}
                 </AppSidebar>
               </div>

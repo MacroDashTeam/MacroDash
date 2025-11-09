@@ -543,7 +543,10 @@ class YahooFinanceService:
                 '^DJI',    # Dow Jones Industrial Average
                 '^IXIC',   # NASDAQ Composite
                 '^VIX',    # CBOE Volatility Index
+                # Commodities
                 'GC=F',    # Gold Futures
+                'SI=F',    # Silver Futures
+                'DX-Y.NYB', # US Dollar Index
                 # Asian Market Indices
                 '^N225',   # Nikkei 225 (Japan)
                 '^HSI',    # Hang Seng Index (Hong Kong)
@@ -677,6 +680,8 @@ class YahooFinanceService:
                     'volume': info.get('volume') or (int(hist['Volume'].iloc[-1]) if 'Volume' in hist.columns else 0),
                     'market_cap': info.get('marketCap'),
                     'pe_ratio': info.get('forwardPE'),
+                    'eps': info.get('trailingEps'),  # Trailing EPS
+                    'forward_eps': info.get('forwardEps'),  # Forward EPS estimate
                     'dividend_yield': info.get('dividendYield'),
                     '52_week_high': round(float(hist['High'].max()), 2),
                     '52_week_low': round(float(hist['Low'].min()), 2),
@@ -3053,13 +3058,23 @@ class StatsmodelsService:
             results = {}
             variables = {}
 
+            # Helper function to sanitize symbol names for use as Python variables
+            def sanitize_symbol(symbol: str) -> str:
+                """Replace special characters in symbol names with underscores"""
+                return symbol.replace('-', '_').replace('=', '_').replace('.', '_')
+
+            # Create mapping of original symbols to sanitized names
+            symbol_mapping = {symbol: sanitize_symbol(symbol) for symbol in stock_data.keys()}
+
             # Get dates from the first stock (all stocks should have same dates)
             first_symbol = list(stock_data.keys())[0]
             dates = stock_data[first_symbol].get('dates', [])
 
-            # Store stock prices and dates as variables
+            # Store stock prices and dates as variables using sanitized names
             for symbol, data in stock_data.items():
-                variables[symbol] = np.array(data.get('prices', []))
+                sanitized = symbol_mapping[symbol]
+                variables[sanitized] = np.array(data.get('prices', []))
+                print(f"DEBUG: Stored symbol '{symbol}' as variable '{sanitized}' with {len(variables[sanitized])} prices")
 
             # Process each formula
             for idx, formula in enumerate(formulas):
@@ -3145,18 +3160,29 @@ class StatsmodelsService:
         # Replace ^ with ** for exponentiation (user-friendly syntax)
         expr = expr.replace('^', '**')
 
+        # Helper function to sanitize symbol names (must match the one in evaluate_formulas)
+        def sanitize_symbol(symbol: str) -> str:
+            """Replace special characters in symbol names with underscores"""
+            return symbol.replace('-', '_').replace('=', '_').replace('.', '_')
+
         # IMPORTANT: Handle price() function FIRST before other functions
         # This allows nested calls like adf_test(price(AAPL)) to work
         if 'price(' in expr:
-            matches = re.findall(r'price\((\w+)\)', expr)
+            # Updated regex to handle symbols with hyphens, equals, periods (e.g., BTC-USD, GC=F, DX-Y.NYB)
+            matches = re.findall(r'price\(([A-Z0-9\-=\.]+)\)', expr)
+            print(f"DEBUG: Found price() matches: {matches}")
             for symbol in matches:
-                if symbol in variables:
+                # Sanitize the symbol name for use as a Python variable
+                sanitized = sanitize_symbol(symbol)
+                print(f"DEBUG: Replacing price({symbol}) with variable '{sanitized}', exists={sanitized in variables}")
+                if sanitized in variables:
                     if time_series:
-                        # For time series, use the variable name directly (it's a numpy array)
-                        expr = expr.replace(f'price({symbol})', symbol)
+                        # For time series, use the sanitized variable name directly (it's a numpy array)
+                        expr = expr.replace(f'price({symbol})', sanitized)
+                        print(f"DEBUG: After replacement: {expr}")
                     else:
                         # Use the last price value
-                        last_price = variables[symbol][-1] if hasattr(variables[symbol], '__getitem__') else variables[symbol]
+                        last_price = variables[sanitized][-1] if hasattr(variables[sanitized], '__getitem__') else variables[sanitized]
                         expr = expr.replace(f'price({symbol})', str(last_price))
 
         # Handle adf_test() function - returns dict, not time series

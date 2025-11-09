@@ -169,6 +169,9 @@ class UserPreferences(models.Model):
     """User-specific preferences and settings"""
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='preferences')
 
+    # User role
+    is_admin = models.BooleanField(default=False, help_text="Admin users have access to user management and system settings")
+
     # Display preferences
     theme = models.CharField(max_length=20, default='dark', choices=[('dark', 'Dark'), ('light', 'Light')])
     default_time_period = models.CharField(max_length=10, default='1M',

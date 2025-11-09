@@ -80,11 +80,16 @@ export default function CustomAnalysis() {
   const [series, setSeries] = useState<Series[]>([
     { id: 'AAPL', label: 'AAPL', source: 'NASDAQ: AAPL', show: false, color: CHART_COLORS[0] },
     { id: 'MSFT', label: 'MSFT', source: 'NASDAQ: MSFT', show: false, color: CHART_COLORS[1] },
+    { id: 'BTC-USD', label: 'BTC-USD', source: 'Crypto: Bitcoin', show: false, color: CHART_COLORS[2] },
+    { id: 'GC=F', label: 'GOLD', source: 'Commodities: Gold Futures', show: false, color: CHART_COLORS[3] },
+    { id: 'SI=F', label: 'SILVER', source: 'Commodities: Silver Futures', show: false, color: CHART_COLORS[4] },
+    { id: 'DX-Y.NYB', label: 'DXY', source: 'Index: US Dollar Index', show: false, color: CHART_COLORS[5] },
   ])
 
   const [chartData, setChartData] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [staticVars, setStaticVars] = useState<any>(null)
+  const [useLogScale, setUseLogScale] = useState(false)
 
   // Modals
   const [showAddStock, setShowAddStock] = useState(false)
@@ -180,10 +185,16 @@ export default function CustomAnalysis() {
         if (s.formula) {
           // Custom formula - extract symbols from it
           formulas[s.label] = s.formula
-          // Extract symbols from formula (simple regex for AAPL, MSFT, etc.)
-          const symbolMatches = s.formula.match(/\b[A-Z]{1,5}\b/g)
+          // Extract symbols from formula - handle special chars like =, -, .
+          // Match patterns like: AAPL, BTC-USD, GC=F, DX-Y.NYB
+          const symbolMatches = s.formula.match(/\b[A-Z0-9]+(?:[-=\.][A-Z0-9]+)*\b/g)
           if (symbolMatches) {
-            symbolMatches.forEach(sym => allSymbols.add(sym))
+            symbolMatches.forEach(sym => {
+              // Filter out function names (like SMA, EMA, etc.)
+              if (!['SMA', 'EMA', 'RETURNS', 'ADF', 'ARIMA', 'PRICE', 'QUANTILE'].includes(sym.toUpperCase())) {
+                allSymbols.add(sym)
+              }
+            })
           }
         } else {
           // Plain stock - create a price() formula
@@ -219,6 +230,8 @@ export default function CustomAnalysis() {
 
       const result = await response.json()
       console.log('API Result:', result)
+      console.log('API Result data keys:', Object.keys(result.data || result))
+      console.log('API Result data:', result.data)
 
       // Build chart data - handle both result.data and direct result
       const chartPoints: any[] = []
@@ -260,6 +273,18 @@ export default function CustomAnalysis() {
       }
 
       console.log('Chart data points:', chartPoints.length, chartPoints.slice(0, 3))
+
+      // Log min/max values for each series to help debug scale issues
+      if (chartPoints.length > 0) {
+        Object.keys(chartPoints[0]).forEach(key => {
+          if (key !== 'date') {
+            const values = chartPoints.map(p => p[key]).filter(v => v != null && !isNaN(v))
+            if (values.length > 0) {
+              console.log(`${key}: min=${Math.min(...values)}, max=${Math.max(...values)}, count=${values.length}`)
+            }
+          }
+        })
+      }
 
       if (chartPoints.length === 0) {
         alert('No plottable data returned. Note: ADF Test returns statistical results, not time series data.')
@@ -363,7 +388,7 @@ export default function CustomAnalysis() {
           <h1 className="text-2xl font-bold">Custom Analysis</h1>
           <p className="text-sm text-zinc-400 mt-1">Create custom formulas with SMA, EMA, ARIMA and more</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-3 items-center">
           <Button
             onClick={handleRunAnalysis}
             disabled={loading || visibleSeries.length === 0}
@@ -389,6 +414,19 @@ export default function CustomAnalysis() {
             <Save className="w-4 h-4 mr-2" />
             Save to Dashboard
           </Button>
+          <div className="flex items-center gap-2 px-3 py-2 border border-zinc-800 rounded-md bg-zinc-900/50">
+            <Checkbox
+              id="log-scale"
+              checked={useLogScale}
+              onCheckedChange={(checked) => setUseLogScale(checked as boolean)}
+            />
+            <label
+              htmlFor="log-scale"
+              className="text-sm font-medium cursor-pointer text-zinc-300"
+            >
+              Log Scale
+            </label>
+          </div>
         </div>
       </div>
 
@@ -492,6 +530,14 @@ export default function CustomAnalysis() {
                   <YAxis
                     stroke="#71717a"
                     tick={{ fill: '#71717a', fontSize: 11 }}
+                    scale={useLogScale ? 'log' : 'auto'}
+                    domain={useLogScale ? ['auto', 'auto'] : ['auto', 'auto']}
+                    allowDataOverflow={false}
+                    tickFormatter={(value) => {
+                      if (value >= 1000) return `${(value / 1000).toFixed(0)}K`
+                      if (value >= 1) return value.toFixed(0)
+                      return value.toFixed(2)
+                    }}
                   />
                   <Tooltip
                     contentStyle={{

@@ -47,6 +47,8 @@ urlpatterns = [
     path('auth/login/', views.user_login, name='user_login'),
     path('auth/logout/', views.user_logout, name='user_logout'),
     path('auth/user/', views.current_user, name='current_user'),
+    # Admin
+    path('admin/users/', views.admin_users, name='admin_users'),
     # Data Explorer
     path('search/', views.search_data, name='search_data'),
     path('fred/categories/', views.fred_categories, name='fred_categories'),
