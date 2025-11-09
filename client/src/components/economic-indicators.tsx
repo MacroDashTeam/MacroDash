@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { TrendingUp, TrendingDown } from 'lucide-react'
+import { TrendingUp, TrendingDown, BarChart3 } from 'lucide-react'
 
 async function fetchEconomicData() {
   const API_BASE = import.meta.env.VITE_API_BASE_URL;
@@ -20,7 +20,10 @@ export default function EconomicIndicators() {
   if (isLoading) {
     return (
       <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
-        <h2 className="text-xl font-semibold mb-4">📊 Economic Indicators</h2>
+        <div className="flex items-center gap-2 mb-4">
+          <BarChart3 className="w-5 h-5 text-blue-500" />
+          <h2 className="text-xl font-semibold">Economic Indicators</h2>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map(i => (
             <div key={i} className="h-28 bg-zinc-800/50 rounded animate-pulse" />
@@ -33,7 +36,10 @@ export default function EconomicIndicators() {
   if (!data) {
     return (
       <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
-        <h2 className="text-xl font-semibold mb-4">📊 Economic Indicators</h2>
+        <div className="flex items-center gap-2 mb-4">
+          <BarChart3 className="w-5 h-5 text-blue-500" />
+          <h2 className="text-xl font-semibold">Economic Indicators</h2>
+        </div>
         <p className="text-red-400 text-sm">Loading economic data... (This may take 10-15 seconds)</p>
       </div>
     )
@@ -48,7 +54,10 @@ export default function EconomicIndicators() {
 
   return (
     <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
-      <h2 className="text-xl font-semibold mb-4">📊 Economic Indicators</h2>
+      <div className="flex items-center gap-2 mb-4">
+        <BarChart3 className="w-5 h-5 text-blue-500" />
+        <h2 className="text-xl font-semibold">Economic Indicators</h2>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {indicators.map(({ key, data: item }) => {
