@@ -27,14 +27,23 @@ export default function AppHeader({ user, onSignOut }: AppHeaderProps) {
       style={{ height: APP_HEADER_H, ["--app-header-h"]: APP_HEADER_H } as style}
     >
       <div className="flex h-full w-full items-center justify-between px-6">
-        <a href="#/home" className="group flex items-center gap-2">
-          <img src={Bull} alt="MacroDash Logo" className="h-7 w-7 shrink-0" />
-          <span className="text-lg font-semibold tracking-tight">
-            MacroDash
-          </span>
-        </a>
+        {/* Left spacer for balance */}
+        <div className="flex items-center gap-3 w-1/3">
+          {/* Empty spacer to balance the layout */}
+        </div>
 
-        <div className="flex items-center gap-3">
+        {/* Centered MacroDash branding */}
+        <div className="flex justify-center w-1/3">
+          <a href="#/home" className="group flex items-center gap-2">
+            <img src={Bull} alt="MacroDash Logo" className="h-7 w-7 shrink-0" />
+            <span className="text-lg font-semibold tracking-tight">
+              MacroDash
+            </span>
+          </a>
+        </div>
+
+        {/* Right side - User info and logout */}
+        <div className="flex items-center justify-end gap-3 w-1/3">
           {user && (
             <div className="flex items-center gap-2 text-sm text-gray-300">
               <UserIcon className="h-4 w-4" />

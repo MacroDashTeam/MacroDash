@@ -264,18 +264,25 @@ def start_scheduler():
             replace_existing=True,
         )
 
-        # Add job to fetch AI stock insights every 24 hours
+        # Add job to fetch AI stock insights every 6 hours
         scheduler.add_job(
             fetch_stock_insights,
             'interval',
-            hours=24,
+            hours=6,
             id='fetch_stock_insights',
             name='Fetch AI-powered stock insights',
             replace_existing=True,
         )
 
         scheduler.start()
-        logger.info("APScheduler started successfully! Price alerts every 5min, Stock insights every 24hrs.")
+        logger.info("APScheduler started successfully! Price alerts every 5min, Stock insights every 6hrs.")
+
+        # Run insight generation immediately on startup
+        logger.info("Triggering immediate stock insights generation...")
+        try:
+            fetch_stock_insights()
+        except Exception as e:
+            logger.error(f"Error in initial insights generation: {e}")
 
     except Exception as e:
         logger.error(f"Failed to start scheduler: {e}")

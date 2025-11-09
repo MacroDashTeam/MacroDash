@@ -242,7 +242,7 @@ export default function BrowseStocks() {
                 {stock.eps && (
                   <div className="flex justify-between">
                     <span className="text-zinc-400">EPS (TTM)</span>
-                    <span className="font-medium">${stock.eps.toFixed(2)}</span>
+                    <span className="font-medium">{stock.eps.toFixed(2)}</span>
                   </div>
                 )}
                 {stock.dividend_yield && (

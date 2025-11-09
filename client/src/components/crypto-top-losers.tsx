@@ -61,7 +61,8 @@ export default function CryptoTopLosers() {
     )
   }
 
-  const topLosers = data.data.cryptos || []
+  // Filter to only show negative changes
+  const topLosers = (data.data.cryptos || []).filter(crypto => crypto.change_24h < 0)
 
   return (
     <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
@@ -73,9 +74,7 @@ export default function CryptoTopLosers() {
       </div>
 
       <div className="space-y-2">
-        {topLosers.map((crypto, index) => {
-          const isPositive = crypto.change_24h >= 0
-          return (
+        {topLosers.map((crypto, index) => (
             <div
               key={crypto.id}
               className="flex items-center justify-between py-2 px-3 rounded hover:bg-zinc-800/30 transition-colors cursor-pointer"
@@ -104,13 +103,12 @@ export default function CryptoTopLosers() {
                 </div>
               </div>
 
-              <div className={`flex items-center gap-1 font-semibold ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
-                {isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                <span>{isPositive ? '+' : ''}{crypto.change_24h.toFixed(2)}%</span>
+              <div className="flex items-center gap-1 font-semibold text-red-500">
+                <TrendingDown className="w-4 h-4" />
+                <span>{crypto.change_24h.toFixed(2)}%</span>
               </div>
             </div>
-          )
-        })}
+          ))}
       </div>
 
       {topLosers.length === 0 && (

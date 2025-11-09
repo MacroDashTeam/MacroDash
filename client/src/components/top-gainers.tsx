@@ -60,12 +60,13 @@ export default function TopGainers() {
   // Define sector ETFs to exclude
   const sectorETFs = ['XLK', 'XLF', 'XLY', 'XLC', 'XLV', 'XLI', 'XLP', 'XLE', 'XLB', 'XLRE', 'XLU']
 
-  // Get top gainers by sorting by change_percent
+  // Get top gainers by sorting by change_percent - only positive changes
   const topGainers = Object.entries(data.data)
-    .filter(([symbol]) =>
+    .filter(([symbol, stock]) =>
       !symbol.startsWith('^') &&           // Filter out indices
       !symbol.endsWith('=F') &&            // Filter out futures
-      !sectorETFs.includes(symbol)         // Filter out sector ETFs
+      !sectorETFs.includes(symbol) &&      // Filter out sector ETFs
+      stock.change_percent > 0             // Only positive changes
     )
     .sort(([, a], [, b]) => b.change_percent - a.change_percent)
     .slice(0, 5)
@@ -80,9 +81,7 @@ export default function TopGainers() {
       </div>
 
       <div className="space-y-2">
-        {topGainers.map(([symbol, stock], index) => {
-          const isPositive = stock.change_percent >= 0
-          return (
+        {topGainers.map(([symbol, stock], index) => (
             <div
               key={symbol}
               className="flex items-center justify-between py-2 px-3 rounded hover:bg-zinc-800/30 transition-colors cursor-pointer"
@@ -99,13 +98,12 @@ export default function TopGainers() {
                 </div>
               </div>
 
-              <div className={`flex items-center gap-1 font-semibold ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
-                {isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                <span>{isPositive ? '+' : ''}{stock.change_percent.toFixed(2)}%</span>
+              <div className="flex items-center gap-1 font-semibold text-green-500">
+                <TrendingUp className="w-4 h-4" />
+                <span>+{stock.change_percent.toFixed(2)}%</span>
               </div>
             </div>
-          )
-        })}
+          ))}
       </div>
 
       {topGainers.length === 0 && (
