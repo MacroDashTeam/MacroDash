@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { TrendingUp, TrendingDown, Flame } from 'lucide-react'
+import { TrendingUp, Flame } from 'lucide-react'
 
 type StockData = {
   name: string
