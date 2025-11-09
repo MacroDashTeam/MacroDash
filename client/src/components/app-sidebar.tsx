@@ -10,7 +10,7 @@ import {
   SidebarRail,
   SidebarInset,
 } from "@/components/ui/sidebar";
-import { Home, Search, Database, LayoutDashboard, Settings, TrendingUp, Bitcoin, Calculator, Users } from "lucide-react";
+import { Home, Search, LayoutDashboard, Settings, TrendingUp, Bitcoin, Calculator, Users } from "lucide-react";
 
 const navItems = [
   { title: "Home", url: "/", icon: Home, view: "home", adminOnly: false },
@@ -21,7 +21,7 @@ const navItems = [
   { title: "Dashboard", url: "/displays", icon: LayoutDashboard, view: "manage-display", adminOnly: false },
   { title: "User Management", url: "/users", icon: Users, view: "user-management", adminOnly: true },
   { title: "Settings", url: "/settings", icon: Settings, view: "settings", adminOnly: false },
-] as const;
+];
 
 type AppSidebarProps = {
   onNavigate?: (view: string) => void;

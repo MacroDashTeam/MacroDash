@@ -289,7 +289,7 @@ export default function DataExplorer() {
 
       if (!res.ok) throw new Error('Failed to save chart')
 
-      const result = await res.json()
+      await res.json()
 
       // Dispatch event to notify dashboard to refresh
       window.dispatchEvent(new CustomEvent('chart-saved'))

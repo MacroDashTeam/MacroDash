@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Users, Shield, ShieldOff, Trash2, RefreshCw } from 'lucide-react'
 import { Card } from './ui/card'
