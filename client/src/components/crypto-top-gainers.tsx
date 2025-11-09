@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { TrendingUp } from 'lucide-react'
+import { TrendingUp, Rocket } from 'lucide-react'
 
 type CryptoData = {
   id: number
@@ -37,7 +37,7 @@ export default function CryptoTopGainers() {
     return (
       <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
         <div className="flex items-center gap-2 mb-4">
-          <div className="text-2xl">🚀</div>
+          <Rocket className="w-5 h-5 text-green-500" />
           <h2 className="text-lg font-semibold">Top Gainers (Crypto)</h2>
         </div>
         <div className="space-y-2">
@@ -53,7 +53,7 @@ export default function CryptoTopGainers() {
     return (
       <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
         <div className="flex items-center gap-2 mb-4">
-          <div className="text-2xl">🚀</div>
+          <Rocket className="w-5 h-5 text-green-500" />
           <h2 className="text-lg font-semibold">Top Gainers (Crypto)</h2>
         </div>
         <p className="text-red-400 text-sm">Failed to load data</p>
@@ -68,7 +68,7 @@ export default function CryptoTopGainers() {
     <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <div className="text-2xl">🚀</div>
+          <Rocket className="w-5 h-5 text-green-500" />
           <h2 className="text-lg font-semibold">Top Gainers (Crypto)</h2>
         </div>
       </div>

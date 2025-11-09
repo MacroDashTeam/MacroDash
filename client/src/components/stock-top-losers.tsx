@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { TrendingDown } from 'lucide-react'
+import { TrendingDown, ArrowDownCircle } from 'lucide-react'
 
 type StockData = {
   name: string
@@ -33,7 +33,7 @@ export default function StockTopLosers() {
     return (
       <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
         <div className="flex items-center gap-2 mb-4">
-          <div className="text-2xl">📉</div>
+          <ArrowDownCircle className="w-5 h-5 text-red-500" />
           <h2 className="text-lg font-semibold">Top Losers (Stocks)</h2>
         </div>
         <div className="space-y-2">
@@ -49,7 +49,7 @@ export default function StockTopLosers() {
     return (
       <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
         <div className="flex items-center gap-2 mb-4">
-          <div className="text-2xl">📉</div>
+          <ArrowDownCircle className="w-5 h-5 text-red-500" />
           <h2 className="text-lg font-semibold">Top Losers (Stocks)</h2>
         </div>
         <p className="text-red-400 text-sm">Failed to load data</p>
@@ -75,7 +75,7 @@ export default function StockTopLosers() {
     <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <div className="text-2xl">📉</div>
+          <ArrowDownCircle className="w-5 h-5 text-red-500" />
           <h2 className="text-lg font-semibold">Top Losers (Stocks)</h2>
         </div>
       </div>

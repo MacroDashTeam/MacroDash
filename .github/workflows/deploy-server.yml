@@ -32,7 +32,7 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Build and Push Docker Image
+    - name: Build and Push Docker Image to Docker Hub
       run: |
         cd server
         TAG=${VERSION_SHA::7}
@@ -56,11 +56,21 @@ jobs:
           --label macrodash \
           --image teammacrodash/macrodash-server:$TAG
 
-    - name: Deploy updated container image
+    - name: Render deployment config (image + API keys)
       run: |
         TAG=${VERSION_SHA::7}
-        sed -i "s|\"image\": \".*\"|\"image\": \"teammacrodash/macrodash-server:$TAG\"|g" server/containers.json
+        IMAGE="macrodash/macrodash-server:$TAG"   # This references the Lightsail registry label
+        sed \
+          -e "s|__IMAGE__|$IMAGE|g" \
+          -e "s|\"FRED_API_KEY\": \".*\"|\"FRED_API_KEY\": \"${{ secrets.FRED_API_KEY }}\"|g" \
+          -e "s|\"ALPHA_VANTAGE_API_KEY\": \".*\"|\"ALPHA_VANTAGE_API_KEY\": \"${{ secrets.ALPHA_VANTAGE_API_KEY }}\"|g" \
+          -e "s|\"OPENAI_API_KEY\": \".*\"|\"OPENAI_API_KEY\": \"${{ secrets.OPENAI_API_KEY }}\"|g" \
+          -e "s|\"COINMARKETCAP_API_KEY\": \".*\"|\"COINMARKETCAP_API_KEY\": \"${{ secrets.COINMARKETCAP_API_KEY }}\"|g" \
+          server/containers.json > server/containers.out.json
+
+    - name: Deploy updated container to Lightsail
+      run: |
         aws lightsail create-container-service-deployment \
           --service-name $SERVICE_NAME \
-          --containers file://server/containers.json \
+          --containers file://server/containers.out.json \
           --public-endpoint file://server/public-endpoint.json

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { TrendingUp, TrendingDown, Plus } from 'lucide-react'
+import { TrendingUp, TrendingDown, Plus, Bitcoin } from 'lucide-react'
 import { useState } from 'react'
 
 type CryptoData = {
@@ -162,7 +162,7 @@ export default function CryptoWatchlist() {
       <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <div className="text-2xl">₿</div>
+            <Bitcoin className="w-5 h-5 text-orange-400" />
             <h2 className="text-lg font-semibold">Crypto Watchlist</h2>
           </div>
         </div>
@@ -179,7 +179,7 @@ export default function CryptoWatchlist() {
     return (
       <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
         <div className="flex items-center gap-2 mb-4">
-          <div className="text-2xl">₿</div>
+          <Bitcoin className="w-5 h-5 text-orange-400" />
           <h2 className="text-lg font-semibold">Crypto Watchlist</h2>
         </div>
         <p className="text-red-400 text-sm">Failed to load crypto watchlist data</p>
@@ -196,7 +196,7 @@ export default function CryptoWatchlist() {
     <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <div className="text-2xl">₿</div>
+          <Bitcoin className="w-5 h-5 text-orange-400" />
           <h2 className="text-lg font-semibold">Crypto Watchlist</h2>
         </div>
         <button
