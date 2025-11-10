@@ -6,3 +6,4 @@ on:
 jobs:
   run-deploy-server:
     uses: ./.github/workflows/deploy-server.yml
+    secrets: inherit
