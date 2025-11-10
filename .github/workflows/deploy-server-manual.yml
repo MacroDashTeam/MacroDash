@@ -1,4 +1,4 @@
-name: Deploy Server
+name: Deploy Server Manual
 
 on:
   workflow_dispatch:
