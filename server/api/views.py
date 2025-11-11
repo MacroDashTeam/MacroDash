@@ -7,6 +7,40 @@ from .services import FREDService, YahooFinanceService, AlphaVantageService, Ope
 from .models import PriceAlert
 from django.core.mail import send_mail
 from django.conf import settings
+from django.db import connection
+import os
+
+
+@csrf_exempt
+def health_check(request):
+    """Health check endpoint to debug database configuration"""
+    try:
+        db_config = settings.DATABASES['default']
+        db_info = {
+            'database_engine': db_config['ENGINE'],
+            'database_name': db_config.get('NAME', 'N/A'),
+            'database_host': db_config.get('HOST', 'N/A'),
+            'database_url_set': 'Yes' if os.getenv('DATABASE_URL') else 'No',
+        }
+
+        # Check if we can connect and list tables
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='public'" if 'postgresql' in db_config['ENGINE'] else "SELECT name FROM sqlite_master WHERE type='table'")
+            tables = [row[0] for row in cursor.fetchall()]
+
+        return JsonResponse({
+            'status': 'healthy',
+            'database': db_info,
+            'tables_count': len(tables),
+            'has_auth_user': 'auth_user' in tables,
+            'tables': tables[:20],  # First 20 tables
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'error': str(e),
+            'database': db_info if 'db_info' in locals() else 'Could not get DB info'
+        }, status=500)
 
 
 @csrf_exempt
