@@ -1,5 +1,6 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.cache import cache_page
 from datetime import datetime, timedelta
 import json
 import random
@@ -44,6 +45,7 @@ def health_check(request):
 
 
 @csrf_exempt
+@cache_page(60 * 10)  # Cache for 10 minutes - FRED data doesn't change frequently
 def economic_data(request):
     """Real economic data from FRED API"""
     if request.method == 'GET':
@@ -66,13 +68,14 @@ def economic_indicator_detail(request, series_id):
 
 
 @csrf_exempt
+@cache_page(60 * 2)  # Cache for 2 minutes - market data updates frequently
 def stocks_list(request):
     """Real market data from Yahoo Finance"""
     if request.method == 'GET':
         yahoo_service = YahooFinanceService()
         data = yahoo_service.get_market_data()
         return JsonResponse(data)
-    
+
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
@@ -296,6 +299,7 @@ def alpha_vantage_overview(request, symbol):
 
 
 @csrf_exempt
+@cache_page(60 * 5)  # Cache for 5 minutes - news doesn't change that frequently
 def alpha_vantage_news(request):
     """Get news and sentiment data from Alpha Vantage"""
     if request.method == 'GET':
@@ -552,6 +556,7 @@ def technical_indicators(request, symbol):
 
 # Cryptocurrency endpoints
 @csrf_exempt
+@cache_page(60 * 2)  # Cache for 2 minutes - crypto prices update frequently
 def crypto_listings(request):
     """Get list of cryptocurrencies with market data from CoinMarketCap"""
     if request.method == 'GET':
