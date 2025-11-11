@@ -44,6 +44,7 @@ function App() {
   const [viewMode, setViewMode] = useState<'dashboard' | 'indicator' | 'stock' | 'crypto'>('dashboard')
   const [user, setUser] = useState<User | null>(null)
   const [isAuthChecked, setIsAuthChecked] = useState(false)
+  const [showLogin, setShowLogin] = useState(false)
 
   // Check authentication status on mount
   useEffect(() => {
@@ -123,11 +124,17 @@ function App() {
     )
   }
 
-  // Show login screen if not authenticated
-  if (!user) {
+  // Show login screen if explicitly requested (optional authentication)
+  if (showLogin && !user) {
     return (
       <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-        <LoginScreen onSignIn={handleSignIn} />
+        <LoginScreen
+          onSignIn={() => {
+            handleSignIn()
+            setShowLogin(false)
+          }}
+          onSkip={() => setShowLogin(false)}
+        />
       </ThemeProvider>
     )
   }
@@ -146,7 +153,7 @@ function App() {
             }`}
           >
             <SidebarProvider>
-              <AppHeader user={user} onSignOut={handleSignOut} />
+              <AppHeader user={user || undefined} onSignOut={handleSignOut} onSignIn={() => setShowLogin(true)} />
               <div className="flex min-h-[calc(100vh-var(--app-header-h))] pt-[var(--app-header-h)] md:pt-0 w-full">
                 <AppSidebar activeView={activeView} onNavigate={(view) => setActiveView(view)} isAdmin={user?.is_admin || false}>
                   {activeView === 'home' && <DashboardHome />}
@@ -156,7 +163,7 @@ function App() {
                   {activeView === 'custom' && <CustomAnalysis />}
                   {activeView === 'manage-display' && <ManageDisplay />}
                   {activeView === 'user-management' && <UserManagement />}
-                  {activeView === 'settings' && <Settings user={user} onSignOut={handleSignOut} />}
+                  {activeView === 'settings' && <Settings user={user || undefined} onSignOut={handleSignOut} />}
                 </AppSidebar>
               </div>
             </SidebarProvider>

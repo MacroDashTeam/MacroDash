@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Eye, EyeOff, User, Lock, ArrowRight, Mail } from 'lucide-react'
+import { Eye, EyeOff, User, Lock, ArrowRight, Mail, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import GoogleSvg from './google-svg';
 import FacebookSvg from './facebook-svg';
@@ -7,9 +7,10 @@ import MicrosoftSvg from './microsoft-svg';
 
 interface LoginScreenProps {
   onSignIn: () => void
+  onSkip?: () => void
 }
 
-export default function LoginScreen({ onSignIn }: LoginScreenProps) {
+export default function LoginScreen({ onSignIn, onSkip }: LoginScreenProps) {
   const [isSignUp, setIsSignUp] = useState(false)
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
@@ -93,7 +94,17 @@ export default function LoginScreen({ onSignIn }: LoginScreenProps) {
           </div>
         </div>
 
-        <div className="bg-slate-800/60 backdrop-blur-md rounded-xl border border-slate-600/30 shadow-2xl p-6">
+        <div className="bg-slate-800/60 backdrop-blur-md rounded-xl border border-slate-600/30 shadow-2xl p-6 relative">
+          {onSkip && (
+            <Button
+              onClick={onSkip}
+              variant="ghost"
+              size="sm"
+              className="absolute top-4 right-4 text-slate-400 hover:text-white hover:bg-slate-700/50"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
           <div className="space-y-4">
             <div className="text-center space-y-1 mb-4">
               <h2 className="text-xl font-semibold text-white">
