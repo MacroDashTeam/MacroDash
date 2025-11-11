@@ -24,7 +24,8 @@ export default function LoginScreen({ onSignIn }: LoginScreenProps) {
     setError('')
 
     try {
-      const response = await fetch('http://localhost:8000/api/auth/login/', {
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || ''
+      const response = await fetch(`${API_BASE}/api/auth/login/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -52,7 +53,8 @@ export default function LoginScreen({ onSignIn }: LoginScreenProps) {
     setError('')
 
     try {
-      const response = await fetch('http://localhost:8000/api/auth/register/', {
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || ''
+      const response = await fetch(`${API_BASE}/api/auth/register/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

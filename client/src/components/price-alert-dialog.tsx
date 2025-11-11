@@ -55,7 +55,8 @@ export function PriceAlertDialog({
     setLoading(true)
 
     try {
-      const response = await fetch('http://localhost:8000/api/alerts/', {
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || ''
+      const response = await fetch(`${API_BASE}/api/alerts/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
