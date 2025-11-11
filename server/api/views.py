@@ -18,7 +18,7 @@ def health_check(request):
         db_config = settings.DATABASES['default']
         db_info = {
             'database_engine': db_config['ENGINE'],
-            'database_name': db_config.get('NAME', 'N/A'),
+            'database_name': str(db_config.get('NAME', 'N/A')),  # Convert Path to string
             'database_host': db_config.get('HOST', 'N/A'),
             'database_url_set': 'Yes' if os.getenv('DATABASE_URL') else 'No',
         }
