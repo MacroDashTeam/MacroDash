@@ -31,6 +31,10 @@ openai==2.6.1
 # MongoDB database for user activity tracking
 pymongo==4.15.3
 
+# PostgreSQL database driver for production
+psycopg2-binary==2.9.10
+dj-database-url==2.2.0
+
 # Task scheduling for price alerts
 APScheduler==3.11.0
 django-apscheduler==0.7.0

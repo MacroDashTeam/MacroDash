@@ -5,6 +5,7 @@ Django settings for macrodash project.
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+import dj_database_url
 
 # Load environment variables from .env file
 load_dotenv()
@@ -67,16 +68,28 @@ TEMPLATES = [
 WSGI_APPLICATION = 'macrodash.wsgi.application'
 
 # Database
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-        'OPTIONS': {
-            'timeout': 20,  # Increase timeout to 20 seconds (default is 5)
-        },
-        'CONN_MAX_AGE': 0,  # Close connections immediately to avoid locks
+# Use PostgreSQL in production if DATABASE_URL is set, otherwise SQLite for development
+DATABASE_URL = os.getenv('DATABASE_URL')
+
+if DATABASE_URL:
+    # Production: Use PostgreSQL from DATABASE_URL
+    DATABASES = {
+        'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600)
     }
-}
+    print(f"✓ Using PostgreSQL database from DATABASE_URL")
+else:
+    # Development: Use SQLite
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+            'OPTIONS': {
+                'timeout': 20,  # Increase timeout to 20 seconds (default is 5)
+            },
+            'CONN_MAX_AGE': 0,  # Close connections immediately to avoid locks
+        }
+    }
+    print(f"✓ Using SQLite database at {BASE_DIR / 'db.sqlite3'}")
 
 # Cache configuration for API response caching
 CACHES = {

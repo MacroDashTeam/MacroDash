@@ -6,6 +6,7 @@
     },
     "environment": {
       "DJANGO_SETTINGS_MODULE": "macrodash.settings",
+      "DATABASE_URL": "",
       "FRED_API_KEY": "",
       "ALPHA_VANTAGE_API_KEY": "",
       "OPENAI_API_KEY": "",
