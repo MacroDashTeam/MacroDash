@@ -1,4 +1,4 @@
-name: Deploy Server
+name: Deploy Server Manual
 
 on:
   workflow_dispatch:
@@ -6,3 +6,4 @@ on:
 jobs:
   run-deploy-server:
     uses: ./.github/workflows/deploy-server.yml
+    secrets: inherit

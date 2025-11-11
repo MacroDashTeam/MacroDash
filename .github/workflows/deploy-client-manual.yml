@@ -1,4 +1,4 @@
-name: Deploy Client
+name: Deploy Client  Manual
 
 on:
   workflow_dispatch:
@@ -6,3 +6,5 @@ on:
 jobs:
   run-deploy-client:
     uses: ./.github/workflows/deploy-client.yml
+    secrets: inherit
+
