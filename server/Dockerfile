@@ -19,6 +19,10 @@ COPY --from=builder /install /usr/local
 
 COPY . .
 
+# Make entrypoint script executable
+RUN chmod +x entrypoint.sh
+
 EXPOSE 8000
 
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "macrodash.wsgi:application"]
+# Use entrypoint script to run migrations before starting server
+ENTRYPOINT ["./entrypoint.sh"]
