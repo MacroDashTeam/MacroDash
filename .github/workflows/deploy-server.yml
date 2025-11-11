@@ -2,6 +2,7 @@ name: Deploy Server
 
 on:
   workflow_dispatch:
+  workflow_call:
 
 jobs:
   deploy-backend:
