@@ -29,12 +29,22 @@ def health_check(request):
             cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='public'" if 'postgresql' in db_config['ENGINE'] else "SELECT name FROM sqlite_master WHERE type='table'")
             tables = [row[0] for row in cursor.fetchall()]
 
+        # Check API keys status
+        api_keys = {
+            'FRED_API_KEY': 'Set' if os.getenv('FRED_API_KEY') else 'Not Set',
+            'ALPHA_VANTAGE_API_KEY': 'Set' if os.getenv('ALPHA_VANTAGE_API_KEY') else 'Not Set',
+            'OPENAI_API_KEY': 'Set' if os.getenv('OPENAI_API_KEY') else 'Not Set',
+            'COINMARKETCAP_API_KEY': 'Set' if os.getenv('COINMARKETCAP_API_KEY') else 'Not Set',
+            'MONGODB_URI': 'Set' if os.getenv('MONGODB_URI') else 'Not Set',
+        }
+
         return JsonResponse({
             'status': 'healthy',
             'database': db_info,
             'tables_count': len(tables),
             'has_auth_user': 'auth_user' in tables,
             'tables': tables[:20],  # First 20 tables
+            'api_keys': api_keys,
         })
     except Exception as e:
         return JsonResponse({
