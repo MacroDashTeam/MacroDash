@@ -42,8 +42,12 @@ echo "==================================="
 echo "Database ready! Checking tables..."
 python manage.py shell -c "
 from django.db import connection;
+db_engine = connection.settings_dict['ENGINE'];
 with connection.cursor() as cursor:
-    cursor.execute('SELECT name FROM sqlite_master WHERE type=\"table\"');
+    if 'postgresql' in db_engine:
+        cursor.execute(\"SELECT table_name FROM information_schema.tables WHERE table_schema='public'\");
+    else:
+        cursor.execute('SELECT name FROM sqlite_master WHERE type=\"table\"');
     tables = cursor.fetchall();
     print(f'✓ Found {len(tables)} tables in database');
     if tables:
