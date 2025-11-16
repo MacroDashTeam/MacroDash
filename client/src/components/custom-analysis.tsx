@@ -26,9 +26,10 @@ const PRESET_FUNCTIONS = [
   { name: 'SMA', description: 'Simple Moving Average', example: 'sma(AAPL, 20)' },
   { name: 'EMA', description: 'Exponential Moving Average', example: 'ema(AAPL, 20)' },
   { name: 'Returns', description: 'Calculate returns', example: 'returns(AAPL)' },
-  { name: 'Quantile', description: 'Calculate quantile (static)', example: 'quantile(AAPL, 0.25)' },
-  { name: 'ADF Test', description: 'Stationarity test (static)', example: 'adf_test(AAPL)' },
-  { name: 'ARIMA', description: 'ARIMA forecast (dict result)', example: 'arima(AAPL, [1,1,1])' },
+  { name: 'Quantile', description: 'Calculate percentile (scalar)', example: 'quantile(AAPL, 0.25)' },
+  { name: 'ADF Test', description: 'Stationarity test (dict result)', example: 'adf_test(AAPL)' },
+  { name: 'ARIMA', description: 'ARIMA forecast (slow, 30-60s)', example: 'arima(AAPL, [1,1,1])' },
+  { name: 'ARIMA Auto', description: 'Auto-find best ARIMA params (2-3 min)', example: 'arima_auto(AAPL)' },
 ]
 
 // Convert formula to LaTeX notation
@@ -57,9 +58,19 @@ function formulaToLatex(formula: string): string {
     `\\text{ADF}(\\text{${symbol.trim()}})`
   )
 
+  // Handle arima_auto(AAPL) -> \text{ARIMA-AUTO}(\text{AAPL})
+  latex = latex.replace(/arima_auto\(([^)]+)\)/g, (_, symbol) =>
+    `\\text{ARIMA-AUTO}(\\text{${symbol.trim()}})`
+  )
+
   // Handle arima(AAPL, [1,1,1]) -> \text{ARIMA}_{(1,1,1)}(\text{AAPL})
   latex = latex.replace(/arima\(([^,]+),\s*\[([^\]]+)\]\)/g, (_, symbol, order) =>
     `\\text{ARIMA}_{(${order})}(\\text{${symbol.trim()}})`
+  )
+
+  // Handle quantile(AAPL, 0.25) -> Q_{0.25}(\text{AAPL})
+  latex = latex.replace(/quantile\(([^,]+),\s*([\d\.]+)\)/g, (_, symbol, q) =>
+    `Q_{${q}}(\\text{${symbol.trim()}})`
   )
 
   // Handle price(AAPL) -> \text{price}(\text{AAPL})
@@ -187,11 +198,12 @@ export default function CustomAnalysis() {
           formulas[s.label] = s.formula
           // Extract symbols from formula - handle special chars like =, -, .
           // Match patterns like: AAPL, BTC-USD, GC=F, DX-Y.NYB
-          const symbolMatches = s.formula.match(/\b[A-Z0-9]+(?:[-=\.][A-Z0-9]+)*\b/g)
+          // Must start with a letter to be a valid symbol (not a number like "20")
+          const symbolMatches = s.formula.match(/\b[A-Z][A-Z0-9]*(?:[-=\.][A-Z0-9]+)*\b/g)
           if (symbolMatches) {
             symbolMatches.forEach(sym => {
-              // Filter out function names (like SMA, EMA, etc.)
-              if (!['SMA', 'EMA', 'RETURNS', 'ADF', 'ARIMA', 'PRICE', 'QUANTILE'].includes(sym.toUpperCase())) {
+              // Filter out function names (like SMA, EMA, QUANTILE, etc.)
+              if (!['SMA', 'EMA', 'RETURNS', 'ADF', 'ARIMA', 'PRICE', 'QUANTILE', 'TEST'].includes(sym.toUpperCase())) {
                 allSymbols.add(sym)
               }
             })
@@ -219,7 +231,8 @@ export default function CustomAnalysis() {
         body: JSON.stringify({
           symbols: Array.from(allSymbols),
           formulas: formulasList
-        })
+        }),
+        signal: AbortSignal.timeout(120000)  // 2 minute timeout for ARIMA calculations
       })
 
       if (!response.ok) {
@@ -237,40 +250,63 @@ export default function CustomAnalysis() {
       const chartPoints: any[] = []
       const dataObj = result.data || result
 
-      // Filter out non-time-series results (like ADF test which returns dict)
+      // Filter out non-time-series results (like ADF test which returns dict, or quantile which returns scalar)
       const timeSeriesData: any = {}
       const statisticalResults: any = {}
       Object.entries(dataObj).forEach(([key, value]: [string, any]) => {
-        // Only include results that have a series field (time series data)
-        if (value.series && Array.isArray(value.series)) {
+        // Include results that have a series field (time series or forecast data) and are NOT scalar
+        if (value.series && Array.isArray(value.series) && !value.scalar) {
           timeSeriesData[key] = value
         } else if (value.type === 'dict') {
-          console.log(`Storing statistical result for ${key}:`, value.data || value.value)
+          console.log(`Storing dict result for ${key}:`, value.data || value.value)
           statisticalResults[key] = value.data || value.value || value
+        } else if (value.type === 'scalar') {
+          console.log(`Storing scalar result for ${key}:`, value)
+          statisticalResults[key] = value  // Store the whole object for scalar results
         }
       })
 
       // Store statistical results
+      console.log('Statistical results to display:', statisticalResults)
+      console.log('Number of statistical results:', Object.keys(statisticalResults).length)
       setStaticVars(Object.keys(statisticalResults).length > 0 ? statisticalResults : null)
 
-      // Get the first time series to extract dates
-      const firstSeriesKey = Object.keys(timeSeriesData)[0]
-      const firstSeries = timeSeriesData[firstSeriesKey]
+      // Collect all unique dates from all time series (including forecasts)
+      const allDates = new Set<string>()
+      Object.values(timeSeriesData).forEach((value: any) => {
+        if (value.dates) {
+          value.dates.forEach((date: string) => allDates.add(date))
+        }
+      })
 
-      if (firstSeries?.dates) {
-        firstSeries.dates.forEach((date: string, idx: number) => {
-          const point: any = { date }
+      // Sort dates chronologically
+      const sortedDates = Array.from(allDates).sort((a, b) => {
+        // Handle T+N format for forecast dates without historical dates
+        if (a.startsWith('T+') && b.startsWith('T+')) {
+          return parseInt(a.substring(2)) - parseInt(b.substring(2))
+        }
+        if (a.startsWith('T+')) return 1
+        if (b.startsWith('T+')) return -1
+        return new Date(a).getTime() - new Date(b).getTime()
+      })
 
-          // Add all series data for this date
-          Object.entries(timeSeriesData).forEach(([key, value]: [string, any]) => {
-            if (value.series && value.series[idx] !== undefined) {
-              point[key] = value.series[idx]
-            }
-          })
+      // Build chart data with all dates
+      sortedDates.forEach((date: string) => {
+        const point: any = { date }
 
-          chartPoints.push(point)
+        // Add all series data for this date
+        Object.entries(timeSeriesData).forEach(([key, value]: [string, any]) => {
+          const dateIndex = value.dates?.indexOf(date)
+          if (dateIndex !== undefined && dateIndex >= 0 && value.series) {
+            point[key] = value.series[dateIndex]
+          } else {
+            // Use null for dates where this series doesn't have data
+            point[key] = null
+          }
         })
-      }
+
+        chartPoints.push(point)
+      })
 
       console.log('Chart data points:', chartPoints.length, chartPoints.slice(0, 3))
 
@@ -287,13 +323,19 @@ export default function CustomAnalysis() {
       }
 
       if (chartPoints.length === 0) {
-        alert('No plottable data returned. Note: ADF Test returns statistical results, not time series data.')
+        alert('No plottable data returned. Note: ADF Test, ARIMA, and Quantile return statistical results, not time series data.')
       }
 
       setChartData(chartPoints)
     } catch (error) {
       console.error('Analysis error:', error)
-      alert(`Failed to run analysis: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      if (error instanceof Error && error.name === 'TimeoutError') {
+        alert('Analysis timed out. ARIMA calculations can take 1-2 minutes for large datasets. Please try with a smaller period or simpler model.')
+      } else if (error instanceof Error && error.message.includes('Failed to fetch')) {
+        alert('Network error: Unable to connect to server. Please check if the backend is running.')
+      } else {
+        alert(`Failed to run analysis: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      }
     } finally {
       setLoading(false)
     }
@@ -547,17 +589,22 @@ export default function CustomAnalysis() {
                     }}
                   />
                   <Legend />
-                  {visibleSeries.map((s) => (
-                    <Line
-                      key={s.id}
-                      type="monotone"
-                      dataKey={s.label}
-                      stroke={s.color}
-                      strokeWidth={2}
-                      dot={false}
-                      connectNulls
-                    />
-                  ))}
+                  {visibleSeries.map((s) => {
+                    // Style forecast lines differently (dashed)
+                    const isForecast = s.label.endsWith('_forecast')
+                    return (
+                      <Line
+                        key={s.id}
+                        type="monotone"
+                        dataKey={s.label}
+                        stroke={s.color}
+                        strokeWidth={isForecast ? 2 : 2}
+                        strokeDasharray={isForecast ? "5 5" : undefined}
+                        dot={false}
+                        connectNulls
+                      />
+                    )
+                  })}
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -566,7 +613,7 @@ export default function CustomAnalysis() {
               <div className="text-center">
                 <TrendingUp className="w-16 h-16 mx-auto mb-4 opacity-50" />
                 <p className="text-lg">Select series and click "Run Analysis"</p>
-                <p className="text-sm mt-2">Available functions: sma(), ema(), returns(), adf_test(), arima()</p>
+                <p className="text-sm mt-2">Available functions: sma(), ema(), returns(), quantile(), adf_test(), arima(), arima_auto()</p>
               </div>
             </div>
           )}
@@ -574,20 +621,39 @@ export default function CustomAnalysis() {
       </div>
 
       {/* Static Variables Panel */}
+      {(() => {
+        console.log('Rendering check - staticVars:', staticVars)
+        console.log('Should render panel:', staticVars && Object.keys(staticVars).length > 0)
+        return null
+      })()}
       {staticVars && Object.keys(staticVars).length > 0 && (
         <Card className="p-6 bg-zinc-900/50 border-zinc-800">
             <h3 className="text-xl font-semibold mb-6 flex items-center gap-2 text-zinc-100">
               <Database className="w-6 h-6" />
-              Static Variables
+              Statistical Results
             </h3>
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 w-full">
-              {Object.entries(staticVars).map(([key, value]: [string, any]) => (
+              {Object.entries(staticVars).map(([key, value]: [string, any]) => {
+                console.log(`Rendering card for ${key}:`, value)
+                console.log(`Value type check: typeof=${typeof value}, isNull=${value === null}, type field=${value?.type}`)
+                return (
                 <div key={key} className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-5 hover:border-zinc-600 transition-colors">
                   <div className="mb-4 pb-3 border-b border-zinc-700">
                     <h4 className="font-semibold text-base text-blue-400">{key}</h4>
                   </div>
                   <div className="space-y-2.5">
-                    {typeof value === 'object' && value !== null ? (
+                    {/* Check if it's a scalar result (quantile, etc.) */}
+                    {typeof value === 'object' && value !== null && value.type === 'scalar' ? (
+                      <div className="text-center py-4">
+                        <div className="text-4xl font-bold text-blue-400 mb-2">
+                          {typeof value.value === 'number' ? value.value.toFixed(4) : String(value.value)}
+                        </div>
+                        {value.formula && (
+                          <div className="text-xs text-zinc-500 mt-2">{value.formula}</div>
+                        )}
+                      </div>
+                    ) : typeof value === 'object' && value !== null ? (
+                      /* Handle dict results (ADF test, ARIMA, etc.) */
                       Object.entries(value).map(([k, v]: [string, any]) => (
                         <div key={k} className="flex justify-between items-start gap-4 py-1">
                           <span className="text-zinc-400 text-sm font-medium min-w-[120px]">{k}:</span>
@@ -608,11 +674,13 @@ export default function CustomAnalysis() {
                         </div>
                       ))
                     ) : (
+                      /* Handle primitive values */
                       <div className="text-zinc-200 text-sm">{String(value)}</div>
                     )}
                   </div>
                 </div>
-              ))}
+                )
+              })}
             </div>
           </Card>
         )}

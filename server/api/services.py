@@ -1722,14 +1722,25 @@ class AlphaVantageService:
 
 
 class OpenAIService:
-    """Service for generating insights using OpenAI GPT API"""
+    """Service for generating insights using OpenAI GPT API and Perplexity for real-time insights"""
 
     def __init__(self):
+        # OpenAI for chatbot
         self.api_key = os.getenv('OPENAI_API_KEY')
         if self.api_key:
             self.client = OpenAI(api_key=self.api_key)
         else:
             self.client = None
+
+        # Perplexity for real-time stock insights
+        self.perplexity_api_key = os.getenv('PERPLEXITY_API_KEY')
+        if self.perplexity_api_key:
+            self.perplexity_client = OpenAI(
+                api_key=self.perplexity_api_key,
+                base_url="https://api.perplexity.ai"
+            )
+        else:
+            self.perplexity_client = None
 
     def generate_stock_insights(self, symbol: str, news_data: List[Dict]) -> Dict:
         """Generate positive and negative insights based on news sentiment"""
@@ -1926,6 +1937,7 @@ Guidelines:
     def generate_stock_insights(self, symbol: str, stock_name: str) -> List[Dict]:
         """
         Generate AI-powered insights for a stock including recent events, blogs, and news
+        Uses Perplexity AI for real-time web-grounded insights
         Returns a list of 10 insights with sentiment analysis
 
         Args:
@@ -1935,17 +1947,29 @@ Guidelines:
         Returns:
             List of insight dictionaries with title, summary, sentiment, etc.
         """
-        if not self.client:
+        # Use Perplexity for real-time insights, fallback to OpenAI
+        client = self.perplexity_client if self.perplexity_client else self.client
+        model = "sonar" if self.perplexity_client else "gpt-3.5-turbo"
+
+        if not client:
             return []
 
         try:
+            # Get current date for context
+            current_date = datetime.now().strftime("%B %d, %Y")
+            week_ago = (datetime.now() - timedelta(days=7)).strftime("%B %d, %Y")
+
             prompt = f"""You are a financial analyst researching {stock_name} ({symbol}).
-Generate 10 recent and relevant insights about this company. Include a mix of:
-- Recent news events
-- Blog posts or analyst opinions
-- Company announcements
-- Industry trends affecting the company
-- Market sentiment
+Today's date is: {current_date}
+
+Search the web and generate 10 real, recent insights about this company from the PAST 7 DAYS ONLY (between {week_ago} and {current_date}). Include a mix of:
+- Actual news events from the past week
+- Recent analyst reports and opinions
+- Company announcements from the past 7 days
+- Industry developments affecting the company this week
+- Current market sentiment and price movements
+
+CRITICAL: Use your real-time web search capability to find ACTUAL recent news and events. Do not make up or hallucinate information.
 
 For EACH of the 10 insights, provide:
 1. A compelling title (max 100 characters)
@@ -1954,10 +1978,7 @@ For EACH of the 10 insights, provide:
 4. Sentiment (positive/negative/neutral)
 5. A sentiment score from -1.0 (very negative) to 1.0 (very positive)
 6. 2-3 key points (brief bullet points)
-7. Source name (e.g., "Financial Times", "Bloomberg", "Company Press Release")
-
-Make the content realistic, timely, and relevant to current market conditions.
-Focus on information that would be valuable to investors.
+7. Source name (e.g., "Financial Times", "Bloomberg", "Reuters", "CNBC")
 
 Return your response as a JSON array with this exact structure:
 [
@@ -1974,14 +1995,14 @@ Return your response as a JSON array with this exact structure:
   ...
 ]"""
 
-            response = self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
+            response = client.chat.completions.create(
+                model=model,
                 messages=[
-                    {"role": "system", "content": "You are a financial research assistant providing factual, balanced analysis of stocks and companies. Return only valid JSON."},
+                    {"role": "system", "content": "You are a financial research assistant with real-time web access. Search the web for actual recent news and provide factual, balanced analysis of stocks and companies. Return only valid JSON."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.8,
-                max_tokens=2000
+                temperature=0.7,
+                max_tokens=3000
             )
 
             # Parse the response
@@ -1999,12 +2020,11 @@ Return your response as a JSON array with this exact structure:
 
             insights = json.loads(content)
 
-            # Add published_date (simulate recent dates)
-            from datetime import timedelta
+            # Add published_date (simulate recent dates from past 7 days)
             base_date = datetime.now()
             for i, insight in enumerate(insights):
-                # Spread insights over the last 14 days
-                days_ago = (i * 14) // len(insights)
+                # Spread insights over the last 7 days
+                days_ago = (i * 7) // len(insights)
                 insight['published_date'] = (base_date - timedelta(days=days_ago)).isoformat()
 
             return insights
@@ -2866,6 +2886,34 @@ class StatsmodelsService:
                 'error': str(e)
             }
 
+    def calculate_quantile(self, prices: List[float], q: float) -> Dict[str, Any]:
+        """
+        Calculate quantile (percentile) of price series
+
+        Args:
+            prices: List of price values
+            q: Quantile to compute (e.g., 0.25 for 25th percentile, 0.5 for median)
+
+        Returns:
+            Dict with quantile value
+        """
+        try:
+            prices_array = np.array(prices)
+            quantile_value = float(np.quantile(prices_array, q))
+
+            return {
+                'status': 'success',
+                'data': {
+                    'value': quantile_value,
+                    'quantile': q
+                }
+            }
+        except Exception as e:
+            return {
+                'status': 'error',
+                'error': str(e)
+            }
+
     def run_adf_test(self, prices: List[float]) -> Dict[str, Any]:
         """
         Run Augmented Dickey-Fuller test for stationarity
@@ -3043,6 +3091,100 @@ class StatsmodelsService:
                 'error': str(e)
             }
 
+    def arima_auto_optimize(self, prices: List[float], max_p: int = 3, max_d: int = 2, max_q: int = 3) -> Dict[str, Any]:
+        """
+        Auto-optimize ARIMA parameters by trying different combinations
+
+        Args:
+            prices: List of price values
+            max_p: Maximum AR order to try
+            max_d: Maximum differencing order to try
+            max_q: Maximum MA order to try
+
+        Returns:
+            Dict with results for all models ranked by AIC
+        """
+        try:
+            prices_array = np.array(prices)
+            clean_prices = prices_array[~np.isnan(prices_array)]
+
+            if len(clean_prices) < 30:
+                return {
+                    'status': 'error',
+                    'error': 'Insufficient data points for ARIMA (minimum 30 required)'
+                }
+
+            results = []
+            best_aic = float('inf')
+            best_model = None
+
+            # Try different combinations
+            for p in range(max_p + 1):
+                for d in range(max_d + 1):
+                    for q in range(max_q + 1):
+                        if p == 0 and d == 0 and q == 0:
+                            continue  # Skip (0,0,0)
+
+                        try:
+                            model = ARIMA(clean_prices, order=(p, d, q))
+                            fitted = model.fit()
+
+                            aic = fitted.aic
+                            bic = fitted.bic
+
+                            results.append({
+                                'order': [p, d, q],
+                                'aic': float(aic),
+                                'bic': float(bic),
+                                'params': f"({p},{d},{q})"
+                            })
+
+                            if aic < best_aic:
+                                best_aic = aic
+                                best_model = {
+                                    'order': [p, d, q],
+                                    'aic': float(aic),
+                                    'bic': float(bic),
+                                    'model': fitted
+                                }
+                        except Exception as e:
+                            # Some parameter combinations may fail
+                            print(f"ARIMA({p},{d},{q}) failed: {e}")
+                            continue
+
+            # Sort results by AIC (lower is better)
+            results.sort(key=lambda x: x['aic'])
+
+            if not best_model:
+                return {
+                    'status': 'error',
+                    'error': 'No valid ARIMA models could be fit'
+                }
+
+            # Generate forecast with best model (30 steps for better visualization)
+            forecast = best_model['model'].forecast(steps=30)
+
+            return {
+                'status': 'success',
+                'data': {
+                    'best_model': best_model['order'],
+                    'best_aic': best_model['aic'],
+                    'best_bic': best_model['bic'],
+                    'all_models': results[:10],  # Top 10 models
+                    'total_tested': len(results),
+                    'forecast': forecast.tolist(),
+                    'summary': f"Best model: ARIMA{tuple(best_model['order'])} with AIC={best_model['aic']:.2f}"
+                },
+                # Include forecast series for plotting
+                'forecast_series': forecast.tolist(),
+                'has_forecast': True
+            }
+        except Exception as e:
+            return {
+                'status': 'error',
+                'error': str(e)
+            }
+
     def evaluate_formulas(self, formulas: List[str], stock_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Evaluate custom formulas with stock data
@@ -3099,6 +3241,31 @@ class StatsmodelsService:
                                 'type': 'dict',
                                 'data': result_value  # Include full data for display
                             }
+
+                            # If this dict has a forecast series, create a separate plottable result
+                            if result_value.get('has_forecast') and 'forecast_series' in result_value:
+                                forecast_values = result_value['forecast_series']
+                                # Generate future dates for the forecast
+                                from datetime import datetime, timedelta
+                                if dates and len(dates) > 0:
+                                    # Parse the last historical date
+                                    last_date = datetime.fromisoformat(dates[-1].replace('Z', '+00:00'))
+                                    # Generate daily forecast dates
+                                    forecast_dates = [(last_date + timedelta(days=i+1)).isoformat() for i in range(len(forecast_values))]
+                                else:
+                                    # If no dates available, use sequential numbering
+                                    forecast_dates = [f"T+{i+1}" for i in range(len(forecast_values))]
+
+                                # Create a separate forecast result that can be plotted
+                                forecast_var_name = f"{var_name}_forecast"
+                                results[forecast_var_name] = {
+                                    'formula': f"Forecast from {formula}",
+                                    'value': forecast_values[-1] if forecast_values else None,
+                                    'series': forecast_values,
+                                    'dates': forecast_dates,
+                                    'type': 'forecast',
+                                    'is_forecast': True
+                                }
                         # Handle numpy arrays (time series)
                         elif isinstance(result_value, np.ndarray):
                             variables[var_name] = result_value
@@ -3114,14 +3281,14 @@ class StatsmodelsService:
                                 'type': type(final_value).__name__
                             }
                         else:
-                            # Handle scalar values
+                            # Handle scalar values (quantile, etc.)
                             variables[var_name] = result_value
                             results[var_name] = {
                                 'formula': formula,
                                 'value': result_value,
-                                'series': [result_value],
-                                'dates': dates,
-                                'type': type(result_value).__name__
+                                'type': 'scalar',
+                                'scalar': True,
+                                'value_type': type(result_value).__name__
                             }
 
                 except Exception as e:
@@ -3203,6 +3370,27 @@ class StatsmodelsService:
                 else:
                     raise ValueError(f"Variable '{arg}' not found for adf_test")
 
+        # Handle arima_auto() function - auto-optimize ARIMA parameters
+        if 'arima_auto(' in expr:
+            match = re.search(r'arima_auto\(([^)]+)\)', expr)
+            if match:
+                arg = match.group(1).strip()
+                if arg in variables:
+                    series_data = variables[arg]
+                    if isinstance(series_data, np.ndarray):
+                        result = self.arima_auto_optimize(series_data.tolist())
+                        if result.get('status') == 'success':
+                            # Return the entire result (including forecast_series and has_forecast)
+                            # but merge data fields into the top level for compatibility
+                            return_value = result.get('data', {}).copy()
+                            return_value['forecast_series'] = result.get('forecast_series', [])
+                            return_value['has_forecast'] = result.get('has_forecast', False)
+                            return return_value
+                        else:
+                            raise ValueError(result.get('error', 'ARIMA auto-optimization failed'))
+                else:
+                    raise ValueError(f"Variable '{arg}' not found for arima_auto")
+
         # Handle arima() function - returns dict with forecast
         if 'arima(' in expr:
             match = re.search(r'arima\(([^,]+),\s*\[(\d+),(\d+),(\d+)\]\)', expr)
@@ -3281,6 +3469,24 @@ class StatsmodelsService:
                 else:
                     raise ValueError(f"Variable '{arg}' not found for returns")
             expr = re.sub(r'returns\(([^)]+)\)', replace_returns, expr)
+
+        # Handle quantile() function - returns a scalar value
+        if 'quantile(' in expr:
+            match = re.search(r'quantile\(([^,]+),\s*([\d\.]+)\)', expr)
+            if match:
+                arg = match.group(1).strip()
+                q = float(match.group(2))
+                if arg in variables:
+                    series_data = variables[arg]
+                    if isinstance(series_data, np.ndarray):
+                        result = self.calculate_quantile(series_data.tolist(), q)
+                        if result.get('status') == 'success':
+                            # Return the scalar value directly
+                            return result['data']['value']
+                        else:
+                            raise ValueError(result.get('error', 'Quantile calculation failed'))
+                else:
+                    raise ValueError(f"Variable '{arg}' not found for quantile")
 
         # Evaluate the expression (basic math operations)
         try:

@@ -742,8 +742,8 @@ export default function StockDetail({ onBack }: { onBack?: () => void }) {
                     key={insight.id}
                     className="flex flex-col p-5 rounded-lg border border-zinc-800 hover:border-zinc-700 bg-zinc-900/30 transition-all hover:shadow-lg group h-full"
                   >
-                    {/* Header with title and badges */}
-                    <div className="flex items-start justify-between gap-4 mb-3">
+                    {/* Title with Badges */}
+                    <div className="flex items-start justify-between gap-3 mb-3">
                       <h3 className="font-semibold text-white flex-1 group-hover:text-blue-400 transition-colors">{insight.title}</h3>
                       <div className="flex gap-2 flex-shrink-0">
                         <span className={`px-2 py-1 rounded text-xs font-medium ${typeColor}`}>
@@ -755,58 +755,23 @@ export default function StockDetail({ onBack }: { onBack?: () => void }) {
                       </div>
                     </div>
 
-                    {/* Summary */}
-                    <p className="text-sm text-zinc-300 mb-4">{insight.summary}</p>
-
-                    {/* Key Points */}
-                    {insight.key_points && insight.key_points.length > 0 && (
-                      <div className="mb-4">
-                        <h4 className="text-xs font-semibold text-zinc-400 mb-2">KEY POINTS</h4>
-                        <ul className="space-y-1.5">
-                          {insight.key_points.map((point: string, idx: number) => (
-                            <li key={idx} className="text-sm text-zinc-300 flex gap-2">
-                              <span className="text-blue-400 flex-shrink-0">•</span>
-                              <span>{point}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {/* AI Analysis */}
+                    {/* AI Insights */}
                     {insight.ai_analysis && (
-                      <div className="mb-4 p-3 rounded bg-blue-900/10 border border-blue-900/30">
-                        <h4 className="text-xs font-semibold text-blue-400 mb-1">AI ANALYSIS</h4>
-                        <p className="text-sm text-zinc-300">{insight.ai_analysis}</p>
-                      </div>
+                      <p className="text-sm text-zinc-300 leading-relaxed mb-4">{insight.ai_analysis}</p>
                     )}
 
                     {/* Footer with metadata */}
-                    <div className="flex items-center justify-between text-xs text-zinc-500 pt-3 border-t border-zinc-800">
-                      <div className="flex items-center gap-3">
-                        <span>{insight.source}</span>
-                        {insight.published_date && (
-                          <>
-                            <span>•</span>
-                            <span>{new Date(insight.published_date).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric'
-                            })}</span>
-                          </>
-                        )}
-                      </div>
-                      {insight.sentiment_score !== undefined && (
-                        <div className="flex items-center gap-2">
-                          <span>Sentiment Score:</span>
-                          <span className={`font-semibold ${
-                            insight.sentiment_score > 0 ? 'text-green-400' :
-                            insight.sentiment_score < 0 ? 'text-red-400' :
-                            'text-zinc-400'
-                          }`}>
-                            {insight.sentiment_score > 0 ? '+' : ''}{insight.sentiment_score.toFixed(2)}
-                          </span>
-                        </div>
+                    <div className="flex items-center gap-3 text-xs text-zinc-500 pt-3 border-t border-zinc-800 mt-auto">
+                      <span>{insight.source}</span>
+                      {insight.published_date && (
+                        <>
+                          <span>•</span>
+                          <span>{new Date(insight.published_date).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                          })}</span>
+                        </>
                       )}
                     </div>
                   </div>
@@ -895,7 +860,18 @@ export default function StockDetail({ onBack }: { onBack?: () => void }) {
                     <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500 mt-auto pt-3 border-t border-zinc-800">
                       <span className="font-medium">{article.source}</span>
                       <span>•</span>
-                      <span>{new Date(article.time_published).toLocaleDateString()}</span>
+                      <span>{(() => {
+                        // Parse Alpha Vantage date format: "20251115T154306"
+                        const timeStr = article.time_published
+                        if (timeStr && timeStr.length >= 8) {
+                          const year = timeStr.substring(0, 4)
+                          const month = timeStr.substring(4, 6)
+                          const day = timeStr.substring(6, 8)
+                          const date = new Date(`${year}-${month}-${day}`)
+                          return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        }
+                        return 'N/A'
+                      })()}</span>
                       <span>•</span>
                       <span className={`font-medium ${sentimentColor}`}>{article.overall_sentiment_label}</span>
                     </div>
