@@ -2,11 +2,8 @@ name: PR Build Matrix
 
 on:
   pull_request:
-<<<<<<< Updated upstream
-=======
     branches:
       - "tbm/SCRUM-40"
->>>>>>> Stashed changes
     paths:
       - "client/**"
       - "server/**"
