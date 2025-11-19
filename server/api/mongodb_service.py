@@ -28,6 +28,16 @@ class MongoDBService:
         """Initialize MongoDB connection"""
         try:
             mongo_uri = os.getenv('MONGODB_URI', 'mongodb://localhost:27017/')
+
+            # Debug logging to check what URI we're using
+            if mongo_uri:
+                # Hide password for security in logs
+                import re
+                safe_uri = re.sub(r'://([^:]+):([^@]+)@', r'://\1:****@', mongo_uri)
+                print(f"🔍 MongoDB URI from env: {safe_uri}")
+            else:
+                print("⚠️ MONGODB_URI not set, using default: mongodb://localhost:27017/")
+
             cls._client = MongoClient(mongo_uri)
             cls._db = cls._client['macrodash']
 

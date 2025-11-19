@@ -26,7 +26,7 @@ def health_check(request):
 
         # Check if we can connect and list tables
         with connection.cursor() as cursor:
-            cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='public'" if 'postgresql' in db_config['ENGINE'] else "SELECT name FROM sqlite_master WHERE type='table'")
+            cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='public'")
             tables = [row[0] for row in cursor.fetchall()]
 
         # Check API keys status
