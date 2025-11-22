@@ -7,7 +7,7 @@ permissions:
 on:
   pull_request:
     branches:
-      - "tbm/SCRUM-43"
+      - "main"
     paths:
       - "client/**"
       - "server/**"
