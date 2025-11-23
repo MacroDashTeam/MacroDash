@@ -250,12 +250,8 @@ export default function LoginScreen({ onSignIn, onSkip }: LoginScreenProps) {
                       <span className={password.length >= 8 ? 'text-green-400' : ''}>At least 8 characters</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className={`w-1.5 h-1.5 rounded-full ${/\d/.test(password) ? 'bg-green-500' : 'bg-slate-600'}`} />
-                      <span className={/\d/.test(password) ? 'text-green-400' : ''}>Contains a number</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className={`w-1.5 h-1.5 rounded-full ${/[!@#$%^&*]/.test(password) ? 'bg-green-500' : 'bg-slate-600'}`} />
-                      <span className={/[!@#$%^&*]/.test(password) ? 'text-green-400' : ''}>Contains a special character</span>
+                      <div className={`w-1.5 h-1.5 rounded-full ${!/^\d+$/.test(password) && password.length > 0 ? 'bg-green-500' : 'bg-slate-600'}`} />
+                      <span className={!/^\d+$/.test(password) && password.length > 0 ? 'text-green-400' : ''}>Not entirely numeric</span>
                     </div>
                   </div>
                 </div>
