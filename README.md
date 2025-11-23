@@ -179,6 +179,24 @@ yarn dev
 
 Frontend will be available at http://localhost:5173/
 
+### Running the app with one command
+
+To start Django (backend) and Vite (frontend) simultaneously:
+
+1. Install honcho if you haven't already:
+```bash
+pip install honcho
+```
+
+2. Run the app with one command:
+```bash
+honcho start
+```
+
+The backend will be available at http://127.0.0.1:8000/
+The frontend will be available at http://localhost:5173/
+
+
 ## API Endpoints
 
 ### Economic Data
