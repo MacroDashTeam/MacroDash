@@ -48,15 +48,40 @@ function App() {
 
   // Check authentication status on mount
   useEffect(() => {
-    const storedUser = localStorage.getItem('user')
-    if (storedUser) {
+    const checkAuth = async () => {
+      // First check localStorage
+      const storedUser = localStorage.getItem('user')
+      if (storedUser) {
+        try {
+          setUser(JSON.parse(storedUser))
+        } catch (e) {
+          localStorage.removeItem('user')
+        }
+      }
+
+      // Always verify with backend (handles SSO case where localStorage is empty)
       try {
-        setUser(JSON.parse(storedUser))
+        const API_BASE = import.meta.env.VITE_API_BASE_URL || ''
+        const response = await fetch(`${API_BASE}/api/auth/user/`, {
+          credentials: 'include'
+        })
+
+        if (response.ok) {
+          const userData = await response.json()
+          setUser(userData)
+          localStorage.setItem('user', JSON.stringify(userData))
+        } else if (!storedUser) {
+          // If backend says not logged in and nothing in localStorage, ensure we are clear
+          setUser(null)
+        }
       } catch (e) {
-        localStorage.removeItem('user')
+        console.error('Auth check failed', e)
+      } finally {
+        setIsAuthChecked(true)
       }
     }
-    setIsAuthChecked(true)
+
+    checkAuth()
   }, [])
 
   useEffect(() => {
@@ -146,11 +171,10 @@ function App() {
         <div className="relative w-full h-screen overflow-hidden">
           {/* Dashboard View */}
           <div
-            className={`absolute inset-0 overflow-y-auto hide-scrollbar transition-all duration-300 ease-in-out ${
-              viewMode === 'dashboard'
-                ? 'translate-x-0 opacity-100'
-                : '-translate-x-full opacity-0 pointer-events-none'
-            }`}
+            className={`absolute inset-0 overflow-y-auto hide-scrollbar transition-all duration-300 ease-in-out ${viewMode === 'dashboard'
+              ? 'translate-x-0 opacity-100'
+              : '-translate-x-full opacity-0 pointer-events-none'
+              }`}
           >
             <SidebarProvider>
               <AppHeader user={user || undefined} onSignOut={handleSignOut} onSignIn={() => setShowLogin(true)} />
@@ -171,33 +195,30 @@ function App() {
 
           {/* Indicator Chart View */}
           <div
-            className={`absolute inset-0 overflow-y-auto hide-scrollbar transition-all duration-300 ease-in-out ${
-              viewMode === 'indicator'
-                ? 'translate-x-0 opacity-100'
-                : 'translate-x-full opacity-0 pointer-events-none'
-            }`}
+            className={`absolute inset-0 overflow-y-auto hide-scrollbar transition-all duration-300 ease-in-out ${viewMode === 'indicator'
+              ? 'translate-x-0 opacity-100'
+              : 'translate-x-full opacity-0 pointer-events-none'
+              }`}
           >
             <IndicatorChart onBack={handleBackToDashboard} />
           </div>
 
           {/* Stock Detail View */}
           <div
-            className={`absolute inset-0 overflow-y-auto hide-scrollbar transition-all duration-300 ease-in-out ${
-              viewMode === 'stock'
-                ? 'translate-x-0 opacity-100'
-                : 'translate-x-full opacity-0 pointer-events-none'
-            }`}
+            className={`absolute inset-0 overflow-y-auto hide-scrollbar transition-all duration-300 ease-in-out ${viewMode === 'stock'
+              ? 'translate-x-0 opacity-100'
+              : 'translate-x-full opacity-0 pointer-events-none'
+              }`}
           >
             <StockDetail onBack={handleBackToDashboard} />
           </div>
 
           {/* Crypto Detail View */}
           <div
-            className={`absolute inset-0 overflow-y-auto hide-scrollbar transition-all duration-300 ease-in-out ${
-              viewMode === 'crypto'
-                ? 'translate-x-0 opacity-100'
-                : 'translate-x-full opacity-0 pointer-events-none'
-            }`}
+            className={`absolute inset-0 overflow-y-auto hide-scrollbar transition-all duration-300 ease-in-out ${viewMode === 'crypto'
+              ? 'translate-x-0 opacity-100'
+              : 'translate-x-full opacity-0 pointer-events-none'
+              }`}
           >
             <CryptoDetail onBack={handleBackToDashboard} />
           </div>

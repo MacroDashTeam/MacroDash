@@ -1,9 +1,7 @@
 import { useState } from 'react'
-import { Eye, EyeOff, User, Lock, ArrowRight, Mail, X } from 'lucide-react'
+import { Eye, EyeOff, Lock, ArrowRight, Mail, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import GoogleSvg from './google-svg';
-import FacebookSvg from './facebook-svg';
-import MicrosoftSvg from './microsoft-svg';
 
 interface LoginScreenProps {
   onSignIn: () => void
@@ -12,9 +10,9 @@ interface LoginScreenProps {
 
 export default function LoginScreen({ onSignIn, onSkip }: LoginScreenProps) {
   const [isSignUp, setIsSignUp] = useState(false)
-  const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -30,16 +28,19 @@ export default function LoginScreen({ onSignIn, onSkip }: LoginScreenProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ email, password })
       })
 
       const data = await response.json()
 
-      if (data.status === 'success') {
-        localStorage.setItem('user', JSON.stringify(data.user))
+      if (response.ok) {
+        localStorage.setItem('user', JSON.stringify(data.user || { email }))
         onSignIn()
       } else {
-        setError(data.error || 'Invalid credentials')
+        const errorMsg = data.non_field_errors?.[0] ||
+          Object.values(data).flat()[0] ||
+          'Invalid credentials'
+        setError(String(errorMsg))
       }
     } catch (err) {
       setError('Failed to connect to server')
@@ -53,22 +54,31 @@ export default function LoginScreen({ onSignIn, onSkip }: LoginScreenProps) {
     setIsLoading(true)
     setError('')
 
+    if (password !== confirmPassword) {
+      setError('Passwords do not match')
+      setIsLoading(false)
+      return
+    }
+
     try {
       const API_BASE = import.meta.env.VITE_API_BASE_URL || ''
-      const response = await fetch(`${API_BASE}/api/auth/register/`, {
+      const response = await fetch(`${API_BASE}/api/auth/registration/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ username, email, password })
+        body: JSON.stringify({ email, password1: password, password2: confirmPassword })
       })
 
       const data = await response.json()
 
-      if (data.status === 'success') {
-        localStorage.setItem('user', JSON.stringify(data.user))
+      if (response.ok) {
+        localStorage.setItem('user', JSON.stringify(data.user || { email }))
         onSignIn()
       } else {
-        setError(data.error || 'Registration failed')
+        const errorMsg = data.non_field_errors?.[0] ||
+          Object.values(data).flat()[0] ||
+          'Registration failed'
+        setError(String(errorMsg))
       }
     } catch (err) {
       setError('Failed to connect to server')
@@ -77,8 +87,9 @@ export default function LoginScreen({ onSignIn, onSkip }: LoginScreenProps) {
     }
   }
 
-  const handleSocialSignIn = () => {
-    setError('Social sign-in coming soon!')
+  const handleSocialSignIn = (provider: string) => {
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+    window.location.href = `${API_BASE}/accounts/${provider}/login/`
   }
 
   return (
@@ -115,35 +126,15 @@ export default function LoginScreen({ onSignIn, onSkip }: LoginScreenProps) {
               </p>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 mb-4">
+            <div className="grid grid-cols-1 gap-2 mb-4">
               <Button
-                onClick={handleSocialSignIn}
+                onClick={() => handleSocialSignIn('google')}
                 disabled={isLoading}
                 variant="outline"
                 size="sm"
                 className="h-10 border-slate-600/50 bg-slate-700/30 hover:bg-slate-700/50 text-slate-200 p-2"
               >
                 <GoogleSvg />
-              </Button>
-
-              <Button
-                onClick={handleSocialSignIn}
-                disabled={isLoading}
-                variant="outline"
-                size="sm"
-                className="h-10 border-slate-600/50 bg-slate-700/30 hover:bg-slate-700/50 text-slate-200 p-2"
-              >
-                <FacebookSvg />
-              </Button>
-
-              <Button
-                onClick={handleSocialSignIn}
-                disabled={isLoading}
-                variant="outline"
-                size="sm"
-                className="h-10 border-slate-600/50 bg-slate-700/30 hover:bg-slate-700/50 text-slate-200 p-2"
-              >
-                <MicrosoftSvg />
               </Button>
             </div>
 
@@ -164,36 +155,19 @@ export default function LoginScreen({ onSignIn, onSkip }: LoginScreenProps) {
 
             <form onSubmit={isSignUp ? handleSignUp : handleSignIn} className="space-y-3">
               <div className="space-y-1">
-                <label className="text-sm text-slate-300">Username</label>
+                <label className="text-sm text-slate-300">Email</label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                   <input
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="w-full h-10 pl-10 pr-3 rounded-lg bg-slate-700/30 border border-slate-600/50 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                    placeholder="Enter your username"
+                    placeholder="Enter your email"
                     required
                   />
                 </div>
               </div>
-
-              {isSignUp && (
-                <div className="space-y-1">
-                  <label className="text-sm text-slate-300">Email</label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full h-10 pl-10 pr-3 rounded-lg bg-slate-700/30 border border-slate-600/50 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                      placeholder="Enter your email"
-                      required
-                    />
-                  </div>
-                </div>
-              )}
 
               <div className="space-y-1">
                 <label className="text-sm text-slate-300">Password</label>
@@ -216,6 +190,23 @@ export default function LoginScreen({ onSignIn, onSkip }: LoginScreenProps) {
                   </button>
                 </div>
               </div>
+
+              {isSignUp && (
+                <div className="space-y-1">
+                  <label className="text-sm text-slate-300">Confirm Password</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="w-full h-10 pl-10 pr-10 rounded-lg bg-slate-700/30 border border-slate-600/50 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                      placeholder="Confirm your password"
+                      required
+                    />
+                  </div>
+                </div>
+              )}
 
               {!isSignUp && (
                 <div className="flex items-center justify-between text-sm">
