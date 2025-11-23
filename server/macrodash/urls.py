@@ -1,6 +1,7 @@
 """macrodash URL Configuration"""
 from django.contrib import admin
 from django.urls import path, include
+from django.views.generic import RedirectView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -10,4 +11,7 @@ urlpatterns = [
     path('accounts/', include('allauth.account.urls')),
     path('accounts/', include('allauth.socialaccount.urls')),
     path('accounts/', include('allauth.socialaccount.providers.google.urls')),
+    path('password-reset/confirm/<uidb64>/<token>/', 
+         RedirectView.as_view(url='http://localhost:5173/password-reset/confirm/%(uidb64)s/%(token)s/', permanent=False),
+         name='password_reset_confirm'),
 ]

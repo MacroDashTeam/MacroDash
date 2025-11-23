@@ -177,6 +177,7 @@ REST_AUTH = {
     'USER_DETAILS_SERIALIZER': 'api.serializers.UserSerializer',
     'SESSION_LOGIN': False,
     'REGISTER_SERIALIZER': 'api.registration_serializers.CustomRegisterSerializer',
+    'PASSWORD_RESET_CONFIRM_URL': 'password-reset/confirm/{uid}/{token}',
 }
 
 from datetime import timedelta
