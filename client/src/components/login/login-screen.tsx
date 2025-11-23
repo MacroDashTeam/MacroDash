@@ -11,6 +11,8 @@ interface LoginScreenProps {
 export default function LoginScreen({ onSignIn, onSkip }: LoginScreenProps) {
   const [isSignUp, setIsSignUp] = useState(false)
   const [email, setEmail] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -66,13 +68,19 @@ export default function LoginScreen({ onSignIn, onSkip }: LoginScreenProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ email, password1: password, password2: confirmPassword })
+        body: JSON.stringify({
+          email,
+          password1: password,
+          password2: confirmPassword,
+          first_name: firstName,
+          last_name: lastName
+        })
       })
 
       const data = await response.json()
 
       if (response.ok) {
-        localStorage.setItem('user', JSON.stringify(data.user || { email }))
+        localStorage.setItem('user', JSON.stringify(data.user || { email, first_name: firstName, last_name: lastName }))
         onSignIn()
       } else {
         const errorMsg = data.non_field_errors?.[0] ||
@@ -154,6 +162,33 @@ export default function LoginScreen({ onSignIn, onSkip }: LoginScreenProps) {
             )}
 
             <form onSubmit={isSignUp ? handleSignUp : handleSignIn} className="space-y-3">
+              {isSignUp && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-sm text-slate-300">First Name</label>
+                    <input
+                      type="text"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      className="w-full h-10 px-3 rounded-lg bg-slate-700/30 border border-slate-600/50 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                      placeholder="First name"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm text-slate-300">Last Name</label>
+                    <input
+                      type="text"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      className="w-full h-10 px-3 rounded-lg bg-slate-700/30 border border-slate-600/50 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                      placeholder="Last name"
+                      required
+                    />
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-1">
                 <label className="text-sm text-slate-300">Email</label>
                 <div className="relative">
@@ -192,28 +227,42 @@ export default function LoginScreen({ onSignIn, onSkip }: LoginScreenProps) {
               </div>
 
               {isSignUp && (
-                <div className="space-y-1">
-                  <label className="text-sm text-slate-300">Confirm Password</label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full h-10 pl-10 pr-10 rounded-lg bg-slate-700/30 border border-slate-600/50 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                      placeholder="Confirm your password"
-                      required
-                    />
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="text-sm text-slate-300">Confirm Password</label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="w-full h-10 pl-10 pr-10 rounded-lg bg-slate-700/30 border border-slate-600/50 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        placeholder="Confirm your password"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="text-xs space-y-1 text-slate-400 bg-slate-800/40 p-3 rounded-lg border border-slate-700/50">
+                    <p className="font-medium text-slate-300 mb-2">Password requirements:</p>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-1.5 h-1.5 rounded-full ${password.length >= 8 ? 'bg-green-500' : 'bg-slate-600'}`} />
+                      <span className={password.length >= 8 ? 'text-green-400' : ''}>At least 8 characters</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-1.5 h-1.5 rounded-full ${/\d/.test(password) ? 'bg-green-500' : 'bg-slate-600'}`} />
+                      <span className={/\d/.test(password) ? 'text-green-400' : ''}>Contains a number</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-1.5 h-1.5 rounded-full ${/[!@#$%^&*]/.test(password) ? 'bg-green-500' : 'bg-slate-600'}`} />
+                      <span className={/[!@#$%^&*]/.test(password) ? 'text-green-400' : ''}>Contains a special character</span>
+                    </div>
                   </div>
                 </div>
               )}
 
               {!isSignUp && (
-                <div className="flex items-center justify-between text-sm">
-                  <label className="flex items-center gap-2 text-slate-400 cursor-pointer">
-                    <input type="checkbox" className="rounded border-slate-600 bg-slate-700/30" />
-                    Remember me
-                  </label>
+                <div className="flex items-center justify-end text-sm">
                   <a href="#" className="text-blue-400 hover:text-blue-300">
                     Forgot password?
                   </a>

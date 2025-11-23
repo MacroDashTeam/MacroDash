@@ -176,6 +176,7 @@ REST_AUTH = {
     'JWT_AUTH_REFRESH_COOKIE': 'macrodash-refresh-token',
     'USER_DETAILS_SERIALIZER': 'api.serializers.UserSerializer',
     'SESSION_LOGIN': False,
+    'REGISTER_SERIALIZER': 'api.registration_serializers.CustomRegisterSerializer',
 }
 
 from datetime import timedelta
