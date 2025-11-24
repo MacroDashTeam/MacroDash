@@ -44,8 +44,6 @@ urlpatterns = [
     path('ai-insights/', views.all_insights, name='all_ai_insights'),
     path('ai-insights/<str:symbol>/', views.ai_stock_insights, name='ai_stock_insights'),
     # Authentication
-    # Authentication paths removed in favor of dj-rest-auth
-    # Admin
     path('admin/users/', views.admin_users, name='admin_users'),
     # Data Explorer
     path('search/', views.search_data, name='search_data'),

@@ -16,7 +16,7 @@ import DataExplorer from '@/components/data-explorer';
 import ManageDisplay from '@/components/manage-display';
 import UserManagement from '@/components/user-management';
 import LoginScreen from '@/components/login/login-screen';
-import PasswordResetConfirm from '@/components/password-reset-confirm';
+import PasswordResetConfirm from '@/components/login/password-reset-confirm';
 
 import './App.css';
 
@@ -56,9 +56,6 @@ function App() {
   const [resetUid, setResetUid] = useState('');
   const [resetToken, setResetToken] = useState('');
 
-  // ---------------------------------------------------------------------
-  // Authentication check on mount
-  // ---------------------------------------------------------------------
   useEffect(() => {
     const checkAuth = async () => {
       const stored = localStorage.getItem('user');
@@ -74,6 +71,7 @@ function App() {
         const resp = await fetch(`${API_BASE}/api/auth/user/`, { credentials: 'include' });
         if (resp.ok) {
           const data = await resp.json();
+          console.log("DATA", data);
           setUser(data);
           localStorage.setItem('user', JSON.stringify(data));
         } else if (!stored) {
@@ -88,9 +86,6 @@ function App() {
     checkAuth();
   }, []);
 
-  // ---------------------------------------------------------------------
-  // Detect password‑reset URL on mount (e.g. /password-reset/confirm/uid/token)
-  // ---------------------------------------------------------------------
   useEffect(() => {
     const path = window.location.pathname;
     const match = path.match(/\/password-reset\/confirm\/([^\/]+)\/([^\/]+)\//);
@@ -103,9 +98,6 @@ function App() {
     }
   }, []);
 
-  // ---------------------------------------------------------------------
-  // Navigation event listeners (preserve existing behaviour)
-  // ---------------------------------------------------------------------
   useEffect(() => {
     const handleNavigate = (e: CustomEvent) => {
       setTimeout(() => setViewMode(e.detail.mode), 300);
@@ -121,9 +113,6 @@ function App() {
     };
   }, []);
 
-  // ---------------------------------------------------------------------
-  // Helper callbacks
-  // ---------------------------------------------------------------------
   const handleSignIn = () => {
     const stored = localStorage.getItem('user');
     if (stored) {
@@ -150,9 +139,6 @@ function App() {
     setTimeout(() => setViewMode('dashboard'), 300);
   };
 
-  // ---------------------------------------------------------------------
-  // Render logic
-  // ---------------------------------------------------------------------
   if (!isAuthChecked) {
     return (
       <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
