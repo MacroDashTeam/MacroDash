@@ -1,11 +1,20 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from 'recharts'
-import { TrendingUp, TrendingDown, ArrowLeft, ExternalLink, Download, Bell, BookmarkPlus } from 'lucide-react'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend, ReferenceDot } from 'recharts'
+import { TrendingUp, TrendingDown, ArrowLeft, ExternalLink, Download, Bell, BookmarkPlus, Loader2 } from 'lucide-react'
 import { Chatbot } from './chatbot'
 import { PriceAlertDialog } from './price-alert-dialog'
 import { TechnicalIndicators } from './technical-indicators'
 import { saveStockPriceChart } from '@/lib/save-to-dashboard'
+import { findExtrema, fetchMarketInsight } from '@/lib/utils'
+import type { ExtremaPoint } from '@/lib/utils'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 type TimePeriod = '1D' | '1W' | '1M' | '3M' | '1Y' | '5Y'
 type FinancialPeriod = 'annual' | 'quarterly'
@@ -65,6 +74,12 @@ export default function StockDetail({ onBack }: { onBack?: () => void }) {
   const [financialType, setFinancialType] = useState<'income' | 'balance' | 'cashflow'>('income')
   const [financialPeriod, setFinancialPeriod] = useState<FinancialPeriod>('annual')
   const [alertDialogOpen, setAlertDialogOpen] = useState(false)
+
+  // Extrema insight state
+  const [selectedExtrema, setSelectedExtrema] = useState<ExtremaPoint | null>(null)
+  const [insightDialogOpen, setInsightDialogOpen] = useState(false)
+  const [insight, setInsight] = useState<string>('')
+  const [insightLoading, setInsightLoading] = useState(false)
 
   useEffect(() => {
     // Listen for stock navigation events
@@ -209,6 +224,48 @@ export default function StockDetail({ onBack }: { onBack?: () => void }) {
   }
 
   const chartData = getFilteredData()
+
+  // Calculate extrema points (peaks and troughs)
+  const getExtremaPoints = () => {
+    if (!chartData || chartData.length < 7) return []
+    // Map chartData to expected format for findExtrema
+    const mappedData = chartData.map((d: { date: string; close: number }) => ({
+      date: d.date,
+      value: d.close,
+    }))
+    // Adjust window size based on data length
+    const windowSize = Math.min(3, Math.floor(chartData.length / 5))
+    return findExtrema(mappedData, 'value', windowSize, 0.5)
+  }
+  const extremaPoints = getExtremaPoints()
+
+  // Handle click on extrema point
+  const handleExtremaClick = async (extrema: ExtremaPoint) => {
+    setSelectedExtrema(extrema)
+    setInsightDialogOpen(true)
+    setInsightLoading(true)
+    setInsight('')
+
+    try {
+      const assetName = overview?.shortName || overview?.longName || symbol || 'Stock'
+      const result = await fetchMarketInsight(
+        extrema.date,
+        assetName,
+        extrema.changePercent,
+        extrema.isPeak
+      )
+
+      if (result.status === 'success') {
+        setInsight(result.insight)
+      } else {
+        setInsight(result.error || 'Unable to fetch insight')
+      }
+    } catch {
+      setInsight('Failed to fetch market insight. Please try again.')
+    } finally {
+      setInsightLoading(false)
+    }
+  }
 
   // Calculate returns
   const calculateReturn = (days: number) => {
@@ -408,6 +465,20 @@ export default function StockDetail({ onBack }: { onBack?: () => void }) {
                 strokeWidth={2}
                 dot={false}
               />
+              {/* Extrema point markers */}
+              {extremaPoints.map((extrema, idx) => (
+                <ReferenceDot
+                  key={`extrema-${idx}`}
+                  x={extrema.date}
+                  y={extrema.value}
+                  r={6}
+                  fill={extrema.isPeak ? '#f59e0b' : '#8b5cf6'}
+                  stroke="#fff"
+                  strokeWidth={2}
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => handleExtremaClick(extrema)}
+                />
+              ))}
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -785,49 +856,6 @@ export default function StockDetail({ onBack }: { onBack?: () => void }) {
           </div>
         )}
 
-        {/* AI-Generated Insights */}
-        {insightsData?.data && (
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
-            <h2 className="text-xl font-semibold mb-6">AI-Powered Key Insights</h2>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Positive Insights */}
-              <div>
-                <h3 className="font-semibold mb-4 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-green-500" />
-                  <span>Positive Insights</span>
-                </h3>
-                <div className="space-y-3">
-                  {insightsData.data.positive?.map((insight: string, index: number) => (
-                    <div key={index} className="p-4 rounded-lg bg-green-900/20 border border-green-800/50">
-                      <p className="text-sm text-green-300">{insight}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Negative Insights */}
-              <div>
-                <h3 className="font-semibold mb-4 flex items-center gap-2">
-                  <TrendingDown className="w-5 h-5 text-red-500" />
-                  <span>Negative Insights</span>
-                </h3>
-                <div className="space-y-3">
-                  {insightsData.data.negative?.map((insight: string, index: number) => (
-                    <div key={index} className="p-4 rounded-lg bg-red-900/20 border border-red-800/50">
-                      <p className="text-sm text-red-300">{insight}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4 text-xs text-zinc-500 text-center">
-              Insights generated by AI based on recent news sentiment
-            </div>
-          </div>
-        )}
-
         {/* News Feed */}
         <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
           <h2 className="text-xl font-semibold mb-6">Latest News for {symbol}</h2>
@@ -896,6 +924,49 @@ export default function StockDetail({ onBack }: { onBack?: () => void }) {
         stockName={stock.name}
         currentPrice={stock.current_price}
       />
+
+      {/* Market Insight Dialog */}
+      <Dialog open={insightDialogOpen} onOpenChange={setInsightDialogOpen}>
+        <DialogContent className="sm:max-w-md bg-zinc-900 border-zinc-800">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {selectedExtrema?.isPeak ? (
+                <TrendingUp className="w-5 h-5 text-amber-500" />
+              ) : (
+                <TrendingDown className="w-5 h-5 text-purple-500" />
+              )}
+              <span>
+                {selectedExtrema?.isPeak ? 'Peak' : 'Trough'} on{' '}
+                {selectedExtrema && new Date(selectedExtrema.date).toLocaleDateString('en-US', {
+                  month: 'long',
+                  day: 'numeric',
+                  year: 'numeric'
+                })}
+              </span>
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              {selectedExtrema && (
+                <span className={selectedExtrema.changePercent >= 0 ? 'text-green-500' : 'text-red-500'}>
+                  {selectedExtrema.changePercent >= 0 ? '+' : ''}
+                  {selectedExtrema.changePercent.toFixed(2)}% change
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4">
+            {insightLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-zinc-400" />
+                <span className="ml-2 text-zinc-400">Fetching insight...</span>
+              </div>
+            ) : (
+              <div className="p-4 rounded-lg bg-zinc-800/50 border border-zinc-700">
+                <p className="text-sm text-zinc-300 leading-relaxed">{insight}</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

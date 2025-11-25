@@ -213,9 +213,9 @@ export function TechnicalIndicators({ symbol, period = '1y' }: TechnicalIndicato
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">{data.rsi.description}</p>
-                <p className="text-2xl font-bold mt-2">
+                <div className="text-2xl font-bold mt-2">
                   RSI: {data.rsi.latest.toFixed(2)} {getRSIBadge(data.rsi.latest)}
-                </p>
+                </div>
               </div>
               <button
                 onClick={() => handleSaveIndicator('RSI', data.rsi.timeperiod)}
@@ -247,9 +247,9 @@ export function TechnicalIndicators({ symbol, period = '1y' }: TechnicalIndicato
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">{data.macd.description}</p>
-                <p className="text-2xl font-bold mt-2">
+                <div className="text-2xl font-bold mt-2">
                   MACD: {data.macd.latest_macd.toFixed(2)} {getMACDBadge(data.macd.latest_macd, data.macd.latest_signal)}
-                </p>
+                </div>
                 <p className="text-sm text-muted-foreground mt-1">
                   Signal: {data.macd.latest_signal.toFixed(2)} | Histogram: {data.macd.latest_histogram.toFixed(2)}
                 </p>

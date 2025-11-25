@@ -110,7 +110,7 @@ def fetch_stock_insights():
             logger.info(f"Generating insights for {symbol} ({stock_name})...")
 
             # Generate insights using AI
-            insights_data = openai_service.generate_stock_insights(symbol, stock_name)
+            insights_data = openai_service.generate_ai_stock_insights(symbol, stock_name)
 
             if not insights_data:
                 logger.warning(f"No insights generated for {symbol}")

@@ -43,6 +43,8 @@ urlpatterns = [
     # AI-Generated Blog/Event Insights
     path('ai-insights/', views.all_insights, name='all_ai_insights'),
     path('ai-insights/<str:symbol>/', views.ai_stock_insights, name='ai_stock_insights'),
+    # Market Insight for chart extrema points
+    path('market-insight/', views.market_insight, name='market_insight'),
     # Authentication
     path('auth/register/', views.register, name='register'),
     path('auth/login/', views.user_login, name='user_login'),
