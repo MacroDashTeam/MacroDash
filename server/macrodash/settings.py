@@ -33,6 +33,16 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_apscheduler',
     'api',
+    # Auth & SSO
+    'rest_framework.authtoken',
+    'dj_rest_auth',
+    'django.contrib.sites',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'dj_rest_auth.registration',
+    'allauth.socialaccount.providers.google',
+    'allauth.socialaccount.providers.microsoft',
 ]
 
 MIDDLEWARE = [
@@ -45,6 +55,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'api.middleware.ActivityTrackingMiddleware',  # Track user activity
+    'allauth.account.middleware.AccountMiddleware',
 ]
 
 ROOT_URLCONF = 'macrodash.urls'
@@ -124,6 +135,9 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
+# Redirect to frontend after social login
+LOGIN_REDIRECT_URL = os.getenv('LOGIN_REDIRECT_URL', 'http://localhost:5173/')
+
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
@@ -141,6 +155,63 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
     ],
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'dj_rest_auth.jwt_auth.JWTCookieAuthentication',
+        'api.authentication.CsrfExemptSessionAuthentication',
+    ),
+}
+
+# Auth & SSO Configuration
+SITE_ID = 1
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+# JWT Settings
+REST_AUTH = {
+    'USE_JWT': True,
+    'JWT_AUTH_COOKIE': 'macrodash-auth',
+    'JWT_AUTH_REFRESH_COOKIE': 'macrodash-refresh-token',
+    'USER_DETAILS_SERIALIZER': 'api.serializers.UserSerializer',
+    'SESSION_LOGIN': False,
+    'REGISTER_SERIALIZER': 'api.registration_serializers.CustomRegisterSerializer',
+    'PASSWORD_RESET_CONFIRM_URL': 'password-reset/confirm/{uid}/{token}',
+}
+
+from datetime import timedelta
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+}
+
+# Disable email verification for now (easier for dev)
+ACCOUNT_EMAIL_VERIFICATION = 'none'
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_UNIQUE_EMAIL = True 
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
+ACCOUNT_USERNAME_REQUIRED = False
+SOCIALACCOUNT_LOGIN_ON_GET = True
+
+# Social Account Providers
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': [
+            'profile',
+            'email',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'online',
+        }
+    },
+    'microsoft': {
+        'TENANT': 'common',
+        'SCOPE': ['User.Read'],
+        'AUTH_PARAMS': {
+            'prompt': 'select_account',
+        }
+    }
 }
 
 # CORS settings
@@ -151,6 +222,13 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5137",
     "https://macrodash.xyz",
     "https://www.macrodash.xyz"
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://macrodash.xyz",
+    "https://www.macrodash.xyz",
 ]
 
 # Email Configuration for Price Alerts

@@ -11,7 +11,15 @@
       "ALPHA_VANTAGE_API_KEY": "",
       "OPENAI_API_KEY": "",
       "COINMARKETCAP_API_KEY": "",
-      "MONGODB_URI": ""
+      "MONGODB_URI": "",
+      "LOGIN_REDIRECT_URL": "https://macrodash.xyz/",
+      "EMAIL_BACKEND": "django.core.mail.backends.smtp.EmailBackend",
+      "EMAIL_HOST": "",
+      "EMAIL_PORT": "587",
+      "EMAIL_USE_TLS": "True",
+      "EMAIL_HOST_USER": "",
+      "EMAIL_HOST_PASSWORD": "",
+      "DEFAULT_FROM_EMAIL": "MacroDash <noreply@macrodash.com>"
     }
   }
 }
