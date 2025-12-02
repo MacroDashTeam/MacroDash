@@ -41,6 +41,21 @@ async function fetchMarketData(): Promise<MarketResponse> {
   return await response.json()
 }
 
+async function fetchIndividualStock(symbol: string): Promise<StockData | null> {
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
+  try {
+    const response = await fetch(`${API_BASE}/api/stocks/${symbol}/`)
+    if (!response.ok) return null
+    const data = await response.json()
+    if (data.status === 'success' && data.data) {
+      return data.data
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
 async function fetchSentiment(symbol: string): Promise<SentimentResponse> {
   const API_BASE = import.meta.env.VITE_API_BASE_URL
   const response = await fetch(`${API_BASE}/api/sentiment/${symbol}/`)
@@ -94,6 +109,47 @@ function SentimentBadge({ symbol }: { symbol: string }) {
       {emoji} {confidence}%
     </div>
   )
+}
+
+function IndividualStockRow({ symbol, onRemove }: { symbol: string; onRemove: () => void }) {
+  const { data, isLoading } = useQuery<StockData | null>({
+    queryKey: ['individual-stock', symbol],
+    queryFn: () => fetchIndividualStock(symbol),
+    staleTime: 60000,
+  })
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-6 gap-4 py-3 px-2">
+        <div className="col-span-2">
+          <div className="font-semibold text-zinc-200">{symbol}</div>
+          <div className="text-xs text-zinc-500">Loading...</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!data) {
+    return (
+      <div className="grid grid-cols-6 gap-4 py-3 px-2 opacity-50">
+        <div className="col-span-2">
+          <div className="font-semibold text-zinc-200">{symbol}</div>
+          <div className="text-xs text-red-500">Symbol not found</div>
+        </div>
+        <div className="col-span-3"></div>
+        <div className="text-right">
+          <button
+            onClick={onRemove}
+            className="text-red-500 hover:text-red-400 text-sm"
+          >
+            Remove
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return <WatchlistRow symbol={symbol} data={data} onRemove={onRemove} />
 }
 
 function WatchlistRow({ symbol, data, onRemove }: { symbol: string; data: StockData; onRemove: () => void }) {
@@ -250,7 +306,16 @@ export default function Watchlist() {
 
         {watchlistSymbols.map((symbol: string) => {
           const stockData = data.data[symbol]
-          if (!stockData) return null
+          if (!stockData) {
+            // Stock not in main market data, fetch individually
+            return (
+              <IndividualStockRow
+                key={symbol}
+                symbol={symbol}
+                onRemove={() => handleRemoveStock(symbol)}
+              />
+            )
+          }
           return (
             <WatchlistRow
               key={symbol}
