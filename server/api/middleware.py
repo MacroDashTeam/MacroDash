@@ -21,7 +21,13 @@ class ActivityTrackingMiddleware(MiddlewareMixin):
 
     def __init__(self, get_response):
         self.get_response = get_response
-        self.activity_service = UserActivityService()
+
+        # Try to initialize activity service, but don't fail if MongoDB is unavailable
+        try:
+            self.activity_service = UserActivityService()
+        except Exception as e:
+            print(f"⚠️ Activity tracking disabled - MongoDB unavailable: {e}")
+            self.activity_service = None
 
         # Actions to track
         self.tracked_endpoints = {
@@ -43,7 +49,7 @@ class ActivityTrackingMiddleware(MiddlewareMixin):
         """Track activity after response is ready"""
 
         # Skip if MongoDB not available
-        if self.activity_service.collection is None:
+        if self.activity_service is None or self.activity_service.collection is None:
             return response
 
         # Only track successful GET requests to API

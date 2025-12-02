@@ -3,10 +3,19 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Play, Trash2, Calculator, TrendingUp, Database, Save, X } from 'lucide-react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+import { Play, Trash2, Calculator, TrendingUp, TrendingDown, Database, Save, X, Loader2 } from 'lucide-react'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceDot } from 'recharts'
 import 'katex/dist/katex.min.css'
 import { InlineMath } from 'react-katex'
+import { findExtrema, fetchMarketInsight } from '@/lib/utils'
+import type { ExtremaPoint } from '@/lib/utils'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 type Series = {
   id: string
@@ -114,8 +123,73 @@ export default function CustomAnalysis() {
   const [chartName, setChartName] = useState('')
   const [saving, setSaving] = useState(false)
 
+  // Extrema insight state
+  const [selectedExtrema, setSelectedExtrema] = useState<ExtremaPoint & { seriesLabel: string } | null>(null)
+  const [insightDialogOpen, setInsightDialogOpen] = useState(false)
+  const [insight, setInsight] = useState<string>('')
+  const [insightLoading, setInsightLoading] = useState(false)
+
   // Memoize visible series to prevent chart re-renders on every keystroke
   const visibleSeries = useMemo(() => series.filter(s => s.show), [series])
+
+  // Calculate extrema points for all visible series
+  const allExtremaPoints = useMemo(() => {
+    if (!chartData || chartData.length < 7) return []
+
+    const points: (ExtremaPoint & { seriesLabel: string; color: string })[] = []
+
+    visibleSeries.forEach((s) => {
+      // Map chartData to expected format for this series
+      const mappedData = chartData
+        .filter((d) => d[s.label] != null)
+        .map((d) => ({
+          date: d.date,
+          value: d[s.label] as number,
+        }))
+
+      if (mappedData.length < 7) return
+
+      const windowSize = Math.min(3, Math.floor(mappedData.length / 5))
+      const extrema = findExtrema(mappedData, 'value', windowSize, 0.5)
+
+      extrema.forEach((e) => {
+        points.push({
+          ...e,
+          seriesLabel: s.label,
+          color: s.color,
+        })
+      })
+    })
+
+    return points
+  }, [chartData, visibleSeries])
+
+  // Handle click on extrema point
+  const handleExtremaClick = async (extrema: ExtremaPoint & { seriesLabel: string }) => {
+    setSelectedExtrema(extrema)
+    setInsightDialogOpen(true)
+    setInsightLoading(true)
+    setInsight('')
+
+    try {
+      const result = await fetchMarketInsight(
+        extrema.date,
+        extrema.seriesLabel,
+        extrema.changePercent,
+        extrema.isPeak
+      )
+
+      if (result.status === 'success') {
+        setInsight(result.insight)
+      } else {
+        setInsight(result.error || 'Unable to fetch insight')
+      }
+    } catch {
+      setInsight('Failed to fetch market insight. Please try again.')
+    } finally {
+      setInsightLoading(false)
+    }
+  }
 
   const handleToggleSeries = (id: string) => {
     setSeries(series.map(s => s.id === id ? { ...s, show: !s.show } : s))
@@ -605,6 +679,20 @@ export default function CustomAnalysis() {
                       />
                     )
                   })}
+                  {/* Extrema point markers */}
+                  {allExtremaPoints.map((extrema, idx) => (
+                    <ReferenceDot
+                      key={`extrema-${idx}`}
+                      x={extrema.date}
+                      y={extrema.value}
+                      r={5}
+                      fill={extrema.isPeak ? '#f59e0b' : '#8b5cf6'}
+                      stroke="#fff"
+                      strokeWidth={2}
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => handleExtremaClick(extrema)}
+                    />
+                  ))}
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -795,6 +883,49 @@ export default function CustomAnalysis() {
           </div>
         </div>
       )}
+
+      {/* Market Insight Dialog */}
+      <Dialog open={insightDialogOpen} onOpenChange={setInsightDialogOpen}>
+        <DialogContent className="sm:max-w-md bg-zinc-900 border-zinc-800">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {selectedExtrema?.isPeak ? (
+                <TrendingUp className="w-5 h-5 text-amber-500" />
+              ) : (
+                <TrendingDown className="w-5 h-5 text-purple-500" />
+              )}
+              <span>
+                {selectedExtrema?.isPeak ? 'Peak' : 'Trough'} in {selectedExtrema?.seriesLabel} on{' '}
+                {selectedExtrema && new Date(selectedExtrema.date).toLocaleDateString('en-US', {
+                  month: 'long',
+                  day: 'numeric',
+                  year: 'numeric'
+                })}
+              </span>
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              {selectedExtrema && (
+                <span className={selectedExtrema.changePercent >= 0 ? 'text-green-500' : 'text-red-500'}>
+                  {selectedExtrema.changePercent >= 0 ? '+' : ''}
+                  {selectedExtrema.changePercent.toFixed(2)}% change
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4">
+            {insightLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-zinc-400" />
+                <span className="ml-2 text-zinc-400">Fetching insight...</span>
+              </div>
+            ) : (
+              <div className="p-4 rounded-lg bg-zinc-800/50 border border-zinc-700">
+                <p className="text-sm text-zinc-300 leading-relaxed">{insight}</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
