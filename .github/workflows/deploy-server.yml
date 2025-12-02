@@ -70,6 +70,8 @@ jobs:
           -e "s|\"PERPLEXITY_API_KEY\": \".*\"|\"PERPLEXITY_API_KEY\": \"${{ secrets.PERPLEXITY_API_KEY }}\"|g" \
           -e "s|\"COINMARKETCAP_API_KEY\": \".*\"|\"COINMARKETCAP_API_KEY\": \"${{ secrets.COINMARKETCAP_API_KEY }}\"|g" \
           -e "s|\"MONGODB_URI\": \".*\"|\"MONGODB_URI\": \"${{ secrets.MONGODB_URI }}\"|g" \
+          -e "s|\"FRONTEND_URL\": \".*\"|\"FRONTEND_URL\": \"${{ secrets.LOGIN_REDIRECT_URL }}\"|g" \
+          -e "s|\"FRONTEND_URL\": \".*\"|\"FRONTEND_URL\": \"${{ secrets.FRONTEND_URL }}\"|g" \
           server/containers.json > server/containers.out.json
 
     - name: Deploy updated container to Lightsail
