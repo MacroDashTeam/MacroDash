@@ -368,19 +368,32 @@ def analyst_recommendations(request, symbol):
 def stock_insights(request, symbol):
     """Generate AI-powered insights for a stock based on news sentiment"""
     if request.method == 'GET':
-        # First get the news for this stock
-        av_service = AlphaVantageService()
-        news_data = av_service.get_news_sentiment(tickers=symbol, limit=20)
+        try:
+            # First get the news for this stock
+            av_service = AlphaVantageService()
+            news_data = av_service.get_news_sentiment(tickers=symbol, limit=20)
 
-        if news_data.get('status') == 'success' and news_data.get('data', {}).get('feed'):
-            # Generate insights using OpenAI
-            openai_service = OpenAIService()
-            insights = openai_service.generate_stock_insights(symbol, news_data['data']['feed'])
-            return JsonResponse(insights)
-        else:
-            # Return mock insights if no news available
-            openai_service = OpenAIService()
-            return JsonResponse(openai_service._get_mock_insights(symbol))
+            if news_data.get('status') == 'success' and news_data.get('data', {}).get('feed'):
+                # Generate insights using OpenAI
+                openai_service = OpenAIService()
+                insights = openai_service.generate_stock_insights(symbol, news_data['data']['feed'])
+                return JsonResponse(insights)
+            else:
+                # Return mock insights if no news available
+                openai_service = OpenAIService()
+                return JsonResponse(openai_service._get_mock_insights(symbol))
+        except Exception as e:
+            # Log error and return mock insights as fallback
+            print(f"Error generating insights for {symbol}: {str(e)}")
+            try:
+                openai_service = OpenAIService()
+                return JsonResponse(openai_service._get_mock_insights(symbol))
+            except Exception as fallback_error:
+                print(f"Error generating mock insights: {str(fallback_error)}")
+                return JsonResponse({
+                    "status": "error",
+                    "message": f"Unable to generate insights: {str(e)}"
+                }, status=500)
 
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
