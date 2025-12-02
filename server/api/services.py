@@ -8,7 +8,12 @@ import pandas as pd
 from typing import Dict, List, Optional, Any
 import requests
 from openai import OpenAI
-import talib
+try:
+    import talib
+    TALIB_AVAILABLE = True
+except ImportError:
+    TALIB_AVAILABLE = False
+    print("Warning: TA-Lib not available. Technical indicators will use fallback implementations.")
 import numpy as np
 from statsmodels.tsa.stattools import adfuller
 from statsmodels.tsa.arima.model import ARIMA
