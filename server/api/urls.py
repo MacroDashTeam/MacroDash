@@ -46,11 +46,6 @@ urlpatterns = [
     # Market Insight for chart extrema points
     path('market-insight/', views.market_insight, name='market_insight'),
     # Authentication
-    path('auth/register/', views.register, name='register'),
-    path('auth/login/', views.user_login, name='user_login'),
-    path('auth/logout/', views.user_logout, name='user_logout'),
-    path('auth/user/', views.current_user, name='current_user'),
-    # Admin
     path('admin/users/', views.admin_users, name='admin_users'),
     # Data Explorer
     path('search/', views.search_data, name='search_data'),

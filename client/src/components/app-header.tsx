@@ -8,6 +8,8 @@ interface User {
   id: number;
   username: string;
   email: string;
+  first_name?: string;
+  last_name?: string;
 }
 
 type AppHeaderProps = {
@@ -45,7 +47,7 @@ export default function AppHeader({ user, onSignOut, onSignIn }: AppHeaderProps)
             <>
               <div className="flex items-center gap-2 text-sm text-gray-300">
                 <UserIcon className="h-4 w-4" />
-                <span>{user.username}</span>
+                <span>{user.first_name || user.email}</span>
               </div>
               {onSignOut && (
                 <Button
