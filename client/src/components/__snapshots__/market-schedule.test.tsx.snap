@@ -48,7 +48,7 @@ exports[`MarketSchedule > matches snapshot 1`] = `
         <span
           class="font-mono text-sm"
         >
-          07:00:00
+          12:00:00
            UTC
         </span>
       </div>

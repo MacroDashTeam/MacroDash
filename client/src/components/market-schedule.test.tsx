@@ -8,16 +8,10 @@ describe('MarketSchedule', () => {
     beforeEach(() => {
         vi.clearAllMocks()
         vi.useFakeTimers()
+
         vi.setSystemTime(new Date('2023-01-01T12:00:00Z'))
 
-        // Force all date formatting to UTC to stabilize snapshots
-        vi.stubGlobal('Intl', {
-            DateTimeFormat: class extends Intl.DateTimeFormat {
-                constructor(locale: string, options: any = {}) {
-                    super(locale, { ...options, timeZone: 'UTC' })
-                }
-            }
-        })
+        vi.spyOn(Date.prototype, 'toLocaleTimeString').mockReturnValue('12:00:00')
 
         vi.mocked(fetch).mockResolvedValue({
             ok: true,
@@ -26,6 +20,7 @@ describe('MarketSchedule', () => {
     })
 
     afterEach(() => {
+        vi.restoreAllMocks()
         vi.useRealTimers()
     })
 
