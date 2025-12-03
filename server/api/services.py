@@ -8,7 +8,12 @@ import pandas as pd
 from typing import Dict, List, Optional, Any
 import requests
 from openai import OpenAI
-import talib
+try:
+    import talib
+    TALIB_AVAILABLE = True
+except ImportError:
+    TALIB_AVAILABLE = False
+    print("Warning: TA-Lib not available. Technical indicators will use fallback implementations.")
 import numpy as np
 from statsmodels.tsa.stattools import adfuller
 from statsmodels.tsa.arima.model import ARIMA
@@ -688,13 +693,14 @@ class YahooFinanceService:
                     'historical_data': [
                         {
                             'date': date.strftime('%Y-%m-%d'),
-                            'open': round(float(row['Open']), 2),
-                            'high': round(float(row['High']), 2),
-                            'low': round(float(row['Low']), 2),
-                            'close': round(float(row['Close']), 2),
+                            'open': round(float(row['Open']), 2) if pd.notna(row['Open']) else None,
+                            'high': round(float(row['High']), 2) if pd.notna(row['High']) else None,
+                            'low': round(float(row['Low']), 2) if pd.notna(row['Low']) else None,
+                            'close': round(float(row['Close']), 2) if pd.notna(row['Close']) else None,
                             'volume': int(row['Volume']) if 'Volume' in row and pd.notna(row['Volume']) else 0
                         }
                         for date, row in hist.tail(252).iterrows()  # ~1 year of trading days
+                        if pd.notna(row['Close'])  # Only include rows with valid close price
                     ]
                 },
                 'timestamp': datetime.now().isoformat()
@@ -1934,7 +1940,7 @@ Guidelines:
                 'timestamp': datetime.now().isoformat()
             }
 
-    def generate_stock_insights(self, symbol: str, stock_name: str) -> List[Dict]:
+    def generate_ai_stock_insights(self, symbol: str, stock_name: str) -> List[Dict]:
         """
         Generate AI-powered insights for a stock including recent events, blogs, and news
         Uses Perplexity AI for real-time web-grounded insights
@@ -2032,6 +2038,72 @@ Return your response as a JSON array with this exact structure:
         except Exception as e:
             print(f"Error generating stock insights for {symbol}: {e}")
             return []
+
+    def get_market_insight_for_date(self, date: str, asset: str, change_percent: float, is_peak: bool) -> Dict:
+        """
+        Get AI-powered insight explaining why an asset peaked or dipped on a specific date.
+        Uses Perplexity AI for real-time web-grounded historical market insights.
+
+        Args:
+            date: Date in format 'YYYY-MM-DD' or 'Month Day, Year'
+            asset: Asset name or symbol (e.g., 'S&P 500', 'AAPL', 'Bitcoin')
+            change_percent: Percentage change on that date
+            is_peak: True if this is a local maximum, False if local minimum
+
+        Returns:
+            Dict with insight text and metadata
+        """
+        if not self.perplexity_client:
+            return {
+                'status': 'error',
+                'error': 'Perplexity API key not configured',
+                'insight': 'Market insight service unavailable.',
+                'timestamp': datetime.now().isoformat()
+            }
+
+        try:
+            movement_type = "peaked" if is_peak else "declined"
+            direction = "rise" if is_peak else "drop"
+
+            prompt = f"""What happened to {asset} on {date}? The asset {movement_type} with a {abs(change_percent):.2f}% {direction}.
+
+Provide a concise explanation (2-3 sentences max) of the main reason for this market movement. Focus on:
+- Key events or news that caused the movement
+- Economic or geopolitical factors
+- Any significant announcements or policy changes
+
+Be specific and factual. Include the actual percentage change if available."""
+
+            response = self.perplexity_client.chat.completions.create(
+                model="sonar",
+                messages=[
+                    {"role": "system", "content": "You are a financial market analyst. Provide concise, factual explanations for historical market movements. Be specific about dates and percentages."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3,
+                max_tokens=200
+            )
+
+            insight_text = response.choices[0].message.content
+
+            return {
+                'status': 'success',
+                'insight': insight_text,
+                'date': date,
+                'asset': asset,
+                'change_percent': change_percent,
+                'is_peak': is_peak,
+                'timestamp': datetime.now().isoformat()
+            }
+
+        except Exception as e:
+            print(f"Error getting market insight for {asset} on {date}: {e}")
+            return {
+                'status': 'error',
+                'error': str(e),
+                'insight': f'Unable to retrieve insight for {asset} on {date}.',
+                'timestamp': datetime.now().isoformat()
+            }
 
 class TechnicalIndicatorService:
     """Service for calculating technical indicators using TA-Lib"""

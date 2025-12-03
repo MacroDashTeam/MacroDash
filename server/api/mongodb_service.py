@@ -27,18 +27,27 @@ class MongoDBService:
     def _initialize(cls):
         """Initialize MongoDB connection"""
         try:
-            mongo_uri = os.getenv('MONGODB_URI', 'mongodb://localhost:27017/')
+            mongo_uri = os.getenv('MONGODB_URI', '')
 
-            # Debug logging to check what URI we're using
-            if mongo_uri:
-                # Hide password for security in logs
-                import re
-                safe_uri = re.sub(r'://([^:]+):([^@]+)@', r'://\1:****@', mongo_uri)
-                print(f"🔍 MongoDB URI from env: {safe_uri}")
-            else:
-                print("⚠️ MONGODB_URI not set, using default: mongodb://localhost:27017/")
+            # Allow disabling MongoDB via environment variable
+            if os.getenv('DISABLE_MONGODB', 'false').lower() == 'true' or not mongo_uri:
+                # Silently skip MongoDB initialization
+                cls._client = None
+                cls._db = None
+                return
 
-            cls._client = MongoClient(mongo_uri)
+            # Add SSL/TLS configuration for MongoDB Atlas
+            import ssl
+            cls._client = MongoClient(
+                mongo_uri,
+                tlsAllowInvalidCertificates=True,  # For development/WSL SSL issues
+                serverSelectionTimeoutMS=5000,     # Faster timeout
+                connectTimeoutMS=5000,
+                socketTimeoutMS=5000,
+            )
+
+            # Test connection with a ping
+            cls._client.admin.command('ping')
             cls._db = cls._client['macrodash']
 
             # Create collections and indexes
@@ -46,7 +55,8 @@ class MongoDBService:
 
             print("✅ MongoDB connected successfully")
         except Exception as e:
-            print(f"❌ MongoDB connection failed: {e}")
+            # Silently fail and continue without MongoDB
+            # This is expected in WSL environments with SSL issues
             cls._client = None
             cls._db = None
 

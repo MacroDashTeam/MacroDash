@@ -384,19 +384,32 @@ def analyst_recommendations(request, symbol):
 def stock_insights(request, symbol):
     """Generate AI-powered insights for a stock based on news sentiment"""
     if request.method == 'GET':
-        # First get the news for this stock
-        av_service = AlphaVantageService()
-        news_data = av_service.get_news_sentiment(tickers=symbol, limit=20)
+        try:
+            # First get the news for this stock
+            av_service = AlphaVantageService()
+            news_data = av_service.get_news_sentiment(tickers=symbol, limit=20)
 
-        if news_data.get('status') == 'success' and news_data.get('data', {}).get('feed'):
-            # Generate insights using OpenAI
-            openai_service = OpenAIService()
-            insights = openai_service.generate_stock_insights(symbol, news_data['data']['feed'])
-            return JsonResponse(insights)
-        else:
-            # Return mock insights if no news available
-            openai_service = OpenAIService()
-            return JsonResponse(openai_service._get_mock_insights(symbol))
+            if news_data.get('status') == 'success' and news_data.get('data', {}).get('feed'):
+                # Generate insights using OpenAI
+                openai_service = OpenAIService()
+                insights = openai_service.generate_stock_insights(symbol, news_data['data']['feed'])
+                return JsonResponse(insights)
+            else:
+                # Return mock insights if no news available
+                openai_service = OpenAIService()
+                return JsonResponse(openai_service._get_mock_insights(symbol))
+        except Exception as e:
+            # Log error and return mock insights as fallback
+            print(f"Error generating insights for {symbol}: {str(e)}")
+            try:
+                openai_service = OpenAIService()
+                return JsonResponse(openai_service._get_mock_insights(symbol))
+            except Exception as fallback_error:
+                print(f"Error generating mock insights: {str(fallback_error)}")
+                return JsonResponse({
+                    "status": "error",
+                    "message": f"Unable to generate insights: {str(e)}"
+                }, status=500)
 
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
@@ -732,21 +745,72 @@ def ai_stock_insights(request, symbol):
     """Get AI-generated blog/event insights for a specific stock"""
     if request.method == 'GET':
         from .models import StockInsight
+        from datetime import datetime, timedelta
 
         # Get query parameters
-        sentiment = request.GET.get('sentiment', None)  # Optional filter by sentiment
+        sentiment = request.GET.get('sentiment', None)
         limit = int(request.GET.get('limit', 10))
 
-        # Build query
+        # Try to get stored insights first
         query = StockInsight.objects.filter(symbol=symbol.upper(), is_active=True)
-
         if sentiment:
             query = query.filter(sentiment=sentiment)
 
-        # Get insights ordered by published date
         insights = query[:limit]
 
-        # Format response
+        # If no stored insights or they're old, generate fresh ones using Perplexity
+        if not insights or (insights and (datetime.now() - insights[0].fetched_at.replace(tzinfo=None)) > timedelta(hours=6)):
+            try:
+                # Get stock name
+                yahoo_service = YahooFinanceService()
+                stock_data = yahoo_service.get_stock_detail(symbol)
+                stock_name = stock_data.get('data', {}).get('name', symbol) if stock_data.get('status') == 'success' else symbol
+
+                # Generate fresh insights using Perplexity
+                openai_service = OpenAIService()
+                fresh_insights = openai_service.generate_ai_stock_insights(symbol.upper(), stock_name)
+
+                if fresh_insights:
+                    # Save insights to PostgreSQL for caching
+                    saved_insights = []
+                    for insight_data in fresh_insights:
+                        try:
+                            # Create or update insight in database
+                            insight, created = StockInsight.objects.update_or_create(
+                                symbol=symbol.upper(),
+                                title=insight_data.get('title', ''),
+                                published_date=datetime.fromisoformat(insight_data['published_date']) if insight_data.get('published_date') else None,
+                                defaults={
+                                    'stock_name': stock_name,
+                                    'summary': insight_data.get('summary', ''),
+                                    'source': insight_data.get('source', ''),
+                                    'url': insight_data.get('url', ''),
+                                    'content_type': insight_data.get('content_type', 'news'),
+                                    'sentiment': insight_data.get('sentiment', 'neutral'),
+                                    'sentiment_score': insight_data.get('sentiment_score', 0.0),
+                                    'key_points': insight_data.get('key_points', []),
+                                    'ai_analysis': insight_data.get('ai_analysis', ''),
+                                    'is_active': True,
+                                }
+                            )
+                            saved_insights.append(insight)
+                        except Exception as e:
+                            print(f"Error saving insight to database: {e}")
+                            continue
+
+                    # Return freshly generated insights
+                    return JsonResponse({
+                        'status': 'success',
+                        'symbol': symbol.upper(),
+                        'count': len(fresh_insights),
+                        'insights': fresh_insights,
+                        'cached_to_db': len(saved_insights)
+                    })
+            except Exception as e:
+                print(f"Error generating fresh insights for {symbol}: {e}")
+                # Fall through to return stored insights if any
+
+        # Format stored insights response
         data = [{
             'id': insight.id,
             'title': insight.title,
@@ -818,6 +882,47 @@ def all_insights(request):
             'count': len(data),
             'insights': data
         })
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def market_insight(request):
+    """
+    Get AI-powered insight explaining why an asset peaked or dipped on a specific date.
+    Uses Perplexity AI for real-time web-grounded historical market insights.
+
+    Query Parameters:
+        date: Date in format 'YYYY-MM-DD' (required)
+        asset: Asset name or symbol, e.g., 'S&P 500', 'AAPL' (required)
+        change_percent: Percentage change on that date (required)
+        is_peak: 'true' if local maximum, 'false' if local minimum (required)
+    """
+    if request.method == 'GET':
+        # Get query parameters
+        date = request.GET.get('date')
+        asset = request.GET.get('asset')
+        change_percent = request.GET.get('change_percent')
+        is_peak = request.GET.get('is_peak', 'false').lower() == 'true'
+
+        # Validate required parameters
+        if not date:
+            return JsonResponse({'status': 'error', 'error': 'date parameter is required'}, status=400)
+        if not asset:
+            return JsonResponse({'status': 'error', 'error': 'asset parameter is required'}, status=400)
+        if change_percent is None:
+            return JsonResponse({'status': 'error', 'error': 'change_percent parameter is required'}, status=400)
+
+        try:
+            change_percent = float(change_percent)
+        except ValueError:
+            return JsonResponse({'status': 'error', 'error': 'change_percent must be a number'}, status=400)
+
+        # Get insight from OpenAI/Perplexity service
+        openai_service = OpenAIService()
+        result = openai_service.get_market_insight_for_date(date, asset, change_percent, is_peak)
+
+        return JsonResponse(result)
 
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
