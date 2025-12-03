@@ -87,10 +87,11 @@ export default function PasswordResetConfirm({ uid, token, onSuccess }: Password
                         ) : (
                             <form onSubmit={handleSubmit} className="space-y-3">
                                 <div className="space-y-1">
-                                    <label className="text-sm text-slate-300">New Password</label>
+                                    <label htmlFor="new-password" className="text-sm text-slate-300">New Password</label>
                                     <div className="relative">
                                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                                         <input
+                                            id="new-password"
                                             type={showPassword ? 'text' : 'password'}
                                             value={newPassword}
                                             onChange={(e) => setNewPassword(e.target.value)}
@@ -108,10 +109,11 @@ export default function PasswordResetConfirm({ uid, token, onSuccess }: Password
                                     </div>
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-sm text-slate-300">Confirm New Password</label>
+                                    <label htmlFor="confirm-password" className="text-sm text-slate-300">Confirm New Password</label>
                                     <div className="relative">
                                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                                         <input
+                                            id="confirm-password"
                                             type={showPassword ? 'text' : 'password'}
                                             value={confirmPassword}
                                             onChange={(e) => setConfirmPassword(e.target.value)}

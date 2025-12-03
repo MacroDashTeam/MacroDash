@@ -1,0 +1,9 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ThemeProvider > matches snapshot 1`] = `
+<div>
+  <div>
+    Test Content
+  </div>
+</div>
+`;

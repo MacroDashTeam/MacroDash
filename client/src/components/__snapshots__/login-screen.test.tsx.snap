@@ -1,0 +1,322 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`LoginScreen > matches snapshot in default state 1`] = `
+<div>
+  <div
+    class="min-h-screen flex items-center justify-center bg-[#0B1320] p-4"
+  >
+    <div
+      class="rounded-lg border text-card-foreground shadow-sm w-full max-w-md bg-[#0B1320]/95 backdrop-blur border-white/10"
+    >
+      <div
+        class="flex flex-col space-y-1.5 p-6 text-center"
+      >
+        <div
+          class="flex justify-center mb-4"
+        >
+          <img
+            alt="MacroDash Logo"
+            class="h-12 w-12"
+            src="/src/assets/bull.jpeg"
+          />
+        </div>
+        <h3
+          class="tracking-tight text-2xl font-bold text-white"
+        >
+          Welcome to MacroDash
+        </h3>
+        <p
+          class="text-sm text-gray-400"
+        >
+          Sign in to access your macroeconomic dashboard
+        </p>
+      </div>
+      <div
+        class="p-6 pt-0"
+      >
+        <form
+          class="space-y-4"
+        >
+          <div
+            class="space-y-2"
+          >
+            <label
+              class="text-sm font-medium text-gray-300"
+              for="email"
+            >
+              Email
+            </label>
+            <input
+              class="file:text-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-[#1a2332] border-white/20 text-white placeholder:text-gray-400 focus:border-blue-500"
+              data-slot="input"
+              id="email"
+              placeholder="Enter your email"
+              required=""
+              type="email"
+              value=""
+            />
+          </div>
+          <div
+            class="space-y-2"
+          >
+            <label
+              class="text-sm font-medium text-gray-300"
+              for="password"
+            >
+              Password
+            </label>
+            <input
+              class="file:text-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-[#1a2332] border-white/20 text-white placeholder:text-gray-400 focus:border-blue-500"
+              data-slot="input"
+              id="password"
+              placeholder="Enter your password"
+              required=""
+              type="password"
+              value=""
+            />
+          </div>
+          <button
+            class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive h-9 px-4 py-2 has-[>svg]:px-3 w-full bg-blue-600 hover:bg-blue-700 text-white"
+            data-slot="button"
+            type="submit"
+          >
+            Sign In
+          </button>
+        </form>
+        <div
+          class="mt-6 text-center"
+        >
+          <p
+            class="text-sm text-gray-400"
+          >
+            Don't have an account?
+             
+            <a
+              class="text-blue-400 hover:text-blue-300"
+              href="#"
+            >
+              Sign up
+            </a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`LoginScreen > matches snapshot in loading state 1`] = `
+<div>
+  <div
+    class="min-h-screen flex items-center justify-center bg-[#0B1320] p-4"
+  >
+    <div
+      class="rounded-lg border text-card-foreground shadow-sm w-full max-w-md bg-[#0B1320]/95 backdrop-blur border-white/10"
+    >
+      <div
+        class="flex flex-col space-y-1.5 p-6 text-center"
+      >
+        <div
+          class="flex justify-center mb-4"
+        >
+          <img
+            alt="MacroDash Logo"
+            class="h-12 w-12"
+            src="/src/assets/bull.jpeg"
+          />
+        </div>
+        <h3
+          class="tracking-tight text-2xl font-bold text-white"
+        >
+          Welcome to MacroDash
+        </h3>
+        <p
+          class="text-sm text-gray-400"
+        >
+          Sign in to access your macroeconomic dashboard
+        </p>
+      </div>
+      <div
+        class="p-6 pt-0"
+      >
+        <form
+          class="space-y-4"
+        >
+          <div
+            class="space-y-2"
+          >
+            <label
+              class="text-sm font-medium text-gray-300"
+              for="email"
+            >
+              Email
+            </label>
+            <input
+              class="file:text-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-[#1a2332] border-white/20 text-white placeholder:text-gray-400 focus:border-blue-500"
+              data-slot="input"
+              id="email"
+              placeholder="Enter your email"
+              required=""
+              type="email"
+              value=""
+            />
+          </div>
+          <div
+            class="space-y-2"
+          >
+            <label
+              class="text-sm font-medium text-gray-300"
+              for="password"
+            >
+              Password
+            </label>
+            <input
+              class="file:text-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-[#1a2332] border-white/20 text-white placeholder:text-gray-400 focus:border-blue-500"
+              data-slot="input"
+              id="password"
+              placeholder="Enter your password"
+              required=""
+              type="password"
+              value=""
+            />
+          </div>
+          <button
+            class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive h-9 px-4 py-2 has-[>svg]:px-3 w-full bg-blue-600 hover:bg-blue-700 text-white"
+            data-slot="button"
+            disabled=""
+            type="submit"
+          >
+            Signing in...
+          </button>
+        </form>
+        <div
+          class="mt-6 text-center"
+        >
+          <p
+            class="text-sm text-gray-400"
+          >
+            Don't have an account?
+             
+            <a
+              class="text-blue-400 hover:text-blue-300"
+              href="#"
+            >
+              Sign up
+            </a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`LoginScreen > matches snapshot with error 1`] = `
+<div>
+  <div
+    class="min-h-screen flex items-center justify-center bg-[#0B1320] p-4"
+  >
+    <div
+      class="rounded-lg border text-card-foreground shadow-sm w-full max-w-md bg-[#0B1320]/95 backdrop-blur border-white/10"
+    >
+      <div
+        class="flex flex-col space-y-1.5 p-6 text-center"
+      >
+        <div
+          class="flex justify-center mb-4"
+        >
+          <img
+            alt="MacroDash Logo"
+            class="h-12 w-12"
+            src="/src/assets/bull.jpeg"
+          />
+        </div>
+        <h3
+          class="tracking-tight text-2xl font-bold text-white"
+        >
+          Welcome to MacroDash
+        </h3>
+        <p
+          class="text-sm text-gray-400"
+        >
+          Sign in to access your macroeconomic dashboard
+        </p>
+      </div>
+      <div
+        class="p-6 pt-0"
+      >
+        <form
+          class="space-y-4"
+        >
+          <div
+            class="space-y-2"
+          >
+            <label
+              class="text-sm font-medium text-gray-300"
+              for="email"
+            >
+              Email
+            </label>
+            <input
+              class="file:text-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-[#1a2332] border-white/20 text-white placeholder:text-gray-400 focus:border-blue-500"
+              data-slot="input"
+              id="email"
+              placeholder="Enter your email"
+              required=""
+              type="email"
+              value=""
+            />
+          </div>
+          <div
+            class="space-y-2"
+          >
+            <label
+              class="text-sm font-medium text-gray-300"
+              for="password"
+            >
+              Password
+            </label>
+            <input
+              class="file:text-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-[#1a2332] border-white/20 text-white placeholder:text-gray-400 focus:border-blue-500"
+              data-slot="input"
+              id="password"
+              placeholder="Enter your password"
+              required=""
+              type="password"
+              value=""
+            />
+          </div>
+          <div
+            class="text-red-400 text-sm text-center"
+          >
+            Test error
+          </div>
+          <button
+            class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive h-9 px-4 py-2 has-[>svg]:px-3 w-full bg-blue-600 hover:bg-blue-700 text-white"
+            data-slot="button"
+            type="submit"
+          >
+            Sign In
+          </button>
+        </form>
+        <div
+          class="mt-6 text-center"
+        >
+          <p
+            class="text-sm text-gray-400"
+          >
+            Don't have an account?
+             
+            <a
+              class="text-blue-400 hover:text-blue-300"
+              href="#"
+            >
+              Sign up
+            </a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;

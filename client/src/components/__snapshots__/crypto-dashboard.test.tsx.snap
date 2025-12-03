@@ -1,0 +1,119 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`CryptoDashboard > matches snapshot 1`] = `
+<div>
+  <div
+    class="space-y-6 p-6"
+  >
+    <div>
+      <h1
+        class="text-3xl font-bold"
+      >
+        Cryptocurrency Market
+      </h1>
+      <p
+        class="text-zinc-400 mt-2"
+      >
+        Real-time cryptocurrency prices and market data powered by CoinMarketCap
+      </p>
+    </div>
+    <div
+      class="flex gap-2 border-b border-zinc-800"
+    >
+      <button
+        class="px-4 py-2 text-sm font-medium border-b-2 transition-colors border-blue-500 text-blue-500"
+      >
+        All Cryptocurrencies
+      </button>
+      <button
+        class="px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-1 border-transparent text-zinc-400 hover:text-white"
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-trending-up"
+          fill="none"
+          height="16"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="16"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M16 7h6v6"
+          />
+          <path
+            d="m22 7-8.5 8.5-5-5L2 17"
+          />
+        </svg>
+        Top Gainers
+      </button>
+      <button
+        class="px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-1 border-transparent text-zinc-400 hover:text-white"
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-trending-down"
+          fill="none"
+          height="16"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="16"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M16 17h6v-6"
+          />
+          <path
+            d="m22 17-8.5-8.5-5 5L2 7"
+          />
+        </svg>
+        Top Losers
+      </button>
+    </div>
+    <div
+      class="relative"
+    >
+      <svg
+        aria-hidden="true"
+        class="lucide lucide-search absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"
+        fill="none"
+        height="20"
+        stroke="currentColor"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="2"
+        viewBox="0 0 24 24"
+        width="20"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="m21 21-4.34-4.34"
+        />
+        <circle
+          cx="11"
+          cy="11"
+          r="8"
+        />
+      </svg>
+      <input
+        class="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive pl-10"
+        data-slot="input"
+        placeholder="Search cryptocurrencies..."
+        type="text"
+        value=""
+      />
+    </div>
+    <div
+      class="text-center py-12 text-zinc-400"
+    >
+      Loading cryptocurrencies...
+    </div>
+  </div>
+</div>
+`;
