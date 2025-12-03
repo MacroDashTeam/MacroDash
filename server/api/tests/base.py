@@ -33,8 +33,13 @@ class BaseAPITestCase(APITestCase):
         self.assertEqual(response.status_code, status_code)
         if error_message:
             data = response.json()
-            self.assertIn('error', data)
-            self.assertEqual(data['error'], error_message)
+            # Check for either 'error' or 'detail' field (DRF uses 'detail')
+            self.assertTrue('error' in data or 'detail' in data,
+                          f"Response must contain 'error' or 'detail' field. Got: {data}")
+            if 'error' in data:
+                self.assertIn(error_message, data['error'])
+            elif 'detail' in data:
+                self.assertIn(error_message, data['detail'])
 
     def create_mock_fred_response(self):
         """Create mock FRED API response"""

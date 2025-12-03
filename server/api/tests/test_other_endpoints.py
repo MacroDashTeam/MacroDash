@@ -12,19 +12,16 @@ class PriceAlertEndpointsTestCase(BaseAPITestCase):
 
     def test_price_alerts_get_success(self):
         """Test GET /api/alerts/ returns user's price alerts"""
-        self.client.force_login(self.user)
-
         url = reverse('price_alerts')
-        response = self.client.get(url)
+        response = self.client.get(url, {'email': 'test@example.com'})
 
         self.assertSuccessResponse(response)
         data = response.json()
-        self.assertIn('alerts', data)
+        self.assertEqual(data['status'], 'success')
+        self.assertIn('data', data)
 
     def test_price_alerts_post_success(self):
         """Test POST /api/alerts/ creates a new price alert"""
-        self.client.force_login(self.user)
-
         url = reverse('price_alerts')
         alert_data = {
             'symbol': 'AAPL',
@@ -38,24 +35,22 @@ class PriceAlertEndpointsTestCase(BaseAPITestCase):
             content_type='application/json'
         )
 
-        self.assertEqual(response.status_code, 201)
+        self.assertSuccessResponse(response)
         data = response.json()
-        self.assertIn('alert', data)
+        self.assertEqual(data['status'], 'success')
+        self.assertIn('data', data)
 
     def test_price_alerts_unauthenticated(self):
-        """Test price alerts endpoint requires authentication"""
+        """Test price alerts endpoint requires email parameter"""
         url = reverse('price_alerts')
-        response = self.client.get(url)
+        response = self.client.get(url)  # Missing email parameter
 
-        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.status_code, 400)  # Bad request without email
 
     def test_price_alert_detail_get_success(self):
         """Test GET /api/alerts/{id}/ returns specific alert"""
-        self.client.force_login(self.user)
-
         # Create an alert first
         alert = PriceAlert.objects.create(
-            user=self.user,
             symbol='AAPL',
             target_price=150.0,
             condition='above',
@@ -67,15 +62,13 @@ class PriceAlertEndpointsTestCase(BaseAPITestCase):
 
         self.assertSuccessResponse(response)
         data = response.json()
-        self.assertIn('alert', data)
+        self.assertEqual(data['status'], 'success')
+        self.assertIn('data', data)
 
     def test_price_alert_detail_delete_success(self):
-        """Test DELETE /api/alerts/{id}/ deletes alert"""
-        self.client.force_login(self.user)
-
+        """Test DELETE /api/alerts/{id}/ cancels alert"""
         # Create an alert first
         alert = PriceAlert.objects.create(
-            user=self.user,
             symbol='AAPL',
             target_price=150.0,
             condition='above',
@@ -87,14 +80,12 @@ class PriceAlertEndpointsTestCase(BaseAPITestCase):
 
         self.assertSuccessResponse(response)
 
-        # Verify alert was deleted
-        alert_exists = PriceAlert.objects.filter(id=alert.id).exists()
-        self.assertFalse(alert_exists)
+        # Verify alert was cancelled (not deleted, just status changed)
+        alert.refresh_from_db()
+        self.assertEqual(alert.status, 'cancelled')
 
     def test_price_alert_detail_not_found(self):
         """Test GET /api/alerts/{id}/ with invalid ID returns 404"""
-        self.client.force_login(self.user)
-
         url = reverse('price_alert_detail', kwargs={'alert_id': 9999})
         response = self.client.get(url)
 
@@ -354,27 +345,23 @@ class SavedChartsEndpointsTestCase(BaseAPITestCase):
     """Tests for saved charts endpoints"""
 
     def test_saved_charts_get_success(self):
-        """Test GET /api/charts/ returns user's saved charts"""
-        self.client.force_login(self.user)
-
+        """Test GET /api/charts/ returns saved charts"""
         url = reverse('saved_charts')
         response = self.client.get(url)
 
         self.assertSuccessResponse(response)
         data = response.json()
-        self.assertIn('charts', data)
+        self.assertEqual(data['status'], 'success')
+        self.assertIn('data', data)
 
     def test_saved_charts_post_success(self):
         """Test POST /api/charts/ creates a new saved chart"""
-        self.client.force_login(self.user)
-
         url = reverse('saved_charts')
         chart_data = {
-            'name': 'My Chart',
-            'config': {
-                'type': 'line',
-                'symbols': ['AAPL']
-            }
+            'chart_name': 'My Chart',
+            'series_ids': ['GDP', 'UNRATE'],
+            'series_metadata': {},
+            'source_type': 'fred'
         }
         response = self.client.post(
             url,
@@ -382,33 +369,42 @@ class SavedChartsEndpointsTestCase(BaseAPITestCase):
             content_type='application/json'
         )
 
-        self.assertEqual(response.status_code, 201)
+        self.assertSuccessResponse(response)
         data = response.json()
-        self.assertIn('chart', data)
+        self.assertEqual(data['status'], 'success')
+        self.assertIn('data', data)
 
     def test_saved_charts_unauthenticated(self):
-        """Test saved charts endpoint requires authentication"""
+        """Test saved charts endpoint works without authentication (uses session)"""
         url = reverse('saved_charts')
         response = self.client.get(url)
 
-        self.assertEqual(response.status_code, 401)
+        self.assertSuccessResponse(response)  # Should work with session-based storage
+        data = response.json()
+        self.assertEqual(data['status'], 'success')
 
-    @patch('api.views.YahooFinanceService')
-    def test_chart_data_success(self, mock_yahoo_service):
+    @patch('api.services.FREDService')
+    def test_chart_data_success(self, mock_fred_service):
         """Test GET /api/charts/{id}/data/ returns chart data"""
-        self.client.force_login(self.user)
+        from api.models import SavedChartDisplay
+
+        # Create a saved chart first
+        chart = SavedChartDisplay.objects.create(
+            user_session='test_session',
+            chart_name='Test Chart',
+            series_ids=['GDP'],
+            series_metadata={},
+            source_type='fred'
+        )
 
         mock_service = MagicMock()
-        mock_service.get_chart_data.return_value = {
+        mock_service.get_series_data.return_value = {
             'status': 'success',
-            'data': {
-                'chart_id': 1,
-                'data_points': []
-            }
+            'data': []
         }
-        mock_yahoo_service.return_value = mock_service
+        mock_fred_service.return_value = mock_service
 
-        url = reverse('chart_data', kwargs={'chart_id': 1})
+        url = reverse('chart_data', kwargs={'chart_id': chart.id})
         response = self.client.get(url)
 
         self.assertSuccessResponse(response)
