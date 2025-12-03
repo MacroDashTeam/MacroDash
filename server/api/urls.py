@@ -45,6 +45,9 @@ urlpatterns = [
     path('ai-insights/<str:symbol>/', views.ai_stock_insights, name='ai_stock_insights'),
     # Market Insight for chart extrema points
     path('market-insight/', views.market_insight, name='market_insight'),
+    # Watchlist
+    path('watchlist/', views.user_watchlist, name='user_watchlist'),
+    path('watchlist/<str:symbol>/', views.remove_from_watchlist, name='remove_from_watchlist'),
     # Authentication
     path('admin/users/', views.admin_users, name='admin_users'),
     # Data Explorer

@@ -1619,3 +1619,131 @@ def chart_data(request, chart_id):
             }, status=500)
 
     return JsonResponse({"error": "Method not allowed"}, status=405)
+
+# ============================================================================
+# WATCHLIST API ENDPOINTS
+# ============================================================================
+
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def user_watchlist(request):
+    """
+    GET: Get user's default watchlist
+    POST: Add stock to user's default watchlist
+    """
+    try:
+        # Get or create default watchlist for user
+        watchlist, created = Watchlist.objects.get_or_create(
+            user=request.user,
+            is_default=True,
+            defaults={'name': 'My Watchlist', 'description': 'Default watchlist'}
+        )
+        
+        if request.method == 'GET':
+            # Get all stocks in watchlist
+            items = WatchlistItem.objects.filter(watchlist=watchlist).values(
+                'symbol', 'stock_name', 'notes', 'added_at'
+            )
+            
+            return Response({
+                'status': 'success',
+                'data': {
+                    'watchlist_id': watchlist.id,
+                    'name': watchlist.name,
+                    'symbols': list(items),
+                    'count': len(items)
+                },
+                'timestamp': datetime.now().isoformat()
+            })
+        
+        elif request.method == 'POST':
+            # Add stock to watchlist
+            data = json.loads(request.body)
+            symbol = data.get('symbol', '').upper().strip()
+            stock_name = data.get('stock_name', '')
+            notes = data.get('notes', '')
+            
+            if not symbol:
+                return Response({
+                    'status': 'error',
+                    'message': 'Symbol is required'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Check if already exists
+            if WatchlistItem.objects.filter(watchlist=watchlist, symbol=symbol).exists():
+                return Response({
+                    'status': 'error',
+                    'message': f'{symbol} is already in your watchlist'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Create new watchlist item
+            item = WatchlistItem.objects.create(
+                watchlist=watchlist,
+                symbol=symbol,
+                stock_name=stock_name,
+                notes=notes
+            )
+            
+            return Response({
+                'status': 'success',
+                'message': f'{symbol} added to watchlist',
+                'data': {
+                    'symbol': item.symbol,
+                    'stock_name': item.stock_name,
+                    'added_at': item.added_at.isoformat()
+                }
+            }, status=status.HTTP_201_CREATED)
+    
+    except Exception as e:
+        return Response({
+            'status': 'error',
+            'message': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def remove_from_watchlist(request, symbol):
+    """Remove stock from user's default watchlist"""
+    try:
+        # Get user's default watchlist
+        watchlist = Watchlist.objects.filter(
+            user=request.user,
+            is_default=True
+        ).first()
+        
+        if not watchlist:
+            return Response({
+                'status': 'error',
+                'message': 'Watchlist not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Find and delete the item
+        item = WatchlistItem.objects.filter(
+            watchlist=watchlist,
+            symbol=symbol.upper()
+        ).first()
+        
+        if not item:
+            return Response({
+                'status': 'error',
+                'message': f'{symbol} not found in watchlist'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        item.delete()
+        
+        return Response({
+            'status': 'success',
+            'message': f'{symbol} removed from watchlist'
+        })
+    
+    except Exception as e:
+        return Response({
+            'status': 'error',
+            'message': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
