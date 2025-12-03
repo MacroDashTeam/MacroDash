@@ -1,0 +1,172 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`AppHeader > matches snapshot when logged in 1`] = `
+<div>
+  <header
+    class="fixed top-0 left-0 right-0 z-50 w-full bg-[#0B1320]/95 backdrop-blur"
+    style="height: 56px; --app-header-h: 56px;"
+  >
+    <div
+      class="flex h-full w-full items-center px-6 relative"
+    >
+      <div
+        class="absolute left-1/2 transform -translate-x-1/2 flex flex-col items-center"
+        style="margin-left: calc(var(--sidebar-width, 230px) / 2);"
+      >
+        <div
+          class="flex items-center gap-2"
+        >
+          <img
+            alt="MacroDash Logo"
+            class="h-7 w-7 shrink-0"
+            src="/src/assets/bull.jpeg"
+          />
+          <span
+            class="text-xl font-semibold tracking-tight text-white"
+          >
+            MacroDash
+          </span>
+        </div>
+        <span
+          class="text-xs text-zinc-400 mt-0.5 tracking-wide font-light"
+        >
+          Complete Market Intelligence, One Platform
+        </span>
+      </div>
+      <div
+        class="absolute right-6 flex items-center gap-3"
+      >
+        <div
+          class="flex items-center gap-2 text-sm text-gray-300"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-user h-4 w-4"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"
+            />
+            <circle
+              cx="12"
+              cy="7"
+              r="4"
+            />
+          </svg>
+          <span>
+            Test
+          </span>
+        </div>
+        <button
+          class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:hover:bg-accent/50 h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5 text-gray-300 hover:text-white hover:bg-white/10"
+          data-slot="button"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-log-out h-4 w-4 mr-2"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="m16 17 5-5-5-5"
+            />
+            <path
+              d="M21 12H9"
+            />
+            <path
+              d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"
+            />
+          </svg>
+          Logout
+        </button>
+      </div>
+    </div>
+  </header>
+</div>
+`;
+
+exports[`AppHeader > matches snapshot when logged out 1`] = `
+<div>
+  <header
+    class="fixed top-0 left-0 right-0 z-50 w-full bg-[#0B1320]/95 backdrop-blur"
+    style="height: 56px; --app-header-h: 56px;"
+  >
+    <div
+      class="flex h-full w-full items-center px-6 relative"
+    >
+      <div
+        class="absolute left-1/2 transform -translate-x-1/2 flex flex-col items-center"
+        style="margin-left: calc(var(--sidebar-width, 230px) / 2);"
+      >
+        <div
+          class="flex items-center gap-2"
+        >
+          <img
+            alt="MacroDash Logo"
+            class="h-7 w-7 shrink-0"
+            src="/src/assets/bull.jpeg"
+          />
+          <span
+            class="text-xl font-semibold tracking-tight text-white"
+          >
+            MacroDash
+          </span>
+        </div>
+        <span
+          class="text-xs text-zinc-400 mt-0.5 tracking-wide font-light"
+        >
+          Complete Market Intelligence, One Platform
+        </span>
+      </div>
+      <div
+        class="absolute right-6 flex items-center gap-3"
+      >
+        <button
+          class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5 bg-blue-600 hover:bg-blue-700 text-white"
+          data-slot="button"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-log-in h-4 w-4 mr-2"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="m10 17 5-5-5-5"
+            />
+            <path
+              d="M15 12H3"
+            />
+            <path
+              d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"
+            />
+          </svg>
+          Sign In
+        </button>
+      </div>
+    </div>
+  </header>
+</div>
+`;

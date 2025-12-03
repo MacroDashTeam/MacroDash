@@ -1,0 +1,794 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`MarketSchedule > matches snapshot 1`] = `
+<div>
+  <div
+    class="space-y-6"
+  >
+    <div
+      class="flex items-center justify-between"
+    >
+      <div>
+        <h2
+          class="text-2xl font-bold"
+        >
+          Global Market Hours
+        </h2>
+        <p
+          class="text-zinc-400 text-sm mt-1"
+        >
+          Real-time market status across the world
+        </p>
+      </div>
+      <div
+        class="flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-800/50"
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-clock w-4 h-4 text-zinc-400"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M12 6v6l4 2"
+          />
+          <circle
+            cx="12"
+            cy="12"
+            r="10"
+          />
+        </svg>
+        <span
+          class="font-mono text-sm"
+        >
+          07:00:00
+           UTC
+        </span>
+      </div>
+    </div>
+    <div
+      class="flex gap-4"
+    >
+      <div
+        class="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/10 border border-green-500/20"
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-circle w-3 h-3 fill-green-500 text-green-500"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <circle
+            cx="12"
+            cy="12"
+            r="10"
+          />
+        </svg>
+        <span
+          class="text-sm font-medium text-green-500"
+        >
+          0
+           Markets Open
+        </span>
+      </div>
+      <div
+        class="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/20"
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-circle w-3 h-3 fill-red-500 text-red-500"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <circle
+            cx="12"
+            cy="12"
+            r="10"
+          />
+        </svg>
+        <span
+          class="text-sm font-medium text-red-500"
+        >
+          7
+           Markets Closed
+        </span>
+      </div>
+    </div>
+    <div>
+      <h3
+        class="text-lg font-semibold mb-3 flex items-center gap-2"
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-circle w-3 h-3 fill-red-500 text-red-500"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <circle
+            cx="12"
+            cy="12"
+            r="10"
+          />
+        </svg>
+        Currently Closed
+      </h3>
+      <div
+        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+      >
+        <div
+          class="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 hover:bg-zinc-900/80 transition-colors"
+        >
+          <div
+            class="flex items-start justify-between mb-3"
+          >
+            <div>
+              <h3
+                class="font-semibold text-white"
+              >
+                NYSE/NASDAQ
+              </h3>
+              <p
+                class="text-xs text-zinc-500 mt-0.5"
+              >
+                EST
+              </p>
+            </div>
+            <div
+              class="flex items-center gap-2"
+            >
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-circle w-2 h-2 fill-current text-red-500"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                />
+              </svg>
+              <span
+                class="text-sm font-medium text-red-500"
+              >
+                Closed
+              </span>
+            </div>
+          </div>
+          <div
+            class="space-y-2 text-sm"
+          >
+            <div
+              class="flex items-center justify-between text-zinc-400"
+            >
+              <span>
+                Local Time:
+              </span>
+              <span
+                class="font-mono"
+              >
+                07:00
+              </span>
+            </div>
+            <div
+              class="flex items-center justify-between text-zinc-400"
+            >
+              <span>
+                Trading Hours:
+              </span>
+              <span
+                class="font-mono"
+              >
+                09:30
+                 - 
+                16:00
+              </span>
+            </div>
+            <div
+              class="flex items-center justify-between pt-2 border-t border-zinc-800"
+            >
+              <span
+                class="text-zinc-400"
+              >
+                Next Open:
+              </span>
+              <span
+                class="font-semibold text-blue-400"
+              >
+                Tomorrow
+              </span>
+            </div>
+          </div>
+        </div>
+        <div
+          class="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 hover:bg-zinc-900/80 transition-colors"
+        >
+          <div
+            class="flex items-start justify-between mb-3"
+          >
+            <div>
+              <h3
+                class="font-semibold text-white"
+              >
+                Tokyo (TSE)
+              </h3>
+              <p
+                class="text-xs text-zinc-500 mt-0.5"
+              >
+                JST
+              </p>
+            </div>
+            <div
+              class="flex items-center gap-2"
+            >
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-circle w-2 h-2 fill-current text-red-500"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                />
+              </svg>
+              <span
+                class="text-sm font-medium text-red-500"
+              >
+                Closed
+              </span>
+            </div>
+          </div>
+          <div
+            class="space-y-2 text-sm"
+          >
+            <div
+              class="flex items-center justify-between text-zinc-400"
+            >
+              <span>
+                Local Time:
+              </span>
+              <span
+                class="font-mono"
+              >
+                21:00
+              </span>
+            </div>
+            <div
+              class="flex items-center justify-between text-zinc-400"
+            >
+              <span>
+                Trading Hours:
+              </span>
+              <span
+                class="font-mono"
+              >
+                09:00
+                 - 
+                15:00
+              </span>
+            </div>
+            <div
+              class="flex items-center justify-between pt-2 border-t border-zinc-800"
+            >
+              <span
+                class="text-zinc-400"
+              >
+                Next Open:
+              </span>
+              <span
+                class="font-semibold text-blue-400"
+              >
+                Tomorrow
+              </span>
+            </div>
+          </div>
+        </div>
+        <div
+          class="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 hover:bg-zinc-900/80 transition-colors"
+        >
+          <div
+            class="flex items-start justify-between mb-3"
+          >
+            <div>
+              <h3
+                class="font-semibold text-white"
+              >
+                Hong Kong (HKEX)
+              </h3>
+              <p
+                class="text-xs text-zinc-500 mt-0.5"
+              >
+                HKT
+              </p>
+            </div>
+            <div
+              class="flex items-center gap-2"
+            >
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-circle w-2 h-2 fill-current text-red-500"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                />
+              </svg>
+              <span
+                class="text-sm font-medium text-red-500"
+              >
+                Closed
+              </span>
+            </div>
+          </div>
+          <div
+            class="space-y-2 text-sm"
+          >
+            <div
+              class="flex items-center justify-between text-zinc-400"
+            >
+              <span>
+                Local Time:
+              </span>
+              <span
+                class="font-mono"
+              >
+                20:00
+              </span>
+            </div>
+            <div
+              class="flex items-center justify-between text-zinc-400"
+            >
+              <span>
+                Trading Hours:
+              </span>
+              <span
+                class="font-mono"
+              >
+                09:30
+                 - 
+                16:00
+              </span>
+            </div>
+            <div
+              class="flex items-center justify-between pt-2 border-t border-zinc-800"
+            >
+              <span
+                class="text-zinc-400"
+              >
+                Next Open:
+              </span>
+              <span
+                class="font-semibold text-blue-400"
+              >
+                Tomorrow
+              </span>
+            </div>
+          </div>
+        </div>
+        <div
+          class="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 hover:bg-zinc-900/80 transition-colors"
+        >
+          <div
+            class="flex items-start justify-between mb-3"
+          >
+            <div>
+              <h3
+                class="font-semibold text-white"
+              >
+                Shanghai (SSE)
+              </h3>
+              <p
+                class="text-xs text-zinc-500 mt-0.5"
+              >
+                CST
+              </p>
+            </div>
+            <div
+              class="flex items-center gap-2"
+            >
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-circle w-2 h-2 fill-current text-red-500"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                />
+              </svg>
+              <span
+                class="text-sm font-medium text-red-500"
+              >
+                Closed
+              </span>
+            </div>
+          </div>
+          <div
+            class="space-y-2 text-sm"
+          >
+            <div
+              class="flex items-center justify-between text-zinc-400"
+            >
+              <span>
+                Local Time:
+              </span>
+              <span
+                class="font-mono"
+              >
+                20:00
+              </span>
+            </div>
+            <div
+              class="flex items-center justify-between text-zinc-400"
+            >
+              <span>
+                Trading Hours:
+              </span>
+              <span
+                class="font-mono"
+              >
+                09:30
+                 - 
+                15:00
+              </span>
+            </div>
+            <div
+              class="flex items-center justify-between pt-2 border-t border-zinc-800"
+            >
+              <span
+                class="text-zinc-400"
+              >
+                Next Open:
+              </span>
+              <span
+                class="font-semibold text-blue-400"
+              >
+                Tomorrow
+              </span>
+            </div>
+          </div>
+        </div>
+        <div
+          class="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 hover:bg-zinc-900/80 transition-colors"
+        >
+          <div
+            class="flex items-start justify-between mb-3"
+          >
+            <div>
+              <h3
+                class="font-semibold text-white"
+              >
+                London (LSE)
+              </h3>
+              <p
+                class="text-xs text-zinc-500 mt-0.5"
+              >
+                GMT
+              </p>
+            </div>
+            <div
+              class="flex items-center gap-2"
+            >
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-circle w-2 h-2 fill-current text-red-500"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                />
+              </svg>
+              <span
+                class="text-sm font-medium text-red-500"
+              >
+                Closed
+              </span>
+            </div>
+          </div>
+          <div
+            class="space-y-2 text-sm"
+          >
+            <div
+              class="flex items-center justify-between text-zinc-400"
+            >
+              <span>
+                Local Time:
+              </span>
+              <span
+                class="font-mono"
+              >
+                12:00
+              </span>
+            </div>
+            <div
+              class="flex items-center justify-between text-zinc-400"
+            >
+              <span>
+                Trading Hours:
+              </span>
+              <span
+                class="font-mono"
+              >
+                08:00
+                 - 
+                16:30
+              </span>
+            </div>
+            <div
+              class="flex items-center justify-between pt-2 border-t border-zinc-800"
+            >
+              <span
+                class="text-zinc-400"
+              >
+                Next Open:
+              </span>
+              <span
+                class="font-semibold text-blue-400"
+              >
+                Tomorrow
+              </span>
+            </div>
+          </div>
+        </div>
+        <div
+          class="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 hover:bg-zinc-900/80 transition-colors"
+        >
+          <div
+            class="flex items-start justify-between mb-3"
+          >
+            <div>
+              <h3
+                class="font-semibold text-white"
+              >
+                Frankfurt (FSE)
+              </h3>
+              <p
+                class="text-xs text-zinc-500 mt-0.5"
+              >
+                CET
+              </p>
+            </div>
+            <div
+              class="flex items-center gap-2"
+            >
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-circle w-2 h-2 fill-current text-red-500"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                />
+              </svg>
+              <span
+                class="text-sm font-medium text-red-500"
+              >
+                Closed
+              </span>
+            </div>
+          </div>
+          <div
+            class="space-y-2 text-sm"
+          >
+            <div
+              class="flex items-center justify-between text-zinc-400"
+            >
+              <span>
+                Local Time:
+              </span>
+              <span
+                class="font-mono"
+              >
+                13:00
+              </span>
+            </div>
+            <div
+              class="flex items-center justify-between text-zinc-400"
+            >
+              <span>
+                Trading Hours:
+              </span>
+              <span
+                class="font-mono"
+              >
+                09:00
+                 - 
+                17:30
+              </span>
+            </div>
+            <div
+              class="flex items-center justify-between pt-2 border-t border-zinc-800"
+            >
+              <span
+                class="text-zinc-400"
+              >
+                Next Open:
+              </span>
+              <span
+                class="font-semibold text-blue-400"
+              >
+                Tomorrow
+              </span>
+            </div>
+          </div>
+        </div>
+        <div
+          class="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 hover:bg-zinc-900/80 transition-colors"
+        >
+          <div
+            class="flex items-start justify-between mb-3"
+          >
+            <div>
+              <h3
+                class="font-semibold text-white"
+              >
+                Sydney (ASX)
+              </h3>
+              <p
+                class="text-xs text-zinc-500 mt-0.5"
+              >
+                AEST
+              </p>
+            </div>
+            <div
+              class="flex items-center gap-2"
+            >
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-circle w-2 h-2 fill-current text-red-500"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                />
+              </svg>
+              <span
+                class="text-sm font-medium text-red-500"
+              >
+                Closed
+              </span>
+            </div>
+          </div>
+          <div
+            class="space-y-2 text-sm"
+          >
+            <div
+              class="flex items-center justify-between text-zinc-400"
+            >
+              <span>
+                Local Time:
+              </span>
+              <span
+                class="font-mono"
+              >
+                22:00
+              </span>
+            </div>
+            <div
+              class="flex items-center justify-between text-zinc-400"
+            >
+              <span>
+                Trading Hours:
+              </span>
+              <span
+                class="font-mono"
+              >
+                10:00
+                 - 
+                16:00
+              </span>
+            </div>
+            <div
+              class="flex items-center justify-between pt-2 border-t border-zinc-800"
+            >
+              <span
+                class="text-zinc-400"
+              >
+                Next Open:
+              </span>
+              <span
+                class="font-semibold text-blue-400"
+              >
+                Tomorrow
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;

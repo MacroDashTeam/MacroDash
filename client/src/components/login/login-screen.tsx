@@ -219,10 +219,11 @@ export default function LoginScreen({ onSignIn, onSkip }: LoginScreenProps) {
                         ) : isForgotPassword ? (
                             <form onSubmit={handleForgotPassword} className="space-y-3">
                                 <div className="space-y-1">
-                                    <label className="text-sm text-slate-300">Email</label>
+                                    <label htmlFor="email-input" className="text-sm text-slate-300">Email</label>
                                     <div className="relative">
                                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                                         <input
+                                            id="email-input"
                                             type="email"
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
@@ -290,10 +291,11 @@ export default function LoginScreen({ onSignIn, onSkip }: LoginScreenProps) {
                                 )}
 
                                 <div className="space-y-1">
-                                    <label className="text-sm text-slate-300">Email</label>
+                                    <label htmlFor="signin-email" className="text-sm text-slate-300">Email</label>
                                     <div className="relative">
                                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                                         <input
+                                            id="signin-email"
                                             type="email"
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
@@ -305,10 +307,11 @@ export default function LoginScreen({ onSignIn, onSkip }: LoginScreenProps) {
                                 </div>
 
                                 <div className="space-y-1">
-                                    <label className="text-sm text-slate-300">Password</label>
+                                    <label htmlFor="signin-password" className="text-sm text-slate-300">Password</label>
                                     <div className="relative">
                                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                                         <input
+                                            id="signin-password"
                                             type={showPassword ? 'text' : 'password'}
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}

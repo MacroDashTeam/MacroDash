@@ -1,0 +1,130 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`DataExplorerOld > matches snapshot 1`] = `
+<div>
+  <div
+    class="space-y-6 p-6"
+  >
+    <div>
+      <h1
+        class="text-3xl font-bold flex items-center gap-2"
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-database w-8 h-8"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <ellipse
+            cx="12"
+            cy="5"
+            rx="9"
+            ry="3"
+          />
+          <path
+            d="M3 5V19A9 3 0 0 0 21 19V5"
+          />
+          <path
+            d="M3 12A9 3 0 0 0 21 12"
+          />
+        </svg>
+        Data Explorer
+      </h1>
+      <p
+        class="text-zinc-400 mt-2"
+      >
+        Search and explore economic indicators and financial data from FRED and Alpha Vantage
+      </p>
+    </div>
+    <div
+      class="rounded-lg border text-card-foreground shadow-sm p-6 bg-zinc-900/50 border-zinc-800"
+    >
+      <div
+        class="flex gap-2 mb-4"
+      >
+        <div
+          class="flex-1"
+        >
+          <input
+            class="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-zinc-800 border-zinc-700"
+            data-slot="input"
+            placeholder="Search for economic indicators, stocks, or companies..."
+            value=""
+          />
+        </div>
+        <button
+          class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2 has-[>svg]:px-3"
+          data-slot="button"
+          disabled=""
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-search w-4 h-4 mr-2"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="m21 21-4.34-4.34"
+            />
+            <circle
+              cx="11"
+              cy="11"
+              r="8"
+            />
+          </svg>
+          Search
+        </button>
+      </div>
+    </div>
+    <div
+      class="rounded-lg border text-card-foreground shadow-sm p-6 bg-zinc-900/50 border-zinc-800"
+    >
+      <div
+        class="flex items-center justify-between mb-4"
+      >
+        <h2
+          class="text-xl font-semibold flex items-center gap-2"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-folder-open w-5 h-5"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"
+            />
+          </svg>
+          Browse FRED Categories
+        </h2>
+      </div>
+      <div
+        class="text-center py-8 text-zinc-400"
+      >
+        Loading categories...
+      </div>
+    </div>
+  </div>
+</div>
+`;
