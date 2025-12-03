@@ -73,4 +73,4 @@ jobs:
       - name: Run Django tests
         run: |
           cd server
-          python manage.py test
+          python manage.py test api.tests

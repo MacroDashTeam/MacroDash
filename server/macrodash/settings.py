@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'django_apscheduler',
+    'drf_spectacular',
     'api',
     # Auth & SSO
     'rest_framework.authtoken',
@@ -153,6 +154,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # REST Framework settings
 REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
     ],
@@ -163,6 +165,15 @@ REST_FRAMEWORK = {
         'dj_rest_auth.jwt_auth.JWTCookieAuthentication',
         'api.authentication.CsrfExemptSessionAuthentication',
     ),
+}
+
+# drf-spectacular settings
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'MacroDash API',
+    'DESCRIPTION': 'Real-time economic dashboard API for tracking macroeconomic indicators, stock market data, and financial news',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
 }
 
 # Auth & SSO Configuration
