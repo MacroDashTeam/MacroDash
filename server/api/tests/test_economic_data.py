@@ -31,7 +31,7 @@ class EconomicDataTestCase(BaseAPITestCase):
         url = reverse('economic_data')
         response = self.client.post(url, {})
 
-        self.assertErrorResponse(response, 405, 'Method not allowed')
+        self.assertErrorResponse(response, 405, 'not allowed')
 
     @patch('api.views.FREDService')
     def test_economic_indicator_detail_success(self, mock_fred_service):

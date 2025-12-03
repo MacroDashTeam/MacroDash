@@ -1433,6 +1433,7 @@ def chart_data(request, chart_id):
     """Get full data for a saved chart including series data"""
     from api.models import SavedChartDisplay
     from api.services import FREDService, StatsmodelsService
+    import pandas as pd
 
     session_id = request.COOKIES.get('session_id')
 

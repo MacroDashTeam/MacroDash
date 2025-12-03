@@ -134,7 +134,7 @@ class AIInsightsEndpointsTestCase(BaseAPITestCase):
     def test_chatbot_success(self, mock_openai_service):
         """Test POST /api/chatbot/ returns AI response"""
         mock_service = MagicMock()
-        mock_service.chatbot_response.return_value = {
+        mock_service.chat_with_context.return_value = {
             'status': 'success',
             'data': {
                 'response': 'AI response here',
@@ -145,7 +145,8 @@ class AIInsightsEndpointsTestCase(BaseAPITestCase):
 
         url = reverse('chatbot')
         chat_data = {
-            'message': 'What is the current market trend?'
+            'question': 'What is the current market trend?',
+            'context': {}
         }
         response = self.client.post(
             url,
@@ -208,19 +209,26 @@ class AIInsightsEndpointsTestCase(BaseAPITestCase):
     def test_custom_analysis_success(self, mock_stats_service):
         """Test POST /api/custom-analysis/ returns custom analysis"""
         mock_service = MagicMock()
-        mock_service.perform_analysis.return_value = {
+        mock_service.get_price_data.return_value = {
             'status': 'success',
             'data': {
-                'analysis_type': 'correlation',
-                'result': {}
+                'Close': [150.0, 151.0, 152.0],
+                'Open': [149.0, 150.0, 151.0]
+            }
+        }
+        mock_service.evaluate_formulas.return_value = {
+            'status': 'success',
+            'data': {
+                'results': [165.0, 166.1, 167.2]
             }
         }
         mock_stats_service.return_value = mock_service
 
         url = reverse('custom_analysis')
         analysis_data = {
-            'analysis_type': 'correlation',
-            'symbols': ['AAPL', 'MSFT']
+            'symbols': ['AAPL'],
+            'formulas': ['Close * 1.1'],
+            'period': '1y'
         }
         response = self.client.post(
             url,
@@ -240,7 +248,7 @@ class DataExplorerEndpointsTestCase(BaseAPITestCase):
     def test_search_data_success(self, mock_fred_service):
         """Test GET /api/search/ searches data"""
         mock_service = MagicMock()
-        mock_service.search_series.return_value = {
+        mock_service.search_combined.return_value = {
             'status': 'success',
             'data': {
                 'results': []
@@ -249,7 +257,7 @@ class DataExplorerEndpointsTestCase(BaseAPITestCase):
         mock_fred_service.return_value = mock_service
 
         url = reverse('search_data')
-        response = self.client.get(url, {'query': 'GDP'})
+        response = self.client.get(url, {'q': 'GDP'})
 
         self.assertSuccessResponse(response)
         data = response.json()
@@ -278,7 +286,7 @@ class DataExplorerEndpointsTestCase(BaseAPITestCase):
     def test_fred_category_series_success(self, mock_fred_service):
         """Test GET /api/fred/categories/{id}/series/ returns series in category"""
         mock_service = MagicMock()
-        mock_service.get_fred_category_series.return_value = {
+        mock_service.get_series_in_category.return_value = {
             'status': 'success',
             'data': {
                 'series': []
@@ -313,22 +321,22 @@ class DataExplorerEndpointsTestCase(BaseAPITestCase):
         data = response.json()
         self.assertEqual(data['status'], 'success')
 
-    @patch('api.views.YahooFinanceService')
-    def test_export_data_success(self, mock_yahoo_service):
+    @patch('api.views.FREDService')
+    def test_export_data_success(self, mock_fred_service):
         """Test POST /api/export/ exports data"""
         mock_service = MagicMock()
-        mock_service.export_data.return_value = {
+        mock_service.export_multiple_series.return_value = {
             'status': 'success',
             'data': {
-                'file_url': 'https://example.com/export.csv'
+                'file_url': 'https://example.com/export.json'
             }
         }
-        mock_yahoo_service.return_value = mock_service
+        mock_fred_service.return_value = mock_service
 
         url = reverse('export_data')
         export_data = {
-            'symbols': ['AAPL', 'MSFT'],
-            'format': 'csv'
+            'series_ids': ['GDP', 'UNRATE'],
+            'filename': 'economic_data.json'
         }
         response = self.client.post(
             url,
@@ -383,12 +391,14 @@ class SavedChartsEndpointsTestCase(BaseAPITestCase):
         data = response.json()
         self.assertEqual(data['status'], 'success')
 
-    @patch('api.services.FREDService')
+    @patch('api.views.FREDService')
     def test_chart_data_success(self, mock_fred_service):
         """Test GET /api/charts/{id}/data/ returns chart data"""
         from api.models import SavedChartDisplay
+        import pandas as pd
+        from datetime import datetime, timedelta
 
-        # Create a saved chart first
+        # Create a saved chart first with a session cookie
         chart = SavedChartDisplay.objects.create(
             user_session='test_session',
             chart_name='Test Chart',
@@ -397,12 +407,19 @@ class SavedChartsEndpointsTestCase(BaseAPITestCase):
             source_type='fred'
         )
 
+        # Mock the fred.get_series() method to return a pandas Series with datetime index
         mock_service = MagicMock()
-        mock_service.get_series_data.return_value = {
-            'status': 'success',
-            'data': []
-        }
+        mock_fred_api = MagicMock()
+
+        # Create a pandas Series with datetime index
+        dates = [datetime.now() - timedelta(days=i) for i in range(3)]
+        series_data = pd.Series([25000.0, 25100.0, 25200.0], index=dates)
+        mock_fred_api.get_series.return_value = series_data
+        mock_service.fred = mock_fred_api
         mock_fred_service.return_value = mock_service
+
+        # Set session cookie
+        self.client.cookies['session_id'] = 'test_session'
 
         url = reverse('chart_data', kwargs={'chart_id': chart.id})
         response = self.client.get(url)

@@ -168,7 +168,7 @@ class CryptoEndpointsTestCase(BaseAPITestCase):
     def test_crypto_ohlc_success(self, mock_cg_service):
         """Test GET /api/crypto/{symbol}/ohlc/ returns OHLC data"""
         mock_service = MagicMock()
-        mock_service.get_crypto_ohlc.return_value = {
+        mock_service.get_ohlc_data.return_value = {
             'status': 'success',
             'data': {
                 'symbol': 'BTC',

@@ -1,0 +1,134 @@
+openapi: 3.0.3
+info:
+  title: MacroDash API
+  version: 1.0.0
+  description: Real-time economic dashboard API for tracking macroeconomic indicators,
+    stock market data, and financial news
+paths:
+  /api/economic-data/:
+    get:
+      operationId: economic_data_retrieve
+      description: Retrieve key economic indicators (GDP, unemployment, inflation,
+        etc.) from FRED API
+      summary: Get economic indicators
+      tags:
+      - Economic Data
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data:
+                    type: object
+          description: ''
+        '405':
+          content:
+            application/json:
+              schema:
+                description: Method not allowed
+          description: ''
+  /api/economic-data/{series_id}/:
+    get:
+      operationId: economic_data_retrieve_2
+      description: Retrieve detailed historical data for a single economic indicator
+        by series ID
+      summary: Get economic indicator details
+      parameters:
+      - in: path
+        name: series_id
+        schema:
+          type: string
+        description: FRED series ID (e.g., GDP, UNRATE, CPIAUCSL)
+        required: true
+      tags:
+      - Economic Data
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                description: Economic indicator details
+          description: ''
+        '405':
+          content:
+            application/json:
+              schema:
+                description: Method not allowed
+          description: ''
+  /api/stocks/:
+    get:
+      operationId: stocks_retrieve
+      description: Retrieve real-time market data for top stocks from Yahoo Finance
+      summary: Get stock market data
+      tags:
+      - Stocks
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                description: Stock market data including top stocks and indices
+          description: ''
+        '405':
+          content:
+            application/json:
+              schema:
+                description: Method not allowed
+          description: ''
+  /api/stocks/{symbol}/:
+    get:
+      operationId: stocks_retrieve_2
+      description: Retrieve detailed information for a specific stock including historical
+        data
+      summary: Get stock details
+      parameters:
+      - in: path
+        name: symbol
+        schema:
+          type: string
+        description: Stock ticker symbol (e.g., AAPL, MSFT, GOOGL)
+        required: true
+      tags:
+      - Stocks
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                description: Stock details with historical price data
+          description: ''
+        '405':
+          content:
+            application/json:
+              schema:
+                description: Method not allowed
+          description: ''
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
