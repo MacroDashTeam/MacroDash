@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { TrendingUp, TrendingDown, Plus, X, Star } from 'lucide-react'
 import { useState } from 'react'
 import { Input } from './ui/input'
@@ -60,6 +60,69 @@ async function fetchSentiment(symbol: string): Promise<SentimentResponse> {
   const API_BASE = import.meta.env.VITE_API_BASE_URL
   const response = await fetch(`${API_BASE}/api/sentiment/${symbol}/`)
   if (!response.ok) throw new Error('Failed to fetch sentiment')
+  return response.json()
+}
+
+type WatchlistResponse = {
+  status: string
+  data: {
+    watchlist_id: number
+    name: string
+    symbols: Array<{
+      symbol: string
+      stock_name: string
+      notes: string
+      added_at: string
+    }>
+    count: number
+  }
+  timestamp: string
+}
+
+async function fetchWatchlist(): Promise<WatchlistResponse> {
+  const API_BASE = import.meta.env.VITE_API_BASE_URL
+  const response = await fetch(`${API_BASE}/api/watchlist/`, {
+    credentials: 'include',
+  })
+  if (!response.ok) {
+    if (response.status === 401) {
+      // User not logged in, return empty watchlist
+      return {
+        status: 'error',
+        data: { watchlist_id: 0, name: '', symbols: [], count: 0 },
+        timestamp: new Date().toISOString()
+      }
+    }
+    throw new Error('Failed to fetch watchlist')
+  }
+  return response.json()
+}
+
+async function addToWatchlist(symbol: string): Promise<any> {
+  const API_BASE = import.meta.env.VITE_API_BASE_URL
+  const response = await fetch(`${API_BASE}/api/watchlist/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ symbol })
+  })
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.message || 'Failed to add stock')
+  }
+  return response.json()
+}
+
+async function removeFromWatchlist(symbol: string): Promise<any> {
+  const API_BASE = import.meta.env.VITE_API_BASE_URL
+  const response = await fetch(`${API_BASE}/api/watchlist/${symbol}/`, {
+    method: 'DELETE',
+    credentials: 'include',
+  })
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.message || 'Failed to remove stock')
+  }
   return response.json()
 }
 
@@ -208,18 +271,46 @@ function WatchlistRow({ symbol, data, onRemove }: { symbol: string; data: StockD
 }
 
 export default function Watchlist() {
-  const [watchlistSymbols, setWatchlistSymbols] = useState(() => {
-    // Load from localStorage or use default
-    const saved = localStorage.getItem('watchlist')
-    return saved ? JSON.parse(saved) : ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA']
-  })
+  const queryClient = useQueryClient()
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [newSymbol, setNewSymbol] = useState('')
 
+  // Fetch user's watchlist from backend
+  const { data: watchlistData, isLoading: watchlistLoading } = useQuery<WatchlistResponse>({
+    queryKey: ['user-watchlist'],
+    queryFn: fetchWatchlist,
+    staleTime: 30000,
+  })
+
+  // Fetch market data for all stocks
   const { data, isLoading, isError } = useQuery<MarketResponse>({
     queryKey: ['watchlist-data'],
     queryFn: fetchMarketData,
-    refetchInterval: 60000, // Refresh every minute
+    refetchInterval: 60000,
+  })
+
+  // Add stock mutation
+  const addMutation = useMutation({
+    mutationFn: addToWatchlist,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-watchlist'] })
+      setNewSymbol('')
+      setShowAddDialog(false)
+    },
+    onError: (error: Error) => {
+      alert(error.message)
+    }
+  })
+
+  // Remove stock mutation
+  const removeMutation = useMutation({
+    mutationFn: removeFromWatchlist,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-watchlist'] })
+    },
+    onError: (error: Error) => {
+      alert(error.message)
+    }
   })
 
   const handleAddStock = () => {
@@ -230,26 +321,17 @@ export default function Watchlist() {
       return
     }
 
-    if (watchlistSymbols.includes(symbol)) {
-      alert(`${symbol} is already in your watchlist`)
-      return
-    }
-
-    const updatedList = [...watchlistSymbols, symbol]
-    setWatchlistSymbols(updatedList)
-    localStorage.setItem('watchlist', JSON.stringify(updatedList))
-
-    setNewSymbol('')
-    setShowAddDialog(false)
+    addMutation.mutate(symbol)
   }
 
   const handleRemoveStock = (symbol: string) => {
-    const updatedList = watchlistSymbols.filter((s: string) => s !== symbol)
-    setWatchlistSymbols(updatedList)
-    localStorage.setItem('watchlist', JSON.stringify(updatedList))
+    removeMutation.mutate(symbol)
   }
 
-  if (isLoading) {
+  // Get watchlist symbols from backend data
+  const watchlistSymbols = watchlistData?.data?.symbols?.map(s => s.symbol) || []
+
+  if (isLoading || watchlistLoading) {
     return (
       <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
         <div className="flex items-center justify-between mb-4">
