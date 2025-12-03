@@ -13,7 +13,7 @@ class CryptoEndpointsTestCase(BaseAPITestCase):
     def test_crypto_listings_success(self, mock_cmc_service):
         """Test GET /api/crypto/ returns cryptocurrency listings"""
         mock_service = MagicMock()
-        mock_service.get_listings.return_value = {
+        mock_service.get_crypto_listings.return_value = {
             'status': 'success',
             'data': {
                 'cryptocurrencies': [
@@ -29,7 +29,7 @@ class CryptoEndpointsTestCase(BaseAPITestCase):
         self.assertSuccessResponse(response)
         data = response.json()
         self.assertEqual(data['status'], 'success')
-        mock_service.get_listings.assert_called_once()
+        mock_service.get_crypto_listings.assert_called_once()
 
     @patch('api.views.CoinMarketCapService')
     def test_crypto_listings_method_not_allowed(self, mock_cmc_service):
@@ -168,7 +168,7 @@ class CryptoEndpointsTestCase(BaseAPITestCase):
     def test_crypto_ohlc_success(self, mock_cg_service):
         """Test GET /api/crypto/{symbol}/ohlc/ returns OHLC data"""
         mock_service = MagicMock()
-        mock_service.get_ohlc.return_value = {
+        mock_service.get_crypto_ohlc.return_value = {
             'status': 'success',
             'data': {
                 'symbol': 'BTC',

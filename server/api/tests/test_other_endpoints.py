@@ -99,7 +99,7 @@ class TechnicalIndicatorEndpointsTestCase(BaseAPITestCase):
     def test_technical_indicators_success(self, mock_ti_service):
         """Test GET /api/technical-indicators/{symbol}/ returns indicators"""
         mock_service = MagicMock()
-        mock_service.get_indicators.return_value = {
+        mock_service.get_technical_indicators.return_value = {
             'status': 'success',
             'data': {
                 'symbol': 'AAPL',
@@ -134,7 +134,7 @@ class AIInsightsEndpointsTestCase(BaseAPITestCase):
     def test_chatbot_success(self, mock_openai_service):
         """Test POST /api/chatbot/ returns AI response"""
         mock_service = MagicMock()
-        mock_service.chat.return_value = {
+        mock_service.chatbot_response.return_value = {
             'status': 'success',
             'data': {
                 'response': 'AI response here',
@@ -259,7 +259,7 @@ class DataExplorerEndpointsTestCase(BaseAPITestCase):
     def test_fred_categories_success(self, mock_fred_service):
         """Test GET /api/fred/categories/ returns FRED categories"""
         mock_service = MagicMock()
-        mock_service.get_categories.return_value = {
+        mock_service.get_fred_categories.return_value = {
             'status': 'success',
             'data': {
                 'categories': []
@@ -278,7 +278,7 @@ class DataExplorerEndpointsTestCase(BaseAPITestCase):
     def test_fred_category_series_success(self, mock_fred_service):
         """Test GET /api/fred/categories/{id}/series/ returns series in category"""
         mock_service = MagicMock()
-        mock_service.get_category_series.return_value = {
+        mock_service.get_fred_category_series.return_value = {
             'status': 'success',
             'data': {
                 'series': []
