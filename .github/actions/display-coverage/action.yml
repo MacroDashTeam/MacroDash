@@ -9,6 +9,10 @@ inputs:
     description: 'Path to the server coverage JSON'
     required: false
     default: 'server/coverage.json'
+  min_coverage:
+    description: 'Minimum coverage percentage required to pass'
+    required: false
+    default: '0'
 runs:
   using: "composite"
   steps:
@@ -22,4 +26,5 @@ runs:
       env:
         INPUT_CLIENT_COVERAGE_PATH: ${{ inputs.client_coverage_path }}
         INPUT_SERVER_COVERAGE_PATH: ${{ inputs.server_coverage_path }}
+        INPUT_MIN_COVERAGE: ${{ inputs.min_coverage }}
       run: python ${{ github.action_path }}/report_coverage.py

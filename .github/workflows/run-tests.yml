@@ -27,8 +27,12 @@ jobs:
           filters: |
             client:
               - 'client/**'
+              - '.github/workflows/run-tests.yml'
+              - '.github/actions/display-coverage/**'
             server:
               - 'server/**'
+              - '.github/workflows/run-tests.yml'
+              - '.github/actions/display-coverage/**'
 
   client-tests:
     runs-on: ubuntu-latest
@@ -52,9 +56,10 @@ jobs:
       - name: Run Jest tests with Coverage
         run: |
           cd client
-          yarn vitest run --coverage --coverage.reporter=text --coverage.reporter=json-summary
+          yarn vitest run --coverage
 
       - name: Upload Client Coverage
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: client-coverage
@@ -86,6 +91,7 @@ jobs:
           coverage json
 
       - name: Upload Server Coverage
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: server-coverage
@@ -96,6 +102,8 @@ jobs:
     runs-on: ubuntu-latest
     if: always()
     needs: [client-tests, server-tests]
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       
@@ -118,3 +126,10 @@ jobs:
         with:
           client_coverage_path: client/coverage/coverage-summary.json
           server_coverage_path: server/coverage.json
+          min_coverage: 80
+
+      - name: Commit Coverage Badge
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: update coverage badge [skip ci]"
+          file_pattern: 'coverage.svg'

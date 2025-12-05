@@ -77,7 +77,7 @@ def main():
     else:
         summary += "| Server (Django) | N/A | N/A | N/A |\n"
 
-    # Calculate overall percentage for the badge
+    # Calculate overall percentage
     total_lines = 0
     covered_lines = 0
     if client_stats:
@@ -92,7 +92,7 @@ def main():
         overall_pct = (covered_lines / total_lines) * 100
         
     generate_badge(overall_pct, 'coverage.svg')
-        
+
     # Write to GITHUB_STEP_SUMMARY
     step_summary_file = os.environ.get('GITHUB_STEP_SUMMARY')
     if step_summary_file:
@@ -100,6 +100,46 @@ def main():
             f.write(summary)
     else:
         print(summary)
+
+    # Check minimum coverage
+    min_coverage = float(os.environ.get('INPUT_MIN_COVERAGE', '0'))
+    if overall_pct < min_coverage:
+        print(f"::error::Overall coverage {overall_pct:.1f}% is below the minimum threshold of {min_coverage}%")
+        sys.exit(1)
+
+def generate_badge(pct, filepath):
+    color = "#e05d44" # red
+    if pct >= 80:
+        color = "#4c1" # green
+    elif pct >= 50:
+        color = "#dfb317" # yellow
+        
+    pct_str = f"{pct:.0f}%"
+    
+    # Simple SVG template
+    svg = f"""<svg xmlns="http://www.w3.org/2000/svg" width="90" height="20">
+  <linearGradient id="b" x2="0" y2="100%">
+    <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>
+    <stop offset="1" stop-opacity=".1"/>
+  </linearGradient>
+  <mask id="a">
+    <rect width="90" height="20" rx="3" fill="#fff"/>
+  </mask>
+  <g mask="url(#a)">
+    <path fill="#555" d="M0 0h55v20H0z"/>
+    <path fill="{color}" d="M55 0h35v20H55z"/>
+    <path fill="url(#b)" d="M0 0h90v20H0z"/>
+  </g>
+  <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
+    <text x="28.5" y="15" fill="#010101" fill-opacity=".3">coverage</text>
+    <text x="28.5" y="14">coverage</text>
+    <text x="71.5" y="15" fill="#010101" fill-opacity=".3">{pct_str}</text>
+    <text x="71.5" y="14">{pct_str}</text>
+  </g>
+</svg>"""
+    
+    with open(filepath, 'w') as f:
+        f.write(svg)
 
 def generate_badge(pct, filepath):
     color = "#e05d44" # red
