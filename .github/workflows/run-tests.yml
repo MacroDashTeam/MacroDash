@@ -7,7 +7,7 @@ permissions:
 on:
   pull_request:
     branches:
-      - "main"
+      - "tbm/add-coverage"
     paths:
       - "client/**"
       - "server/**"
@@ -47,11 +47,19 @@ jobs:
         run: |
           cd client
           yarn install
+          yarn add -D @vitest/coverage-v8
 
-      - name: Run Jest tests
+      - name: Run Jest tests with Coverage
         run: |
           cd client
-          yarn test
+          yarn vitest run --coverage --reporter=json-summary --reporter=text
+
+      - name: Upload Client Coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: client-coverage
+          path: client/coverage/coverage-summary.json
+          retention-days: 1
 
   server-tests:
     runs-on: ubuntu-latest
@@ -69,8 +77,44 @@ jobs:
         run: |
           cd server
           pip install -r requirements.txt
+          pip install coverage
 
-      - name: Run Django tests
+      - name: Run Django tests with Coverage
         run: |
           cd server
-          python manage.py test api.tests
+          coverage run manage.py test api.tests
+          coverage json
+
+      - name: Upload Server Coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-coverage
+          path: server/coverage.json
+          retention-days: 1
+
+  coverage-report:
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [client-tests, server-tests]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download Client Coverage
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: client-coverage
+          path: client/coverage
+
+      - name: Download Server Coverage
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: server-coverage
+          path: server
+
+      - name: Display Coverage Report
+        uses: ./.github/actions/display-coverage
+        with:
+          client_coverage_path: client/coverage/coverage-summary.json
+          server_coverage_path: server/coverage.json

@@ -334,12 +334,12 @@ export default function ManageDisplay() {
               margin={[16, 16]}
               containerPadding={[0, 0]}
             >
-            {charts.map(chart => (
-              <div key={chart.id.toString()} style={{ width: '100%', height: '100%' }}>
-                <ChartCard chart={chart} />
-              </div>
-            ))}
-          </ResponsiveGridLayout>
+              {charts.map(chart => (
+                <div key={chart.id.toString()} style={{ width: '100%', height: '100%' }}>
+                  <ChartCard chart={chart} />
+                </div>
+              ))}
+            </ResponsiveGridLayout>
           </div>
         ) : charts && charts.length === 0 ? (
           <Card className="p-12 border-zinc-800 bg-zinc-900/50 text-center">

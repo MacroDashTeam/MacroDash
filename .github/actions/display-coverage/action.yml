@@ -1,0 +1,25 @@
+name: 'Display Code Coverage'
+description: 'Reads coverage reports and displays a summary in the GitHub Actions run'
+inputs:
+  client_coverage_path:
+    description: 'Path to the client coverage summary JSON'
+    required: false
+    default: 'client/coverage/coverage-summary.json'
+  server_coverage_path:
+    description: 'Path to the server coverage JSON'
+    required: false
+    default: 'server/coverage.json'
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        
+    - name: Run Coverage Report Script
+      shell: bash
+      env:
+        INPUT_CLIENT_COVERAGE_PATH: ${{ inputs.client_coverage_path }}
+        INPUT_SERVER_COVERAGE_PATH: ${{ inputs.server_coverage_path }}
+      run: python ${{ github.action_path }}/report_coverage.py
