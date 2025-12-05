@@ -96,6 +96,8 @@ jobs:
     runs-on: ubuntu-latest
     if: always()
     needs: [client-tests, server-tests]
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       
@@ -118,3 +120,22 @@ jobs:
         with:
           client_coverage_path: client/coverage/coverage-summary.json
           server_coverage_path: server/coverage.json
+
+      - name: Prepare Badge
+        run: |
+          mkdir -p badges_out/badges
+          if [ -f coverage.svg ]; then
+            mv coverage.svg badges_out/badges/
+          else
+            echo "coverage.svg not found"
+            exit 1
+          fi
+
+      - name: Deploy Badge
+        if: github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./badges_out
+          publish_branch: badges
+          keep_files: true
