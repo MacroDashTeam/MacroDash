@@ -52,7 +52,7 @@ jobs:
       - name: Run Jest tests with Coverage
         run: |
           cd client
-          yarn vitest run --coverage --reporter=json-summary --reporter=text
+          yarn vitest run --coverage --coverage.reporter=text --coverage.reporter=json-summary
 
       - name: Upload Client Coverage
         uses: actions/upload-artifact@v4
