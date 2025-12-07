@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Play, Trash2, Calculator, TrendingUp, TrendingDown, Database, Save, X, Loader2 } from 'lucide-react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceDot } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceDot, ReferenceLine } from 'recharts'
 import 'katex/dist/katex.min.css'
 import { InlineMath } from 'react-katex'
 import { findExtrema, fetchMarketInsight } from '@/lib/utils'
@@ -693,6 +693,27 @@ export default function CustomAnalysis() {
                       onClick={() => handleExtremaClick(extrema)}
                     />
                   ))}
+                  {/* Quantile reference lines */}
+                  {staticVars && Object.entries(staticVars).map(([key, value]: [string, any]) => {
+                    if (typeof value === 'object' && value !== null && value.type === 'scalar') {
+                      return (
+                        <ReferenceLine
+                          key={`quantile-${key}`}
+                          y={value.value}
+                          stroke="#10b981"
+                          strokeDasharray="5 5"
+                          strokeWidth={2}
+                          label={{
+                            value: `${key}: ${typeof value.value === 'number' ? value.value.toFixed(2) : value.value}`,
+                            fill: '#10b981',
+                            fontSize: 12,
+                            position: 'right'
+                          }}
+                        />
+                      )
+                    }
+                    return null
+                  })}
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -716,15 +737,15 @@ export default function CustomAnalysis() {
       })()}
       {staticVars && Object.keys(staticVars).length > 0 && (
         <Card className="p-6 bg-zinc-900/50 border-zinc-800">
-            <h3 className="text-xl font-semibold mb-6 flex items-center gap-2 text-zinc-100">
-              <Database className="w-6 h-6" />
-              Statistical Results
-            </h3>
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 w-full">
-              {Object.entries(staticVars).map(([key, value]: [string, any]) => {
-                console.log(`Rendering card for ${key}:`, value)
-                console.log(`Value type check: typeof=${typeof value}, isNull=${value === null}, type field=${value?.type}`)
-                return (
+          <h3 className="text-xl font-semibold mb-6 flex items-center gap-2 text-zinc-100">
+            <Database className="w-6 h-6" />
+            Statistical Results
+          </h3>
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 w-full">
+            {Object.entries(staticVars).map(([key, value]: [string, any]) => {
+              console.log(`Rendering card for ${key}:`, value)
+              console.log(`Value type check: typeof=${typeof value}, isNull=${value === null}, type field=${value?.type}`)
+              return (
                 <div key={key} className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-5 hover:border-zinc-600 transition-colors">
                   <div className="mb-4 pb-3 border-b border-zinc-700">
                     <h4 className="font-semibold text-base text-blue-400">{key}</h4>
@@ -749,15 +770,15 @@ export default function CustomAnalysis() {
                             {typeof v === 'number'
                               ? v.toFixed(4)
                               : Array.isArray(v)
-                              ? <span className="text-zinc-400 italic text-xs">Array ({v.length} values)</span>
-                              : typeof v === 'object' && v !== null
-                              ? Object.entries(v).map(([nk, nv]: [string, any]) => (
-                                  <div key={nk} className="text-xs mb-1">
-                                    <span className="text-zinc-500">{nk}: </span>
-                                    <span className="text-zinc-300">{typeof nv === 'number' ? nv.toFixed(4) : String(nv)}</span>
-                                  </div>
-                                ))
-                              : String(v)}
+                                ? <span className="text-zinc-400 italic text-xs">Array ({v.length} values)</span>
+                                : typeof v === 'object' && v !== null
+                                  ? Object.entries(v).map(([nk, nv]: [string, any]) => (
+                                    <div key={nk} className="text-xs mb-1">
+                                      <span className="text-zinc-500">{nk}: </span>
+                                      <span className="text-zinc-300">{typeof nv === 'number' ? nv.toFixed(4) : String(nv)}</span>
+                                    </div>
+                                  ))
+                                  : String(v)}
                           </span>
                         </div>
                       ))
@@ -767,11 +788,11 @@ export default function CustomAnalysis() {
                     )}
                   </div>
                 </div>
-                )
-              })}
-            </div>
-          </Card>
-        )}
+              )
+            })}
+          </div>
+        </Card>
+      )}
 
       {/* Add Stock Modal */}
       {showAddStock && (
