@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Play, Trash2, Calculator, TrendingUp, TrendingDown, Database, Save, X, Loader2 } from 'lucide-react'
+import { Play, Trash2, Calculator, TrendingUp, TrendingDown, Database, Save, X, Loader2, Edit } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceDot, ReferenceLine } from 'recharts'
 import 'katex/dist/katex.min.css'
 import { InlineMath } from 'react-katex'
@@ -32,13 +32,13 @@ const CHART_COLORS = [
 ]
 
 const PRESET_FUNCTIONS = [
-  { name: 'SMA', description: 'Simple Moving Average', example: 'sma(AAPL, 20)' },
-  { name: 'EMA', description: 'Exponential Moving Average', example: 'ema(AAPL, 20)' },
-  { name: 'Returns', description: 'Calculate returns', example: 'returns(AAPL)' },
-  { name: 'Quantile', description: 'Calculate percentile (scalar)', example: 'quantile(AAPL, 0.25)' },
-  { name: 'ADF Test', description: 'Stationarity test (dict result)', example: 'adf_test(AAPL)' },
-  { name: 'ARIMA', description: 'ARIMA forecast (slow, 30-60s)', example: 'arima(AAPL, [1,1,1])' },
-  { name: 'ARIMA Auto', description: 'Auto-find best ARIMA params (2-3 min)', example: 'arima_auto(AAPL)' },
+  { name: 'SMA', description: 'Simple Moving Average', example: 'sma(AAPL, 20)', paramName: 'Period', defaultParam: '20', template: 'sma({symbol}, {param})' },
+  { name: 'EMA', description: 'Exponential Moving Average', example: 'ema(AAPL, 20)', paramName: 'Period', defaultParam: '20', template: 'ema({symbol}, {param})' },
+  { name: 'Returns', description: 'Calculate returns', example: 'returns(AAPL)', template: 'returns({symbol})' },
+  { name: 'Quantile', description: 'Calculate percentile (scalar)', example: 'quantile(AAPL, 0.25)', paramName: 'Quantile', defaultParam: '0.25', template: 'quantile({symbol}, {param})' },
+  { name: 'ADF Test', description: 'Stationarity test (dict result)', example: 'adf_test(AAPL)', template: 'adf_test({symbol})' },
+  { name: 'ARIMA', description: 'ARIMA forecast (slow, 30-60s)', example: 'arima(AAPL, [1,1,1])', paramName: 'Order (p,d,q)', defaultParam: '[1,1,1]', template: 'arima({symbol}, {param})' },
+  { name: 'ARIMA Auto', description: 'Auto-find best ARIMA params (2-3 min)', example: 'arima_auto(AAPL)', template: 'arima_auto({symbol})' },
 ]
 
 // Convert formula to LaTeX notation
@@ -115,6 +115,16 @@ export default function CustomAnalysis() {
   const [showAddStock, setShowAddStock] = useState(false)
   const [showAddFunction, setShowAddFunction] = useState(false)
   const [showSaveDialog, setShowSaveDialog] = useState(false)
+  const [showAddPreset, setShowAddPreset] = useState(false)
+  const [selectedPreset, setSelectedPreset] = useState<typeof PRESET_FUNCTIONS[0] | null>(null)
+  const [presetSymbol, setPresetSymbol] = useState('AAPL')
+  const [presetParam, setPresetParam] = useState('')
+  const [plottedSeries, setPlottedSeries] = useState<Series[]>([])
+  const [showEditSeries, setShowEditSeries] = useState(false)
+  const [editingSeries, setEditingSeries] = useState<Series | null>(null)
+  const [editSymbol, setEditSymbol] = useState<string>('')
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [seriesToDelete, setSeriesToDelete] = useState<Series | null>(null)
 
   // Form inputs
   const [newStockSymbol, setNewStockSymbol] = useState('')
@@ -196,7 +206,59 @@ export default function CustomAnalysis() {
   }
 
   const handleDeleteSeries = (id: string) => {
-    setSeries(series.filter(s => s.id !== id))
+    const s = series.find(s => s.id === id)
+    if (s) {
+      setSeriesToDelete(s)
+      setShowDeleteConfirm(true)
+    }
+  }
+
+  const confirmDeleteSeries = () => {
+    if (seriesToDelete) {
+      setSeries(series.filter(s => s.id !== seriesToDelete.id))
+      setShowDeleteConfirm(false)
+      setSeriesToDelete(null)
+    }
+  }
+
+
+  const handleEditSeries = (id: string) => {
+    const selected = series.find(s => s.id === id);
+
+    if (!selected) return;
+    setEditingSeries(selected);
+    setEditSymbol(selected.formula ?? '');
+    setShowEditSeries(true);
+  }
+
+  const confirmEditSeries = () => {
+    if (!editingSeries) return
+    const newSymbol = editSymbol.trim().toUpperCase()
+    if (!newSymbol) {
+      alert('Please enter a symbol')
+      return
+    }
+
+    // Check if new symbol already exists (unless it's the same series)
+    if (series.find(s => s.id === newSymbol && s.id !== editingSeries.id)) {
+      alert('Series with this symbol already exists')
+      return
+    }
+
+    setSeries(series.map(s => {
+      if (s.id === editingSeries.id) {
+        return {
+          ...s,
+          id: newSymbol,
+          label: newSymbol,
+          source: `Stock: ${newSymbol}`,
+          formula: undefined
+        }
+      }
+      return s
+    }))
+    setShowEditSeries(false)
+    setEditingSeries(null)
   }
 
   const handleAddStock = () => {
@@ -241,14 +303,36 @@ export default function CustomAnalysis() {
   }
 
   const handleAddPreset = (preset: typeof PRESET_FUNCTIONS[0]) => {
+    setSelectedPreset(preset)
+    setPresetSymbol('AAPL')
+    setPresetParam(preset.defaultParam || '')
+    setShowAddPreset(true)
+  }
+
+  const confirmAddPreset = () => {
+    if (!selectedPreset) return
+    const symbol = presetSymbol.trim().toUpperCase()
+    if (!symbol) {
+      alert('Please enter a stock symbol')
+      return
+    }
+
+    let formula = selectedPreset.template.replace('{symbol}', symbol)
+    if (selectedPreset.paramName) {
+      formula = formula.replace('{param}', presetParam)
+    }
+
+    const label = `${symbol} ${selectedPreset.name}${presetParam ? ' ' + presetParam : ''}`
+
     setSeries([...series, {
       id: `preset_${Date.now()}`,
-      label: preset.name,
-      source: preset.example,
-      formula: preset.example,
+      label: label,
+      source: formula,
+      formula: formula,
       show: true,
       color: CHART_COLORS[series.length % CHART_COLORS.length]
     }])
+    setShowAddPreset(false)
   }
 
   const handleRunAnalysis = async () => {
@@ -401,6 +485,7 @@ export default function CustomAnalysis() {
       }
 
       setChartData(chartPoints)
+      setPlottedSeries(visibleSeries)
     } catch (error) {
       console.error('Analysis error:', error)
       if (error instanceof Error && error.name === 'TimeoutError') {
@@ -578,12 +663,20 @@ export default function CustomAnalysis() {
                     )}
                   </div>
                 </div>
-                <button
-                  onClick={() => handleDeleteSeries(s.id)}
-                  className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-400"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="flex-col gap-1">
+                  <button
+                    onClick={() => handleEditSeries(s.id)}
+                    className="opacity-0 group-hover:opacity-100 text-blue-500 hover:text-blue-400 flex"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteSeries(s.id)}
+                    className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-400 flex"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -663,7 +756,7 @@ export default function CustomAnalysis() {
                     }}
                   />
                   <Legend />
-                  {visibleSeries.map((s) => {
+                  {plottedSeries.map((s) => {
                     // Style forecast lines differently (dashed)
                     const isForecast = s.label.endsWith('_forecast')
                     return (
@@ -905,6 +998,122 @@ export default function CustomAnalysis() {
         </div>
       )}
 
+      {/* Add Preset Modal */}
+      {showAddPreset && selectedPreset && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowAddPreset(false)}>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 w-96" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Add {selectedPreset.name}</h3>
+              <button onClick={() => setShowAddPreset(false)} className="text-zinc-400 hover:text-zinc-200">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-4 mb-4">
+              <div>
+                <label className="text-sm text-zinc-400 mb-2 block">Stock Symbol</label>
+                <Input
+                  placeholder="e.g., AAPL"
+                  value={presetSymbol}
+                  onChange={(e) => setPresetSymbol(e.target.value.toUpperCase())}
+                  onKeyPress={(e) => e.key === 'Enter' && confirmAddPreset()}
+                  autoFocus
+                />
+              </div>
+
+              {selectedPreset.paramName && (
+                <div>
+                  <label className="text-sm text-zinc-400 mb-2 block">{selectedPreset.paramName}</label>
+                  <Input
+                    placeholder={`e.g., ${selectedPreset.defaultParam}`}
+                    value={presetParam}
+                    onChange={(e) => setPresetParam(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && confirmAddPreset()}
+                  />
+                </div>
+              )}
+
+              <div className="text-xs text-zinc-500">
+                Formula: <InlineMath math={formulaToLatex(
+                  selectedPreset.template
+                    .replace('{symbol}', presetSymbol || '...')
+                    .replace('{param}', presetParam || '...')
+                )} />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowAddPreset(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button onClick={confirmAddPreset} className="flex-1 bg-blue-600 hover:bg-blue-700">
+                Add
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Series Modal */}
+      {showEditSeries && editingSeries && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowEditSeries(false)}>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 w-96" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Edit Series</h3>
+              <button onClick={() => setShowEditSeries(false)} className="text-zinc-400 hover:text-zinc-200">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-4 mb-4">
+              <div>
+                <label className="text-sm text-zinc-400 mb-2 block">Stock Symbol</label>
+                <Input
+                  placeholder="e.g., TSLA"
+                  value={editSymbol}
+                  onChange={(e) => setEditSymbol(e.target.value.toUpperCase())}
+                  onKeyPress={(e) => e.key === 'Enter' && confirmEditSeries()}
+                  autoFocus
+                />
+              </div>
+              <div className="text-xs text-zinc-500">
+                Current: {editingSeries.label}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowEditSeries(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button onClick={confirmEditSeries} className="flex-1 bg-blue-600 hover:bg-blue-700">
+                Update
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && seriesToDelete && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 w-96" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-red-400">Delete Series</h3>
+              <button onClick={() => setShowDeleteConfirm(false)} className="text-zinc-400 hover:text-zinc-200">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="mb-6 text-zinc-300">
+              Are you sure you want to delete <span className="font-semibold text-white">{seriesToDelete.label}</span>?
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowDeleteConfirm(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button onClick={confirmDeleteSeries} className="flex-1 bg-red-600 hover:bg-red-700">
+                Delete
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Market Insight Dialog */}
       <Dialog open={insightDialogOpen} onOpenChange={setInsightDialogOpen}>
         <DialogContent className="sm:max-w-md bg-zinc-900 border-zinc-800">
@@ -950,3 +1159,4 @@ export default function CustomAnalysis() {
     </div>
   )
 }
+

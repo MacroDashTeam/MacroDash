@@ -109,7 +109,7 @@ export default function CryptoDashboard() {
   )
 
   const isLoading = activeTab === 'all' ? isLoadingAll :
-                   activeTab === 'gainers' ? isLoadingGainers : isLoadingLosers
+    activeTab === 'gainers' ? isLoadingGainers : isLoadingLosers
 
   return (
     <div className="space-y-6 p-6">
@@ -125,32 +125,29 @@ export default function CryptoDashboard() {
       <div className="flex gap-2 border-b border-zinc-800">
         <button
           onClick={() => setActiveTab('all')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-            activeTab === 'all'
-              ? 'border-blue-500 text-blue-500'
-              : 'border-transparent text-zinc-400 hover:text-white'
-          }`}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'all'
+            ? 'border-blue-500 text-blue-500'
+            : 'border-transparent text-zinc-400 hover:text-white'
+            }`}
         >
           All Cryptocurrencies
         </button>
         <button
           onClick={() => setActiveTab('gainers')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-1 ${
-            activeTab === 'gainers'
-              ? 'border-green-500 text-green-500'
-              : 'border-transparent text-zinc-400 hover:text-white'
-          }`}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-1 ${activeTab === 'gainers'
+            ? 'border-green-500 text-green-500'
+            : 'border-transparent text-zinc-400 hover:text-white'
+            }`}
         >
           <TrendingUp size={16} />
           Top Gainers
         </button>
         <button
           onClick={() => setActiveTab('losers')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-1 ${
-            activeTab === 'losers'
-              ? 'border-red-500 text-red-500'
-              : 'border-transparent text-zinc-400 hover:text-white'
-          }`}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-1 ${activeTab === 'losers'
+            ? 'border-red-500 text-red-500'
+            : 'border-transparent text-zinc-400 hover:text-white'
+            }`}
         >
           <TrendingDown size={16} />
           Top Losers
@@ -222,20 +219,17 @@ export default function CryptoDashboard() {
                       maximumFractionDigits: crypto.current_price < 1 ? 6 : 2
                     })}
                   </td>
-                  <td className={`py-4 px-4 text-right text-sm ${
-                    crypto.change_1h >= 0 ? 'text-green-500' : 'text-red-500'
-                  }`}>
-                    {crypto.change_1h >= 0 ? '+' : ''}{crypto.change_1h.toFixed(2)}%
+                  <td className={`py-4 px-4 text-right text-sm ${crypto.change_1h >= 0 ? 'text-green-500' : 'text-red-500'
+                    }`}>
+                    {crypto.change_1h >= 0 ? '+' : ''}{crypto.change_1h?.toFixed(2)}%
                   </td>
-                  <td className={`py-4 px-4 text-right text-sm ${
-                    crypto.change_24h >= 0 ? 'text-green-500' : 'text-red-500'
-                  }`}>
-                    {crypto.change_24h >= 0 ? '+' : ''}{crypto.change_24h.toFixed(2)}%
+                  <td className={`py-4 px-4 text-right text-sm ${crypto.change_24h >= 0 ? 'text-green-500' : 'text-red-500'
+                    }`}>
+                    {crypto.change_24h >= 0 ? '+' : ''}{crypto.change_24h?.toFixed(2)}%
                   </td>
-                  <td className={`py-4 px-4 text-right text-sm ${
-                    crypto.change_7d >= 0 ? 'text-green-500' : 'text-red-500'
-                  }`}>
-                    {crypto.change_7d >= 0 ? '+' : ''}{crypto.change_7d.toFixed(2)}%
+                  <td className={`py-4 px-4 text-right text-sm ${crypto.change_7d >= 0 ? 'text-green-500' : 'text-red-500'
+                    }`}>
+                    {crypto.change_7d >= 0 ? '+' : ''}{crypto.change_7d?.toFixed(2)}%
                   </td>
                   <td className="py-4 px-4 text-right text-sm text-zinc-400">
                     {formatMarketCap(crypto.market_cap)}
@@ -248,7 +242,7 @@ export default function CryptoDashboard() {
                       <div>
                         <div>{formatSupply(crypto.max_supply)}</div>
                         <div className="text-xs text-zinc-600">
-                          {crypto.circulating_supply && ((crypto.circulating_supply / crypto.max_supply) * 100).toFixed(1)}% circ.
+                          {crypto.circulating_supply && ((crypto.circulating_supply / crypto.max_supply) * 100)?.toFixed(1)}% circ.
                         </div>
                       </div>
                     ) : (
