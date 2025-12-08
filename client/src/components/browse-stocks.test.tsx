@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { renderWithQueryClient } from '../test-utils'
 import BrowseStocks from './browse-stocks'
+import { BrowserRouter } from 'react-router'
 
 global.fetch = vi.fn()
 
@@ -14,12 +15,12 @@ describe('BrowseStocks', () => {
     })
 
     it('renders without crashing', () => {
-        const { container } = renderWithQueryClient(<BrowseStocks />)
+        const { container } = renderWithQueryClient(<BrowserRouter><BrowseStocks /></BrowserRouter>)
         expect(container).toBeInTheDocument()
     })
 
     it('matches snapshot', () => {
-        const { container } = renderWithQueryClient(<BrowseStocks />)
+        const { container } = renderWithQueryClient(<BrowserRouter><BrowseStocks /></BrowserRouter>)
         expect(container).toMatchSnapshot()
     })
 })
