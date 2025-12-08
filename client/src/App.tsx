@@ -133,6 +133,8 @@ function App() {
     }
     localStorage.removeItem('user');
     setUser(null);
+    // Reload page to clear all cached data and redirect to login
+    window.location.reload();
   };
 
   const handleBackToDashboard = () => {
