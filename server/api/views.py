@@ -1268,13 +1268,17 @@ def saved_charts(request):
     """Get, create, or delete saved chart displays"""
     from api.models import SavedChartDisplay
 
-    # Get session ID from cookies or generate one
-    session_id = request.COOKIES.get('session_id', f"anon_{datetime.now().timestamp()}")
+    # Require authentication
+    if not request.user.is_authenticated:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Authentication required'
+        }, status=401)
 
     if request.method == 'GET':
-        # Get all saved charts for this session
+        # Get all saved charts for this user
         try:
-            charts = SavedChartDisplay.objects.filter(user_session=session_id)
+            charts = SavedChartDisplay.objects.filter(user=request.user)
             charts_data = [{
                 'id': chart.id,
                 'chart_name': chart.chart_name,
@@ -1286,20 +1290,11 @@ def saved_charts(request):
                 'updated_at': chart.updated_at.isoformat(),
             } for chart in charts]
 
-            response = JsonResponse({
+            return JsonResponse({
                 'status': 'success',
                 'data': charts_data,
                 'timestamp': datetime.now().isoformat()
             })
-            response.set_cookie(
-                'session_id',
-                session_id,
-                max_age=31536000,  # 1 year
-                samesite='Lax',    # Allow same-site cross-origin (localhost to localhost)
-                secure=False,      # Set to True in production with HTTPS
-                httponly=False     # Allow JavaScript access if needed
-            )
-            return response
 
         except Exception as e:
             return JsonResponse({
@@ -1325,7 +1320,7 @@ def saved_charts(request):
                 }, status=400)
 
             chart = SavedChartDisplay.objects.create(
-                user_session=session_id,
+                user=request.user,
                 chart_name=chart_name,
                 series_ids=series_ids,
                 series_metadata=series_metadata,
@@ -1334,7 +1329,7 @@ def saved_charts(request):
                 symbols=symbols
             )
 
-            response = JsonResponse({
+            return JsonResponse({
                 'status': 'success',
                 'data': {
                     'id': chart.id,
@@ -1346,15 +1341,6 @@ def saved_charts(request):
                 'message': 'Chart saved successfully',
                 'timestamp': datetime.now().isoformat()
             })
-            response.set_cookie(
-                'session_id',
-                session_id,
-                max_age=31536000,  # 1 year
-                samesite='Lax',    # Allow same-site cross-origin (localhost to localhost)
-                secure=False,      # Set to True in production with HTTPS
-                httponly=False     # Allow JavaScript access if needed
-            )
-            return response
 
         except json.JSONDecodeError:
             return JsonResponse({
@@ -1381,7 +1367,7 @@ def saved_charts(request):
 
             chart = SavedChartDisplay.objects.filter(
                 id=chart_id,
-                user_session=session_id
+                user=request.user
             ).first()
 
             if not chart:
@@ -1418,13 +1404,18 @@ def chart_data(request, chart_id):
     from api.models import SavedChartDisplay
     from api.services import FREDService, StatsmodelsService
 
-    session_id = request.COOKIES.get('session_id')
+    # Require authentication
+    if not request.user.is_authenticated:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Authentication required'
+        }, status=401)
 
     if request.method == 'GET':
         try:
             chart = SavedChartDisplay.objects.filter(
                 id=chart_id,
-                user_session=session_id
+                user=request.user
             ).first()
 
             if not chart:

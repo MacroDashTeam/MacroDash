@@ -205,8 +205,10 @@ class UserPreferences(models.Model):
 class SavedChartDisplay(models.Model):
     """Saved multi-series charts from Data Explorer"""
 
-    # User identification (optional - can be anonymous)
-    user_session = models.CharField(max_length=255, db_index=True, help_text="Session ID for anonymous users")
+    # User identification
+    user = models.ForeignKey('auth.User', on_delete=models.CASCADE, null=True, blank=True)
+    user_session = models.CharField(max_length=255, db_index=True, null=True, blank=True,
+                                     help_text="Session ID for anonymous users (deprecated - use user field)")
 
     # Chart details
     chart_name = models.CharField(max_length=255)
@@ -238,7 +240,8 @@ class SavedChartDisplay(models.Model):
     class Meta:
         ordering = ['-updated_at']
         indexes = [
-            models.Index(fields=['user_session', 'created_at']),
+            models.Index(fields=['user', 'created_at']),
+            models.Index(fields=['user_session', 'created_at']),  # Keep for backward compatibility
         ]
 
     def __str__(self):
