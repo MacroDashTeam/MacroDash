@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { TrendingUp, TrendingDown, Search } from 'lucide-react'
 import { Input } from './ui/input'
+import { useNavigate } from 'react-router'
 
 interface Stock {
   symbol: string
@@ -77,9 +78,10 @@ export default function BrowseStocks() {
     { id: 'industrial', label: 'Industrial', icon: '🏭' },
   ]
 
+  const navigate = useNavigate();
+
   const handleStockClick = (symbol: string) => {
-    window.dispatchEvent(new CustomEvent('navigate', { detail: { mode: 'stock' } }))
-    window.dispatchEvent(new CustomEvent('navigate-stock', { detail: { symbol } }))
+    navigate(`/stock/${symbol}`)
   }
 
   const filteredStocks = browseData?.data?.stocks?.filter(stock =>
@@ -101,21 +103,19 @@ export default function BrowseStocks() {
       <div className="flex gap-2 border-b border-zinc-800">
         <button
           onClick={() => setActiveTab('category')}
-          className={`px-4 py-2 border-b-2 transition-colors ${
-            activeTab === 'category'
-              ? 'border-blue-500 text-white'
-              : 'border-transparent text-zinc-400 hover:text-white'
-          }`}
+          className={`px-4 py-2 border-b-2 transition-colors ${activeTab === 'category'
+            ? 'border-blue-500 text-white'
+            : 'border-transparent text-zinc-400 hover:text-white'
+            }`}
         >
           Market Cap
         </button>
         <button
           onClick={() => setActiveTab('sector')}
-          className={`px-4 py-2 border-b-2 transition-colors ${
-            activeTab === 'sector'
-              ? 'border-blue-500 text-white'
-              : 'border-transparent text-zinc-400 hover:text-white'
-          }`}
+          className={`px-4 py-2 border-b-2 transition-colors ${activeTab === 'sector'
+            ? 'border-blue-500 text-white'
+            : 'border-transparent text-zinc-400 hover:text-white'
+            }`}
         >
           Sector
         </button>
@@ -129,11 +129,10 @@ export default function BrowseStocks() {
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`p-4 rounded-lg border transition-all ${
-                  selectedCategory === cat.id
-                    ? 'border-blue-500 bg-blue-500/10'
-                    : 'border-zinc-800 bg-zinc-900/50 hover:border-zinc-700'
-                }`}
+                className={`p-4 rounded-lg border transition-all ${selectedCategory === cat.id
+                  ? 'border-blue-500 bg-blue-500/10'
+                  : 'border-zinc-800 bg-zinc-900/50 hover:border-zinc-700'
+                  }`}
               >
                 <div className="text-lg font-semibold">{cat.label}</div>
                 <div className="text-sm text-zinc-400 mt-1">{cat.description}</div>
@@ -146,11 +145,10 @@ export default function BrowseStocks() {
               <button
                 key={sector.id}
                 onClick={() => setSelectedSector(sector.id)}
-                className={`p-4 rounded-lg border transition-all ${
-                  selectedSector === sector.id
-                    ? 'border-blue-500 bg-blue-500/10'
-                    : 'border-zinc-800 bg-zinc-900/50 hover:border-zinc-700'
-                }`}
+                className={`p-4 rounded-lg border transition-all ${selectedSector === sector.id
+                  ? 'border-blue-500 bg-blue-500/10'
+                  : 'border-zinc-800 bg-zinc-900/50 hover:border-zinc-700'
+                  }`}
               >
                 <div className="text-3xl mb-2">{sector.icon}</div>
                 <div className="text-sm font-semibold">{sector.label}</div>
@@ -204,11 +202,10 @@ export default function BrowseStocks() {
                   <div className="text-sm text-zinc-400 line-clamp-1">{stock.name}</div>
                 </div>
                 <div
-                  className={`flex items-center gap-1 px-2 py-1 rounded text-sm ${
-                    stock.change >= 0
-                      ? 'bg-green-500/10 text-green-500'
-                      : 'bg-red-500/10 text-red-500'
-                  }`}
+                  className={`flex items-center gap-1 px-2 py-1 rounded text-sm ${stock.change >= 0
+                    ? 'bg-green-500/10 text-green-500'
+                    : 'bg-red-500/10 text-red-500'
+                    }`}
                 >
                   {stock.change >= 0 ? (
                     <TrendingUp className="w-4 h-4" />

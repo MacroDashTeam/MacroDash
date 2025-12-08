@@ -8,6 +8,7 @@ import { Responsive, WidthProvider } from 'react-grid-layout'
 import 'react-grid-layout/css/styles.css'
 import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
+import { useNavigate } from 'react-router'
 
 const ResponsiveGridLayout = WidthProvider(Responsive)
 
@@ -242,6 +243,8 @@ export default function ManageDisplay() {
     queryFn: fetchSavedCharts,
   })
 
+  const navigate = useNavigate()
+
   // Listen for chart-saved events to refresh
   useEffect(() => {
     const handleChartSaved = () => {
@@ -334,12 +337,12 @@ export default function ManageDisplay() {
               margin={[16, 16]}
               containerPadding={[0, 0]}
             >
-            {charts.map(chart => (
-              <div key={chart.id.toString()} style={{ width: '100%', height: '100%' }}>
-                <ChartCard chart={chart} />
-              </div>
-            ))}
-          </ResponsiveGridLayout>
+              {charts.map(chart => (
+                <div key={chart.id.toString()} style={{ width: '100%', height: '100%' }}>
+                  <ChartCard chart={chart} />
+                </div>
+              ))}
+            </ResponsiveGridLayout>
           </div>
         ) : charts && charts.length === 0 ? (
           <Card className="p-12 border-zinc-800 bg-zinc-900/50 text-center">
@@ -351,7 +354,7 @@ export default function ManageDisplay() {
             <div className="flex gap-2 justify-center">
               <Button
                 onClick={() => {
-                  window.dispatchEvent(new CustomEvent('navigate', { detail: { mode: 'data-explorer' } }))
+                  navigate('/explorer')
                 }}
                 className="bg-blue-600 hover:bg-blue-700"
               >
@@ -359,7 +362,7 @@ export default function ManageDisplay() {
               </Button>
               <Button
                 onClick={() => {
-                  window.dispatchEvent(new CustomEvent('navigate', { detail: { mode: 'custom' } }))
+                  navigate('/custom')
                 }}
                 variant="outline"
                 className="border-zinc-700"
