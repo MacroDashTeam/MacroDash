@@ -2,6 +2,8 @@
 from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import RedirectView
+from django.conf import settings
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -11,7 +13,11 @@ urlpatterns = [
     path('accounts/', include('allauth.account.urls')),
     path('accounts/', include('allauth.socialaccount.urls')),
     path('accounts/', include('allauth.socialaccount.providers.google.urls')),
-    path('password-reset/confirm/<uidb64>/<token>/', 
-         RedirectView.as_view(url='http://localhost:5173/password-reset/confirm/%(uidb64)s/%(token)s/', permanent=False),
+    path('password-reset/confirm/<uidb64>/<token>/',
+         RedirectView.as_view(url=f'{settings.FRONTEND_URL}/password-reset/confirm/%(uidb64)s/%(token)s/', permanent=False),
          name='password_reset_confirm'),
+    # API Documentation
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 ]

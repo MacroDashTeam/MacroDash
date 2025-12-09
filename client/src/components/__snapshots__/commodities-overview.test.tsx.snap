@@ -1,0 +1,28 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`CommoditiesOverview > matches snapshot 1`] = `
+<div>
+  <div
+    class="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6"
+  >
+    <h2
+      class="text-xl font-semibold mb-4"
+    >
+      Commodities
+    </h2>
+    <div
+      class="grid grid-cols-1 md:grid-cols-3 gap-4"
+    >
+      <div
+        class="h-24 bg-zinc-800/50 rounded animate-pulse"
+      />
+      <div
+        class="h-24 bg-zinc-800/50 rounded animate-pulse"
+      />
+      <div
+        class="h-24 bg-zinc-800/50 rounded animate-pulse"
+      />
+    </div>
+  </div>
+</div>
+`;

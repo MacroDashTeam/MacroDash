@@ -10,6 +10,9 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.db import connection
 import os
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
+from drf_spectacular.types import OpenApiTypes
+from rest_framework.decorators import api_view
 
 
 @csrf_exempt
@@ -54,16 +57,29 @@ def health_check(request):
         }, status=500)
 
 
+@extend_schema(
+    tags=['Economic Data'],
+    summary='Get economic indicators',
+    description='Retrieve key economic indicators (GDP, unemployment, inflation, etc.) from FRED API',
+    responses={
+        200: {
+            'type': 'object',
+            'properties': {
+                'status': {'type': 'string'},
+                'data': {'type': 'object'}
+            }
+        },
+        405: {'description': 'Method not allowed'}
+    }
+)
+@api_view(['GET'])
 @csrf_exempt
 @cache_page(60 * 10)  # Cache for 10 minutes - FRED data doesn't change frequently
 def economic_data(request):
     """Real economic data from FRED API"""
-    if request.method == 'GET':
-        fred_service = FREDService()
-        data = fred_service.get_economic_indicators()
-        return JsonResponse(data)
-
-    return JsonResponse({"error": "Method not allowed"}, status=405)
+    fred_service = FREDService()
+    data = fred_service.get_economic_indicators()
+    return JsonResponse(data)
 
 
 @csrf_exempt
@@ -1403,6 +1419,7 @@ def chart_data(request, chart_id):
     """Get full data for a saved chart including series data"""
     from api.models import SavedChartDisplay
     from api.services import FREDService, StatsmodelsService
+    import pandas as pd
 
     # Require authentication
     if not request.user.is_authenticated:
