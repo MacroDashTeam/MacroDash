@@ -218,10 +218,6 @@ function AppContent() {
     window.location.reload();
   };
 
-  const handleBackToDashboard = () => {
-    setTimeout(() => setViewMode('dashboard'), 300);
-  };
-
   if (!isAuthChecked) {
     return (
       <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
