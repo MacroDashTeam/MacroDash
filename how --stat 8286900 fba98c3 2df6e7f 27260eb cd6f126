@@ -1,0 +1,145 @@
+[33m8286900[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mHL/SCRUM-1[m[33m, [m[1;31morigin/HL/SCRUM-1[m[33m)[m Add SavedCharts component to display saved charts on dashboard
+ client/src/components/dashboard-home.tsx |   6 [32m++[m
+ client/src/components/saved-charts.tsx   | 180 [32m+++++++++++++++++++++++++++++++[m
+ 2 files changed, 186 insertions(+)
+[33mfba98c3[m Implement user-specific watchlist with backend API
+ client/src/components/watchlist.tsx | 126 [32m++++++++++++++++++++++++++++[m[31m-------[m
+ server/api/urls.py                  |   3 [32m+[m
+ server/api/views.py                 | 128 [32m++++++++++++++++++++++++++++++++++++[m
+ 3 files changed, 235 insertions(+), 22 deletions(-)
+[33m2df6e7f[m Fix watchlist to support adding any stock symbol
+ client/src/components/watchlist.tsx | 67 [32m++++++++++++++++++++++++++++++++++++[m[31m-[m
+ 1 file changed, 66 insertions(+), 1 deletion(-)
+[33m412831d[m Add PERPLEXITY_API_KEY to deployment configuration
+ .github/workflows/deploy-server.yml | 1 [32m+[m
+ server/containers.json              | 1 [32m+[m
+ 2 files changed, 2 insertions(+)
+[33m40ad3cc[m Make TA-Lib import optional to prevent module load failures
+ server/api/services.py | 7 [32m++++++[m[31m-[m
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+[33ma637956[m Add error handling to stock_insights endpoint
+ server/api/views.py | 37 [32m+++++++++++++++++++++++++[m[31m------------[m
+ 1 file changed, 25 insertions(+), 12 deletions(-)
+[33meb938c4[m Add jsdom dependency for vitest testing
+ client/package.json |   1 [32m+[m
+ client/yarn.lock    | 258 [32m+++++++++++++++++++++++++++++++++++++++++++++++++[m[31m---[m
+ 2 files changed, 248 insertions(+), 11 deletions(-)
+[33m57cdcca[m Add test script and vitest configuration
+ client/package.json     |  3 [32m++[m[31m-[m
+ client/vitest.config.ts | 16 [32m++++++++++++++++[m
+ 2 files changed, 18 insertions(+), 1 deletion(-)
+[33m3b68c07[m Add back AccountMiddleware required by allauth
+ server/macrodash/settings.py | 1 [32m+[m
+ 1 file changed, 1 insertion(+)
+[33m1b9b4ca[m Merge main into HL/SCRUM-1
+[33mc4b823a[m Fix TypeScript build errors by excluding test files
+ client/package.json      |   7 [32m+[m[31m-[m
+ client/tsconfig.app.json |   3 [32m+[m[31m-[m
+ client/yarn.lock         | 369 [32m++++++++++++++++++++++++++++++++++++++++++++++[m[31m-[m
+ 3 files changed, 372 insertions(+), 7 deletions(-)
+[33m27260eb[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m [SCRUM-26] Authentication and User Management (#51)
+[33mf101c09[m Merge main into HL/SCRUM-1
+[33mcd6f126[m Update client, server, and UI components with various improvements
+ .github/workflows/deploy-all.yml                   |    38 [32m+[m[31m-[m
+ .github/workflows/deploy-client-manual.yml         |    20 [32m+[m[31m-[m
+ .github/workflows/deploy-client.yml                |    98 [32m+[m[31m-[m
+ .github/workflows/deploy-server-manual.yml         |    18 [32m+[m[31m-[m
+ CLAUDE.md                                          |   332 [32m+[m[31m-[m
+ DEPENDENCIES_UPDATE.md                             |   632 [32m+[m[31m-[m
+ MEMORY_OPTIMIZATION.md                             |   420 [32m+[m[31m-[m
+ MONGODB_ATLAS_SETUP.md                             |   752 [32m+[m[31m-[m
+ PRICE_ALERTS.md                                    |   558 [32m+[m[31m-[m
+ README.md                                          |   628 [32m+[m[31m-[m
+ UI/README.md                                       |    20 [32m+[m[31m-[m
+ UI/index.html                                      |    28 [32m+[m[31m-[m
+ UI/package.json                                    |   116 [32m+[m[31m-[m
+ UI/src/App.tsx                                     |   110 [32m+[m[31m-[m
+ UI/src/Attributions.md                             |     4 [32m+[m[31m-[m
+ UI/src/components/CataloguePage.tsx                |  1006 [32m+[m[31m-[m
+ UI/src/components/DashboardHome.tsx                |    56 [32m+[m[31m-[m
+ UI/src/components/DataReleaseSchedule.tsx          |   246 [32m+[m[31m-[m
+ UI/src/components/EconomicIndicatorsChart.tsx      |   304 [32m+[m[31m-[m
+ UI/src/components/IndividualStockView.tsx          |  1538 [32m+[m[31m-[m
+ UI/src/components/MacroSidebar.tsx                 |   220 [32m+[m[31m-[m
+ UI/src/components/ManageDisplaysPage.tsx           |  1006 [32m+[m[31m-[m
+ UI/src/components/NewsFeed.tsx                     |   280 [32m+[m[31m-[m
+ UI/src/components/SearchPage.tsx                   |   560 [32m+[m[31m-[m
+ UI/src/components/SentimentAnalysis.tsx            |   120 [32m+[m[31m-[m
+ UI/src/components/SettingsPage.tsx                 |  1634 [32m+[m[31m-[m
+ UI/src/components/SignInPage.tsx                   |   436 [32m+[m[31m-[m
+ UI/src/components/StockMarketChart.tsx             |   338 [32m+[m[31m-[m
+ UI/src/components/figma/ImageWithFallback.tsx      |    54 [32m+[m[31m-[m
+ UI/src/components/ui/accordion.tsx                 |   132 [32m+[m[31m-[m
+ UI/src/components/ui/alert-dialog.tsx              |   314 [32m+[m[31m-[m
+ UI/src/components/ui/alert.tsx                     |   132 [32m+[m[31m-[m
+ UI/src/components/ui/aspect-ratio.tsx              |    22 [32m+[m[31m-[m
+ UI/src/components/ui/avatar.tsx                    |   106 [32m+[m[31m-[m
+ UI/src/components/ui/badge.tsx                     |    92 [32m+[m[31m-[m
+ UI/src/components/ui/breadcrumb.tsx                |   218 [32m+[m[31m-[m
+ UI/src/components/ui/button.tsx                    |   116 [32m+[m[31m-[m
+ UI/src/components/ui/calendar.tsx                  |   150 [32m+[m[31m-[m
+ UI/src/components/ui/card.tsx                      |   184 [32m+[m[31m-[m
+ UI/src/components/ui/carousel.tsx                  |   482 [32m+[m[31m-[m
+ UI/src/components/ui/chart.tsx                     |   706 [32m+[m[31m-[m
+ UI/src/components/ui/checkbox.tsx                  |    64 [32m+[m[31m-[m
+ UI/src/components/ui/collapsible.tsx               |    66 [32m+[m[31m-[m
+ UI/src/components/ui/command.tsx                   |   354 [32m+[m[31m-[m
+ UI/src/components/ui/context-menu.tsx              |   504 [32m+[m[31m-[m
+ UI/src/components/ui/dialog.tsx                    |   270 [32m+[m[31m-[m
+ UI/src/components/ui/drawer.tsx                    |   264 [32m+[m[31m-[m
+ UI/src/components/ui/dropdown-menu.tsx             |   514 [32m+[m[31m-[m
+ UI/src/components/ui/form.tsx                      |   336 [32m+[m[31m-[m
+ UI/src/components/ui/hover-card.tsx                |    88 [32m+[m[31m-[m
+ UI/src/components/ui/input-otp.tsx                 |   154 [32m+[m[31m-[m
+ UI/src/components/ui/input.tsx                     |    42 [32m+[m[31m-[m
+ UI/src/components/ui/label.tsx                     |    48 [32m+[m[31m-[m
+ UI/src/components/ui/menubar.tsx                   |   552 [32m+[m[31m-[m
+ UI/src/components/ui/navigation-menu.tsx           |   336 [32m+[m[31m-[m
+ UI/src/components/ui/pagination.tsx                |   254 [32m+[m[31m-[m
+ UI/src/components/ui/popover.tsx                   |    96 [32m+[m[31m-[m
+ UI/src/components/ui/progress.tsx                  |    62 [32m+[m[31m-[m
+ UI/src/components/ui/radio-group.tsx               |    90 [32m+[m[31m-[m
+ UI/src/components/ui/resizable.tsx                 |   112 [32m+[m[31m-[m
+ UI/src/components/ui/scroll-area.tsx               |   116 [32m+[m[31m-[m
+ UI/src/components/ui/select.tsx                    |   378 [32m+[m[31m-[m
+ UI/src/components/ui/separator.tsx                 |    56 [32m+[m[31m-[m
+ UI/src/components/ui/sheet.tsx                     |   278 [32m+[m[31m-[m
+ UI/src/components/ui/sidebar.tsx                   |  1452 [32m+[m[31m-[m
+ UI/src/components/ui/skeleton.tsx                  |    26 [32m+[m[31m-[m
+ UI/src/components/ui/slider.tsx                    |   126 [32m+[m[31m-[m
+ UI/src/components/ui/sonner.tsx                    |    50 [32m+[m[31m-[m
+ UI/src/components/ui/switch.tsx                    |    62 [32m+[m[31m-[m
+ UI/src/components/ui/table.tsx                     |   232 [32m+[m[31m-[m
+ UI/src/components/ui/tabs.tsx                      |   132 [32m+[m[31m-[m
+ UI/src/components/ui/textarea.tsx                  |    36 [32m+[m[31m-[m
+ UI/src/components/ui/toggle-group.tsx              |   146 [32m+[m[31m-[m
+ UI/src/components/ui/toggle.tsx                    |    94 [32m+[m[31m-[m
+ UI/src/components/ui/tooltip.tsx                   |   122 [32m+[m[31m-[m
+ UI/src/components/ui/use-mobile.ts                 |    42 [32m+[m[31m-[m
+ UI/src/components/ui/utils.ts                      |    12 [32m+[m[31m-[m
+ UI/src/index.css                                   |  5648 [32m+++[m[31m----[m
+ UI/src/main.tsx                                    |    12 [32m+[m[31m-[m
+ UI/src/styles/globals.css                          |   378 [32m+[m[31m-[m
+ UI/vite.config.ts                                  |   118 [32m+[m[31m-[m
+ client/.env.production                             |     2 [32m+[m[31m-[m
+ client/.gitignore                                  |    50 [32m+[m[31m-[m
+ client/.nvmrc                                      |     2 [32m+[m[31m-[m
+ client/README.md                                   |   208 [32m+[m[31m-[m
+ client/components.json                             |    44 [32m+[m[31m-[m
+ client/eslint.config.js                            |    46 [32m+[m[31m-[m
+ client/index.html                                  |    26 [32m+[m[31m-[m
+ client/package-lock.json                           | 16804 [32m+++++++++[m[31m----------[m
+ client/package.json                                |   106 [32m+[m[31m-[m
+ client/src/App.css                                 |   104 [32m+[m[31m-[m
+ client/src/components/app-sidebar.tsx              |   192 [32m+[m[31m-[m
+ client/src/components/browse-stocks.tsx            |   544 [32m+[m[31m-[m
+ client/src/components/crypto-dashboard.tsx         |   556 [32m+[m[31m-[m
+ client/src/components/crypto-detail.tsx            |  1532 [32m+[m[31m-[m
+ client/src/components/crypto-top-gainers.tsx       |   242 [32m+[m[31m-[m
+ client/src/components/crypto-top-losers.tsx        |   242 [32m+[m[31m-[m
+ client/src/components/crypto-watchlist.tsx         |   530 [32m+[m[31m-[m
+ client/src/components/custom-analysis.tsx          |  1731 [32m+[m[31m-[m
+ client/src/components/dashboard-home.tsx           |   156 [32m+[m[31m-[m
+ client/src/components/data-explorer.tsx            |  1570 [32m+[m[31m-[m
+ client/src/components/economic-indicators.tsx      |   204 [32m+[m[31m-[m
+ client/src/components/icons/

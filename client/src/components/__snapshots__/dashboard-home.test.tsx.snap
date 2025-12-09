@@ -48,13 +48,6 @@ exports[`DashboardHome > matches snapshot 1`] = `
       </div>
     </section>
     <section>
-      <div
-        data-testid="saved-charts"
-      >
-        Saved Charts
-      </div>
-    </section>
-    <section>
       <h2
         class="text-xl font-semibold mb-4"
       >

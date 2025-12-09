@@ -15,7 +15,6 @@ vi.mock('./stock-top-losers', () => ({ default: () => <div data-testid="stock-to
 vi.mock('./crypto-watchlist', () => ({ default: () => <div data-testid="crypto-watchlist">Crypto Watchlist</div> }))
 vi.mock('./crypto-top-gainers', () => ({ default: () => <div data-testid="crypto-top-gainers">Crypto Top Gainers</div> }))
 vi.mock('./crypto-top-losers', () => ({ default: () => <div data-testid="crypto-top-losers">Crypto Top Losers</div> }))
-vi.mock('./saved-charts', () => ({ default: () => <div data-testid="saved-charts">Saved Charts</div> }))
 
 describe('DashboardHome', () => {
     it('renders without crashing', () => {
@@ -51,11 +50,6 @@ describe('DashboardHome', () => {
     it('renders Watchlist component', () => {
         render(<DashboardHome />)
         expect(screen.getByTestId('watchlist')).toBeInTheDocument()
-    })
-
-    it('renders SavedCharts component', () => {
-        render(<DashboardHome />)
-        expect(screen.getByTestId('saved-charts')).toBeInTheDocument()
     })
 
     it('renders stock market movers section', () => {
