@@ -354,6 +354,7 @@ class SavedChartsEndpointsTestCase(BaseAPITestCase):
 
     def test_saved_charts_get_success(self):
         """Test GET /api/charts/ returns saved charts"""
+        self.client.force_authenticate(user=self.user)
         url = reverse('saved_charts')
         response = self.client.get(url)
 
@@ -364,6 +365,7 @@ class SavedChartsEndpointsTestCase(BaseAPITestCase):
 
     def test_saved_charts_post_success(self):
         """Test POST /api/charts/ creates a new saved chart"""
+        self.client.force_authenticate(user=self.user)
         url = reverse('saved_charts')
         chart_data = {
             'chart_name': 'My Chart',
@@ -383,13 +385,12 @@ class SavedChartsEndpointsTestCase(BaseAPITestCase):
         self.assertIn('data', data)
 
     def test_saved_charts_unauthenticated(self):
-        """Test saved charts endpoint works without authentication (uses session)"""
+        """Test saved charts endpoint requires authentication"""
         url = reverse('saved_charts')
         response = self.client.get(url)
 
-        self.assertSuccessResponse(response)  # Should work with session-based storage
-        data = response.json()
-        self.assertEqual(data['status'], 'success')
+        # Should return 401 since authentication is now required
+        self.assertErrorResponse(response, 401)
 
     @patch('api.views.FREDService')
     def test_chart_data_success(self, mock_fred_service):
@@ -398,9 +399,12 @@ class SavedChartsEndpointsTestCase(BaseAPITestCase):
         import pandas as pd
         from datetime import datetime, timedelta
 
-        # Create a saved chart first with a session cookie
+        # Authenticate user
+        self.client.force_authenticate(user=self.user)
+
+        # Create a saved chart associated with the authenticated user
         chart = SavedChartDisplay.objects.create(
-            user_session='test_session',
+            user=self.user,
             chart_name='Test Chart',
             series_ids=['GDP'],
             series_metadata={},
@@ -417,9 +421,6 @@ class SavedChartsEndpointsTestCase(BaseAPITestCase):
         mock_fred_api.get_series.return_value = series_data
         mock_service.fred = mock_fred_api
         mock_fred_service.return_value = mock_service
-
-        # Set session cookie
-        self.client.cookies['session_id'] = 'test_session'
 
         url = reverse('chart_data', kwargs={'chart_id': chart.id})
         response = self.client.get(url)
