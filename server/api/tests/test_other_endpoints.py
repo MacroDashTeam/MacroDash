@@ -354,7 +354,7 @@ class SavedChartsEndpointsTestCase(BaseAPITestCase):
 
     def test_saved_charts_get_success(self):
         """Test GET /api/charts/ returns saved charts"""
-        self.client.force_authenticate(user=self.user)
+        self.client.force_login(user=self.user)
         url = reverse('saved_charts')
         response = self.client.get(url)
 
@@ -365,7 +365,7 @@ class SavedChartsEndpointsTestCase(BaseAPITestCase):
 
     def test_saved_charts_post_success(self):
         """Test POST /api/charts/ creates a new saved chart"""
-        self.client.force_authenticate(user=self.user)
+        self.client.force_login(user=self.user)
         url = reverse('saved_charts')
         chart_data = {
             'chart_name': 'My Chart',
@@ -400,7 +400,7 @@ class SavedChartsEndpointsTestCase(BaseAPITestCase):
         from datetime import datetime, timedelta
 
         # Authenticate user
-        self.client.force_authenticate(user=self.user)
+        self.client.force_login(user=self.user)
 
         # Create a saved chart associated with the authenticated user
         chart = SavedChartDisplay.objects.create(
