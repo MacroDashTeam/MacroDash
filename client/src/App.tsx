@@ -214,7 +214,8 @@ function AppContent() {
     }
     localStorage.removeItem('user');
     setUser(null);
-    navigate('/');
+    // Reload page to clear all cached data and redirect to login
+    window.location.reload();
   };
 
   if (!isAuthChecked) {
