@@ -1421,7 +1421,7 @@ def saved_charts(request):
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
-@csrf_exempt
+@api_view(['GET'])
 def chart_data(request, chart_id):
     """Get full data for a saved chart including series data"""
     from api.models import SavedChartDisplay
