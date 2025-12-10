@@ -10,6 +10,7 @@ interface User {
   username: string
   email: string
   is_admin: boolean
+  signup_type: string
   date_joined: string
   last_login: string | null
 }
@@ -161,7 +162,7 @@ export default function UserManagement() {
                     <span className="font-medium">{user.username}</span>
                   </td>
                   <td className="py-4 px-4 text-zinc-400">
-                    Email/Password
+                    {user.signup_type}
                   </td>
                   <td className="py-4 px-4">
                     <div className="flex gap-2 justify-end">

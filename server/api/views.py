@@ -1067,6 +1067,7 @@ def admin_users(request):
             return JsonResponse({'status': 'error', 'error': 'Admin access required'}, status=403)
 
         # Get all users with their admin status
+        from allauth.socialaccount.models import SocialAccount
         users = []
         for user in User.objects.all().order_by('-date_joined'):
             try:
@@ -1075,11 +1076,20 @@ def admin_users(request):
             except UserPreferences.DoesNotExist:
                 is_admin = False
 
+            # Determine signup type
+            signup_type = 'Email'
+            social_accounts = SocialAccount.objects.filter(user=user)
+            if social_accounts.exists():
+                # Get the provider name (google, microsoft, etc.)
+                provider = social_accounts.first().provider
+                signup_type = provider.capitalize()
+
             users.append({
                 'id': user.id,
                 'username': user.username,
                 'email': user.email,
                 'is_admin': is_admin,
+                'signup_type': signup_type,
                 'date_joined': user.date_joined.isoformat(),
                 'last_login': user.last_login.isoformat() if user.last_login else None
             })
