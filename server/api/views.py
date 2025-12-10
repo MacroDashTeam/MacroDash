@@ -1021,7 +1021,7 @@ def user_logout(request):
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
-@csrf_exempt
+@api_view(['GET'])
 def current_user(request):
     """Get current logged-in user"""
     if request.method == 'GET':
