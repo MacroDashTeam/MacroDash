@@ -160,7 +160,7 @@ def stock_news(request, symbol):
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
-@csrf_exempt
+@api_view(['GET', 'POST'])
 def dashboard_config(request):
     """Mock dashboard configuration"""
     if request.method == 'GET':
@@ -1286,7 +1286,7 @@ def export_data(request):
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
-@csrf_exempt
+@api_view(['GET', 'POST', 'DELETE'])
 def saved_charts(request):
     """Get, create, or delete saved chart displays"""
     from api.models import SavedChartDisplay
