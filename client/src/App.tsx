@@ -214,6 +214,29 @@ function AppContent() {
     }
   }, [navigate]);
 
+  const handleSignIn = async () => {
+    try {
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+      const resp = await fetch(`${API_BASE}/api/auth/user/`, { credentials: 'include' });
+      if (resp.ok) {
+        const data = await resp.json();
+        setUser(data);
+        localStorage.setItem('user', JSON.stringify(data));
+
+        // Navigate to appropriate page based on user type
+        if (data.is_superuser) {
+          navigate('/users');
+        } else {
+          navigate('/');
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fetch user after login:', e);
+      // Fallback to reload if fetch fails
+      window.location.reload();
+    }
+  };
+
   const handleSignOut = async () => {
     try {
       const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
@@ -243,9 +266,7 @@ function AppContent() {
         <Routes>
           <Route path="/login" element={
             <LoginScreen
-              onSignIn={() => {
-                window.location.reload();
-              }}
+              onSignIn={handleSignIn}
               onSkip={() => navigate('/')}
             />
           } />
