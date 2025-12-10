@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Users, Shield, ShieldOff, Trash2, RefreshCw } from 'lucide-react'
+import { Users, Shield, Trash2, RefreshCw } from 'lucide-react'
 import { Card } from './ui/card'
 import { Button } from './ui/button'
 
@@ -27,16 +27,6 @@ async function fetchUsers(): Promise<UsersResponse> {
   return await res.json()
 }
 
-async function toggleAdminStatus(userId: number, isAdmin: boolean): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/admin/users/`, {
-    method: 'PUT',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ user_id: userId, is_admin: isAdmin })
-  })
-  if (!res.ok) throw new Error('Failed to update user')
-}
-
 async function deleteUser(userId: number): Promise<void> {
   const res = await fetch(`${API_BASE}/api/admin/users/`, {
     method: 'DELETE',
@@ -55,26 +45,12 @@ export default function UserManagement() {
     queryFn: fetchUsers,
   })
 
-  const toggleAdminMutation = useMutation({
-    mutationFn: ({ userId, isAdmin }: { userId: number; isAdmin: boolean }) =>
-      toggleAdminStatus(userId, isAdmin),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-users'] })
-    },
-  })
-
   const deleteUserMutation = useMutation({
     mutationFn: (userId: number) => deleteUser(userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] })
     },
   })
-
-  const handleToggleAdmin = (user: User) => {
-    if (confirm(`${user.is_admin ? 'Remove admin privileges from' : 'Grant admin privileges to'} ${user.username}?`)) {
-      toggleAdminMutation.mutate({ userId: user.id, isAdmin: !user.is_admin })
-    }
-  }
 
   const handleDeleteUser = (user: User) => {
     if (confirm(`Are you sure you want to delete user "${user.username}"? This action cannot be undone.`)) {
