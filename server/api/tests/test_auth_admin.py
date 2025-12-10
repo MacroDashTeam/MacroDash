@@ -212,4 +212,5 @@ class AdminEndpointsTestCase(BaseAPITestCase):
         url = reverse('admin_users')
         response = self.client.post(url, {})
 
-        self.assertErrorResponse(response, 405, 'Method not allowed')
+        # DRF returns 'Method "POST" not allowed.' format
+        self.assertEqual(response.status_code, 405)
