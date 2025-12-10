@@ -1021,7 +1021,7 @@ def user_logout(request):
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
-@csrf_exempt
+@api_view(['GET'])
 def current_user(request):
     """Get current logged-in user"""
     if request.method == 'GET':
@@ -1421,7 +1421,7 @@ def saved_charts(request):
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
-@csrf_exempt
+@api_view(['GET'])
 def chart_data(request, chart_id):
     """Get full data for a saved chart including series data"""
     from api.models import SavedChartDisplay
