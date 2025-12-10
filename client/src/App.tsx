@@ -205,12 +205,20 @@ function AppContent() {
       }
     };
 
+    const handleNavigateStock = (e: CustomEvent) => {
+      if (e.detail && e.detail.symbol) {
+        navigate(`/stock/${e.detail.symbol}`);
+      }
+    };
+
     window.addEventListener('navigate' as any, handleLegacyNavigate);
     window.addEventListener('navigate-to-crypto' as any, handleLegacyCryptoNav);
+    window.addEventListener('navigate-stock' as any, handleNavigateStock);
 
     return () => {
       window.removeEventListener('navigate' as any, handleLegacyNavigate);
       window.removeEventListener('navigate-to-crypto' as any, handleLegacyCryptoNav);
+      window.removeEventListener('navigate-stock' as any, handleNavigateStock);
     }
   }, [navigate]);
 
