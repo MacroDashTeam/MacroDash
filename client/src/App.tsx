@@ -41,6 +41,7 @@ interface User {
   first_name?: string;
   last_name?: string;
   is_admin: boolean;
+  is_superuser?: boolean;
 }
 
 // Dispatches 'navigate-stock' event so StockDetail can pick up the symbol
@@ -85,6 +86,13 @@ function DashboardLayout({ user, onSignOut }: { user: User | null, onSignOut: ()
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Redirect superadmin to /users by default
+  useEffect(() => {
+    if (user?.is_superuser && location.pathname === '/') {
+      navigate('/users');
+    }
+  }, [user, location.pathname, navigate]);
+
   const getActiveView = (path: string) => {
     if (path === '/' || path === '') return 'home';
     if (path.startsWith('/browse')) return 'browse';
@@ -121,6 +129,7 @@ function DashboardLayout({ user, onSignOut }: { user: User | null, onSignOut: ()
           activeView={activeView}
           onNavigate={handleSidebarNavigate}
           isAdmin={user?.is_admin || false}
+          isSuperAdmin={user?.is_superuser || false}
         >
           <Outlet />
         </AppSidebar>

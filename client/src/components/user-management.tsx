@@ -174,10 +174,7 @@ export default function UserManagement() {
             <thead>
               <tr className="border-b border-zinc-800">
                 <th className="text-left py-3 px-4 text-zinc-400 font-semibold">Username</th>
-                <th className="text-left py-3 px-4 text-zinc-400 font-semibold">Email</th>
-                <th className="text-left py-3 px-4 text-zinc-400 font-semibold">Role</th>
-                <th className="text-left py-3 px-4 text-zinc-400 font-semibold">Joined</th>
-                <th className="text-left py-3 px-4 text-zinc-400 font-semibold">Last Login</th>
+                <th className="text-left py-3 px-4 text-zinc-400 font-semibold">Type of Sign</th>
                 <th className="text-right py-3 px-4 text-zinc-400 font-semibold">Actions</th>
               </tr>
             </thead>
@@ -187,51 +184,11 @@ export default function UserManagement() {
                   <td className="py-4 px-4">
                     <span className="font-medium">{user.username}</span>
                   </td>
-                  <td className="py-4 px-4 text-zinc-400">{user.email}</td>
-                  <td className="py-4 px-4">
-                    {user.is_admin ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-500/20 text-purple-400 rounded-md text-sm">
-                        <Shield className="w-3 h-3" />
-                        Admin
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-zinc-700/50 text-zinc-400 rounded-md text-sm">
-                        <ShieldOff className="w-3 h-3" />
-                        User
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-4 px-4 text-zinc-400 text-sm">
-                    {new Date(user.date_joined).toLocaleDateString()}
-                  </td>
-                  <td className="py-4 px-4 text-zinc-400 text-sm">
-                    {user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}
+                  <td className="py-4 px-4 text-zinc-400">
+                    Email/Password
                   </td>
                   <td className="py-4 px-4">
                     <div className="flex gap-2 justify-end">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleToggleAdmin(user)}
-                        disabled={toggleAdminMutation.isPending}
-                        className={`border-zinc-700 ${
-                          user.is_admin
-                            ? 'hover:border-orange-500 hover:text-orange-500'
-                            : 'hover:border-purple-500 hover:text-purple-500'
-                        }`}
-                      >
-                        {user.is_admin ? (
-                          <>
-                            <ShieldOff className="w-3 h-3 mr-1" />
-                            Remove Admin
-                          </>
-                        ) : (
-                          <>
-                            <Shield className="w-3 h-3 mr-1" />
-                            Make Admin
-                          </>
-                        )}
-                      </Button>
                       <Button
                         size="sm"
                         variant="outline"
