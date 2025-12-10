@@ -1067,15 +1067,20 @@ def current_user(request):
 def admin_users(request):
     """Admin-only endpoint to manage users"""
     if request.method == 'GET':
-        # Check if user is authenticated and is admin
+        # Check if user is authenticated and is admin or superuser
         if not request.user.is_authenticated:
             return JsonResponse({'status': 'error', 'error': 'Not authenticated'}, status=401)
 
-        try:
-            preferences = UserPreferences.objects.get(user=request.user)
-            if not preferences.is_admin:
-                return JsonResponse({'status': 'error', 'error': 'Admin access required'}, status=403)
-        except UserPreferences.DoesNotExist:
+        # Allow superusers or users with is_admin in preferences
+        is_allowed = request.user.is_superuser
+        if not is_allowed:
+            try:
+                preferences = UserPreferences.objects.get(user=request.user)
+                is_allowed = preferences.is_admin
+            except UserPreferences.DoesNotExist:
+                pass
+
+        if not is_allowed:
             return JsonResponse({'status': 'error', 'error': 'Admin access required'}, status=403)
 
         # Get all users with their admin status
@@ -1103,11 +1108,16 @@ def admin_users(request):
         if not request.user.is_authenticated:
             return JsonResponse({'status': 'error', 'error': 'Not authenticated'}, status=401)
 
-        try:
-            preferences = UserPreferences.objects.get(user=request.user)
-            if not preferences.is_admin:
-                return JsonResponse({'status': 'error', 'error': 'Admin access required'}, status=403)
-        except UserPreferences.DoesNotExist:
+        # Allow superusers or users with is_admin in preferences
+        is_allowed = request.user.is_superuser
+        if not is_allowed:
+            try:
+                preferences = UserPreferences.objects.get(user=request.user)
+                is_allowed = preferences.is_admin
+            except UserPreferences.DoesNotExist:
+                pass
+
+        if not is_allowed:
             return JsonResponse({'status': 'error', 'error': 'Admin access required'}, status=403)
 
         try:
@@ -1135,11 +1145,16 @@ def admin_users(request):
         if not request.user.is_authenticated:
             return JsonResponse({'status': 'error', 'error': 'Not authenticated'}, status=401)
 
-        try:
-            preferences = UserPreferences.objects.get(user=request.user)
-            if not preferences.is_admin:
-                return JsonResponse({'status': 'error', 'error': 'Admin access required'}, status=403)
-        except UserPreferences.DoesNotExist:
+        # Allow superusers or users with is_admin in preferences
+        is_allowed = request.user.is_superuser
+        if not is_allowed:
+            try:
+                preferences = UserPreferences.objects.get(user=request.user)
+                is_allowed = preferences.is_admin
+            except UserPreferences.DoesNotExist:
+                pass
+
+        if not is_allowed:
             return JsonResponse({'status': 'error', 'error': 'Admin access required'}, status=403)
 
         try:
