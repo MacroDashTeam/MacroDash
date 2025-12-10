@@ -1015,7 +1015,8 @@ def user_login(request):
                         'id': user.id,
                         'username': user.username,
                         'email': user.email,
-                        'is_admin': is_admin
+                        'is_admin': is_admin,
+                        'is_superuser': user.is_superuser
                     }
                 })
             else:
@@ -1050,13 +1051,11 @@ def current_user(request):
                 is_admin = False
 
             return JsonResponse({
-                'status': 'success',
-                'user': {
-                    'id': request.user.id,
-                    'username': request.user.username,
-                    'email': request.user.email,
-                    'is_admin': is_admin
-                }
+                'id': request.user.id,
+                'username': request.user.username,
+                'email': request.user.email,
+                'is_admin': is_admin,
+                'is_superuser': request.user.is_superuser
             })
         else:
             return JsonResponse({'status': 'error', 'error': 'Not authenticated'}, status=401)

@@ -41,6 +41,7 @@ interface User {
   first_name?: string;
   last_name?: string;
   is_admin: boolean;
+  is_superuser?: boolean;
 }
 
 // Dispatches 'navigate-stock' event so StockDetail can pick up the symbol
@@ -85,6 +86,13 @@ function DashboardLayout({ user, onSignOut }: { user: User | null, onSignOut: ()
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Redirect superadmin to /users by default
+  useEffect(() => {
+    if (user?.is_superuser && location.pathname === '/') {
+      navigate('/users');
+    }
+  }, [user, location.pathname, navigate]);
+
   const getActiveView = (path: string) => {
     if (path === '/' || path === '') return 'home';
     if (path.startsWith('/browse')) return 'browse';
@@ -121,6 +129,7 @@ function DashboardLayout({ user, onSignOut }: { user: User | null, onSignOut: ()
           activeView={activeView}
           onNavigate={handleSidebarNavigate}
           isAdmin={user?.is_admin || false}
+          isSuperAdmin={user?.is_superuser || false}
         >
           <Outlet />
         </AppSidebar>
@@ -205,6 +214,29 @@ function AppContent() {
     }
   }, [navigate]);
 
+  const handleSignIn = async () => {
+    try {
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+      const resp = await fetch(`${API_BASE}/api/auth/user/`, { credentials: 'include' });
+      if (resp.ok) {
+        const data = await resp.json();
+        setUser(data);
+        localStorage.setItem('user', JSON.stringify(data));
+
+        // Navigate to appropriate page based on user type
+        if (data.is_superuser) {
+          navigate('/users');
+        } else {
+          navigate('/');
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fetch user after login:', e);
+      // Fallback to reload if fetch fails
+      window.location.reload();
+    }
+  };
+
   const handleSignOut = async () => {
     try {
       const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
@@ -234,9 +266,7 @@ function AppContent() {
         <Routes>
           <Route path="/login" element={
             <LoginScreen
-              onSignIn={() => {
-                window.location.reload();
-              }}
+              onSignIn={handleSignIn}
               onSkip={() => navigate('/')}
             />
           } />

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Users, Shield, ShieldOff, Trash2, RefreshCw } from 'lucide-react'
+import { Users, Shield, Trash2, RefreshCw } from 'lucide-react'
 import { Card } from './ui/card'
 import { Button } from './ui/button'
 
@@ -27,16 +27,6 @@ async function fetchUsers(): Promise<UsersResponse> {
   return await res.json()
 }
 
-async function toggleAdminStatus(userId: number, isAdmin: boolean): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/admin/users/`, {
-    method: 'PUT',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ user_id: userId, is_admin: isAdmin })
-  })
-  if (!res.ok) throw new Error('Failed to update user')
-}
-
 async function deleteUser(userId: number): Promise<void> {
   const res = await fetch(`${API_BASE}/api/admin/users/`, {
     method: 'DELETE',
@@ -55,26 +45,12 @@ export default function UserManagement() {
     queryFn: fetchUsers,
   })
 
-  const toggleAdminMutation = useMutation({
-    mutationFn: ({ userId, isAdmin }: { userId: number; isAdmin: boolean }) =>
-      toggleAdminStatus(userId, isAdmin),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-users'] })
-    },
-  })
-
   const deleteUserMutation = useMutation({
     mutationFn: (userId: number) => deleteUser(userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] })
     },
   })
-
-  const handleToggleAdmin = (user: User) => {
-    if (confirm(`${user.is_admin ? 'Remove admin privileges from' : 'Grant admin privileges to'} ${user.username}?`)) {
-      toggleAdminMutation.mutate({ userId: user.id, isAdmin: !user.is_admin })
-    }
-  }
 
   const handleDeleteUser = (user: User) => {
     if (confirm(`Are you sure you want to delete user "${user.username}"? This action cannot be undone.`)) {
@@ -174,10 +150,7 @@ export default function UserManagement() {
             <thead>
               <tr className="border-b border-zinc-800">
                 <th className="text-left py-3 px-4 text-zinc-400 font-semibold">Username</th>
-                <th className="text-left py-3 px-4 text-zinc-400 font-semibold">Email</th>
-                <th className="text-left py-3 px-4 text-zinc-400 font-semibold">Role</th>
-                <th className="text-left py-3 px-4 text-zinc-400 font-semibold">Joined</th>
-                <th className="text-left py-3 px-4 text-zinc-400 font-semibold">Last Login</th>
+                <th className="text-left py-3 px-4 text-zinc-400 font-semibold">Type of Sign</th>
                 <th className="text-right py-3 px-4 text-zinc-400 font-semibold">Actions</th>
               </tr>
             </thead>
@@ -187,51 +160,11 @@ export default function UserManagement() {
                   <td className="py-4 px-4">
                     <span className="font-medium">{user.username}</span>
                   </td>
-                  <td className="py-4 px-4 text-zinc-400">{user.email}</td>
-                  <td className="py-4 px-4">
-                    {user.is_admin ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-500/20 text-purple-400 rounded-md text-sm">
-                        <Shield className="w-3 h-3" />
-                        Admin
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-zinc-700/50 text-zinc-400 rounded-md text-sm">
-                        <ShieldOff className="w-3 h-3" />
-                        User
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-4 px-4 text-zinc-400 text-sm">
-                    {new Date(user.date_joined).toLocaleDateString()}
-                  </td>
-                  <td className="py-4 px-4 text-zinc-400 text-sm">
-                    {user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}
+                  <td className="py-4 px-4 text-zinc-400">
+                    Email/Password
                   </td>
                   <td className="py-4 px-4">
                     <div className="flex gap-2 justify-end">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleToggleAdmin(user)}
-                        disabled={toggleAdminMutation.isPending}
-                        className={`border-zinc-700 ${
-                          user.is_admin
-                            ? 'hover:border-orange-500 hover:text-orange-500'
-                            : 'hover:border-purple-500 hover:text-purple-500'
-                        }`}
-                      >
-                        {user.is_admin ? (
-                          <>
-                            <ShieldOff className="w-3 h-3 mr-1" />
-                            Remove Admin
-                          </>
-                        ) : (
-                          <>
-                            <Shield className="w-3 h-3 mr-1" />
-                            Make Admin
-                          </>
-                        )}
-                      </Button>
                       <Button
                         size="sm"
                         variant="outline"
