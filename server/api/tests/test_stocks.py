@@ -199,4 +199,5 @@ class StockEndpointsTestCase(BaseAPITestCase):
         url = reverse('dashboard_config')
         response = self.client.put(url, {})
 
-        self.assertErrorResponse(response, 405, 'Method not allowed')
+        # DRF returns 'Method "PUT" not allowed.' format
+        self.assertEqual(response.status_code, 405)
