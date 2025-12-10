@@ -1046,7 +1046,7 @@ def current_user(request):
     return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
-@csrf_exempt
+@api_view(['GET', 'PUT', 'DELETE'])
 def admin_users(request):
     """Admin-only endpoint to manage users"""
     if request.method == 'GET':
