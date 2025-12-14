@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useToast } from '@/hooks/use-toast'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -97,6 +98,7 @@ function formulaToLatex(formula: string): string {
 }
 
 export default function CustomAnalysis() {
+  const { toast } = useToast()
   const [series, setSeries] = useState<Series[]>([
     { id: 'AAPL', label: 'AAPL', source: 'NASDAQ: AAPL', show: false, color: CHART_COLORS[0] },
     { id: 'MSFT', label: 'MSFT', source: 'NASDAQ: MSFT', show: false, color: CHART_COLORS[1] },
@@ -235,13 +237,21 @@ export default function CustomAnalysis() {
     if (!editingSeries) return
     const newSymbol = editSymbol.trim().toUpperCase()
     if (!newSymbol) {
-      alert('Please enter a symbol')
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please enter a symbol",
+      })
       return
     }
 
     // Check if new symbol already exists (unless it's the same series)
     if (series.find(s => s.id === newSymbol && s.id !== editingSeries.id)) {
-      alert('Series with this symbol already exists')
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Series with this symbol already exists",
+      })
       return
     }
 
@@ -264,11 +274,19 @@ export default function CustomAnalysis() {
   const handleAddStock = () => {
     const symbol = newStockSymbol.trim().toUpperCase()
     if (!symbol) {
-      alert('Please enter a stock symbol')
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please enter a stock symbol",
+      })
       return
     }
     if (series.find(s => s.id === symbol)) {
-      alert('Stock already added')
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Stock already added",
+      })
       return
     }
 
@@ -285,7 +303,11 @@ export default function CustomAnalysis() {
 
   const handleAddFunction = () => {
     if (!newFunctionName.trim() || !newFunctionFormula.trim()) {
-      alert('Please enter both name and formula')
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please enter both name and formula",
+      })
       return
     }
 
@@ -313,7 +335,11 @@ export default function CustomAnalysis() {
     if (!selectedPreset) return
     const symbol = presetSymbol.trim().toUpperCase()
     if (!symbol) {
-      alert('Please enter a stock symbol')
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please enter a stock symbol",
+      })
       return
     }
 
@@ -338,7 +364,11 @@ export default function CustomAnalysis() {
   const handleRunAnalysis = async () => {
     const selectedSeries = visibleSeries
     if (selectedSeries.length === 0) {
-      alert('Please select at least one series')
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please select at least one series",
+      })
       return
     }
 
@@ -481,7 +511,10 @@ export default function CustomAnalysis() {
       }
 
       if (chartPoints.length === 0) {
-        alert('No plottable data returned. Note: ADF Test, ARIMA, and Quantile return statistical results, not time series data.')
+        toast({
+          title: "Analysis Complete",
+          description: "No plottable data returned. Note: ADF Test, ARIMA, and Quantile return statistical results, not time series data.",
+        })
       }
 
       setChartData(chartPoints)
@@ -489,11 +522,23 @@ export default function CustomAnalysis() {
     } catch (error) {
       console.error('Analysis error:', error)
       if (error instanceof Error && error.name === 'TimeoutError') {
-        alert('Analysis timed out. ARIMA calculations can take 1-2 minutes for large datasets. Please try with a smaller period or simpler model.')
+        toast({
+          variant: "destructive",
+          title: "Timeout",
+          description: "Analysis timed out. ARIMA calculations can take 1-2 minutes for large datasets. Please try with a smaller period or simpler model.",
+        })
       } else if (error instanceof Error && error.message.includes('Failed to fetch')) {
-        alert('Network error: Unable to connect to server. Please check if the backend is running.')
+        toast({
+          variant: "destructive",
+          title: "Connection Error",
+          description: "Network error: Unable to connect to server. Please check if the backend is running.",
+        })
       } else {
-        alert(`Failed to run analysis: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        toast({
+          variant: "destructive",
+          title: "Analysis Failed",
+          description: error instanceof Error ? error.message : "Unknown error",
+        })
       }
     } finally {
       setLoading(false)
@@ -502,12 +547,20 @@ export default function CustomAnalysis() {
 
   const handleSaveToDashboard = async () => {
     if (!chartName.trim()) {
-      alert('Please enter a chart name')
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please enter a chart name",
+      })
       return
     }
 
     if (chartData.length === 0) {
-      alert('Please run analysis first')
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please run analysis first",
+      })
       return
     }
 
@@ -539,13 +592,17 @@ export default function CustomAnalysis() {
       const symbolsSet = new Set<string>()
       selectedSeries.forEach(s => {
         if (s.formula) {
-          // Extract symbols from formula (e.g., "sma(AAPL, 20)" -> "AAPL")
-          const matches = s.formula.match(/([A-Z]{1,5})(?=[,)])/g)
+          const matches = s.formula.match(/\b[a-z][a-z0-9]*(?:[-=\.][a-z0-9]+)*\b/gi)
+
           if (matches) {
-            matches.forEach(sym => symbolsSet.add(sym))
+            matches.forEach(sym => {
+              const upperSym = sym.toUpperCase()
+              if (!['SMA', 'EMA', 'RETURNS', 'ADF', 'ARIMA', 'PRICE', 'QUANTILE', 'TEST'].includes(upperSym)) {
+                symbolsSet.add(upperSym)
+              }
+            })
           }
         } else {
-          // Base stock symbol (no formula)
           symbolsSet.add(s.id)
         }
       })
@@ -570,12 +627,20 @@ export default function CustomAnalysis() {
       // Dispatch event to notify dashboard to refresh
       window.dispatchEvent(new CustomEvent('chart-saved'))
 
-      alert('Chart saved to Dashboard successfully!')
+      toast({
+        variant: "success",
+        title: "Success",
+        description: "Chart saved to Dashboard successfully!",
+      })
       setChartName('')
       setShowSaveDialog(false)
     } catch (error) {
       console.error('Save error:', error)
-      alert('Failed to save chart to Dashboard')
+      toast({
+        variant: "destructive",
+        title: "Save Failed",
+        description: "Failed to save chart to Dashboard",
+      })
     } finally {
       setSaving(false)
     }

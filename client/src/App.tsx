@@ -19,6 +19,7 @@ import ManageDisplay from '@/components/manage-display';
 import UserManagement from '@/components/user-management';
 import LoginScreen from '@/components/login/login-screen';
 import PasswordResetConfirm from '@/components/login/password-reset-confirm';
+import Toaster from '@/components/ui/toaster';
 
 import './App.css';
 
@@ -27,8 +28,6 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 30000,
       gcTime: 5 * 60 * 1000,
-      refetchOnWindowFocus: false,
-      refetchOnMount: false,
       retry: 1,
     },
   },
@@ -298,6 +297,7 @@ function AppContent() {
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        <Toaster />
       </QueryClientProvider>
     </ThemeProvider>
   );

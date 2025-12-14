@@ -1336,11 +1336,21 @@ def saved_charts(request):
             formulas = body.get('formulas')
             symbols = body.get('symbols')
 
+            print(f"DEBUG: Saving chart '{chart_name}'. Formulas: {formulas}, Symbols: {symbols}")
+
             if not chart_name or not series_ids:
                 return JsonResponse({
                     'status': 'error',
                     'message': 'chart_name and series_ids are required'
                 }, status=400)
+
+            # Validate custom analysis charts
+            if source_type == 'custom_analysis':
+                if not formulas or not symbols:
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': 'Custom analysis charts require both formulas and symbols. The formula might be invalid or no logic was found.'
+                    }, status=400)
 
             chart = SavedChartDisplay.objects.create(
                 user=request.user,
@@ -1441,7 +1451,6 @@ def chart_data(request, chart_id):
                 id=chart_id,
                 user=request.user
             ).first()
-
             if not chart:
                 return JsonResponse({
                     'status': 'error',
@@ -1452,11 +1461,28 @@ def chart_data(request, chart_id):
 
             # Check if this is a custom analysis chart
             if chart.source_type == 'custom_analysis':
+                if chart.formulas and (not chart.symbols or len(chart.symbols) == 0):
+                    import re
+                    extracted_symbols = set()
+                    keywords = {'SMA', 'EMA', 'RETURNS', 'ADF', 'ARIMA', 'PRICE', 'QUANTILE', 'TEST'}
+                    
+                    for formula in chart.formulas:
+                        # Match potential symbols (tickers)
+                        matches = re.findall(r'\b[A-Z][A-Z0-9]*(?:[-=\.][A-Z0-9]+)*\b', formula)
+                        for match in matches:
+                            if match.upper() not in keywords:
+                                extracted_symbols.add(match)
+                    
+                    if extracted_symbols:
+                        chart.symbols = list(extracted_symbols)
+                        chart.save()
+                        print(f"Auto-healed chart {chart.id}: Extracted symbols {chart.symbols}")
+
                 # Re-execute custom analysis formulas for real-time data
                 if not chart.formulas or not chart.symbols:
                     return JsonResponse({
                         'status': 'error',
-                        'message': 'Custom analysis chart missing formulas or symbols'
+                        'message': f'Custom analysis chart missing formulas or symbols. ID: {chart.id}, Formulas: {chart.formulas}, Symbols: {chart.symbols}'
                     }, status=400)
 
                 stats_service = StatsmodelsService()
