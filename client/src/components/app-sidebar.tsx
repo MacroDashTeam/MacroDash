@@ -31,11 +31,9 @@ type AppSidebarProps = {
 };
 
 export default function AppSidebar({ onNavigate, activeView, isAdmin = false, isSuperAdmin = false, children }: React.PropsWithChildren<AppSidebarProps>) {
-  // If superadmin, show only User Management
-  // Otherwise, filter nav items based on admin status
   const filteredNavItems = isSuperAdmin
     ? navItems.filter(item => !item.adminOnly || isAdmin || item.view === 'user-management')
-    : navItems.filter(item => !item.adminOnly || isAdmin);
+    : navItems.filter(item => !item.adminOnly || !isAdmin);
 
   return (
     <>
