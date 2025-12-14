@@ -1,5 +1,17 @@
 import { useState, useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { toast, useToast } from '@/hooks/use-toast'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { LineChart, Trash2, RefreshCw, Calendar, GripVertical } from 'lucide-react'
 import { Button } from './ui/button'
 import { Card } from './ui/card'
@@ -41,7 +53,10 @@ async function fetchSavedCharts(): Promise<SavedChart[]> {
   const res = await fetch(`${API_BASE}/api/charts/`, {
     credentials: 'include'
   })
-  if (!res.ok) throw new Error('Failed to fetch charts')
+  if (!res.ok) {
+    toast({ variant: "destructive", title: "Error", description: "Failed to fetch charts. Please try again later." })
+    return [];
+  }
   const result = await res.json()
   return result.data || []
 }
@@ -50,19 +65,13 @@ async function fetchChartData(chartId: number): Promise<ChartData> {
   const res = await fetch(`${API_BASE}/api/charts/${chartId}/data/`, {
     credentials: 'include'
   })
-  if (!res.ok) throw new Error('Failed to fetch chart data')
+  if (!res.ok) {
+    toast({ variant: "destructive", title: "Error", description: "Failed to fetch chart data. Please try again later." })
+  }
   return await res.json()
 }
 
-async function deleteChart(chartId: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/charts/`, {
-    method: 'DELETE',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chart_id: chartId })
-  })
-  if (!res.ok) throw new Error('Failed to delete chart')
-}
+
 
 const CHART_COLORS = [
   '#3b82f6', // blue
@@ -77,23 +86,48 @@ const CHART_COLORS = [
 
 function ChartCard({ chart }: { chart: SavedChart }) {
   const [isDeleting, setIsDeleting] = useState(false)
+  const { toast } = useToast()
 
   const { data: chartData, isLoading, isError, refetch } = useQuery<ChartData>({
     queryKey: ['chart-data', chart.id],
     queryFn: () => fetchChartData(chart.id),
   })
 
-  const handleDelete = async () => {
-    if (!confirm(`Delete chart "${chart.chart_name}"?`)) return
-    setIsDeleting(true)
-    try {
-      await deleteChart(chart.id)
-      window.location.reload()
-    } catch (error) {
-      console.error('Failed to delete chart:', error)
-      alert('Failed to delete chart')
+  const queryClient = useQueryClient()
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`${API_BASE}/api/charts/`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chart_id: id })
+      })
+      if (!res.ok) throw new Error('Failed to delete chart')
+      return res.json()
+    },
+    onSuccess: () => {
+      toast({
+        variant: "success",
+        title: "Success",
+        description: "Chart deleted successfully",
+      })
+      // Refetch the list of charts
+      queryClient.invalidateQueries({ queryKey: ['saved-charts'] })
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete chart",
+      })
       setIsDeleting(false)
     }
+  })
+
+  const handleDelete = () => {
+    setIsDeleting(true)
+    deleteMutation.mutate(chart.id)
   }
 
   if (isLoading) {
@@ -150,15 +184,33 @@ function ChartCard({ chart }: { chart: SavedChart }) {
           >
             <RefreshCw className="w-3 h-3" />
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDelete}
-            disabled={isDeleting}
-            className="border-zinc-700 hover:border-red-500 hover:text-red-500 h-8 w-8 p-0"
-          >
-            <Trash2 className="w-3 h-3" />
-          </Button>
+
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isDeleting}
+                className="border-zinc-700 hover:border-red-500 hover:text-red-500 h-8 w-8 p-0"
+              >
+                <Trash2 className="w-3 h-3" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="border-zinc-800 bg-zinc-900">
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete chart?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete "{chart.chart_name}"? This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel className="border-zinc-700 bg-transparent hover:bg-zinc-800 hover:text-white">Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700 text-white border-none">
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
 
@@ -241,6 +293,8 @@ export default function ManageDisplay() {
   const { data: charts, isLoading, isError, refetch } = useQuery<SavedChart[]>({
     queryKey: ['saved-charts'],
     queryFn: fetchSavedCharts,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   })
 
   const navigate = useNavigate()
@@ -252,6 +306,11 @@ export default function ManageDisplay() {
     }
     window.addEventListener('chart-saved', handleChartSaved)
     return () => window.removeEventListener('chart-saved', handleChartSaved)
+  }, [refetch])
+
+  // Force refetch on mount to ensure list is up to date
+  useEffect(() => {
+    refetch()
   }, [refetch])
 
   const [layout, setLayout] = useState<any[]>([])
