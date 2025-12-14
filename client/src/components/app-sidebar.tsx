@@ -32,7 +32,7 @@ type AppSidebarProps = {
 
 export default function AppSidebar({ onNavigate, activeView, isAdmin = false, isSuperAdmin = false, children }: React.PropsWithChildren<AppSidebarProps>) {
   const filteredNavItems = isSuperAdmin
-    ? navItems.filter(item => !item.adminOnly || isAdmin || item.view === 'user-management')
+    ? navItems
     : navItems.filter(item => !item.adminOnly || !isAdmin);
 
   return (
