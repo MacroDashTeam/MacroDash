@@ -60,6 +60,13 @@ describe('AppSidebar', () => {
         expect(screen.getByText('Settings')).toBeInTheDocument()
     })
 
+    it('shows User Management and all items for super admin users', () => {
+        render(<AppSidebar isSuperAdmin={true} />)
+        expect(screen.getByText('User Management')).toBeInTheDocument()
+        expect(screen.getByText('Home')).toBeInTheDocument()
+        expect(screen.getByText('Settings')).toBeInTheDocument()
+    })
+
     it('calls onNavigate when a navigation item is clicked', () => {
         const mockOnNavigate = vi.fn()
         render(<AppSidebar onNavigate={mockOnNavigate} />)
