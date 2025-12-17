@@ -770,8 +770,8 @@ class YahooFinanceService:
             print(f"Yahoo Finance intraday error: {e}")
             return {'status': 'error', 'message': str(e)}
 
-    def get_analyst_recommendations(self, symbol: str) -> Dict:
-        """Get analyst recommendations for a stock using yfinance"""
+    def get_analyst_recommendations(self, symbol: str, alpha_vantage_service: 'AlphaVantageService' = None) -> Dict:
+        """Get analyst recommendations for a stock using yfinance, with news sentiment fallback"""
         try:
             ticker = yf.Ticker(symbol)
 
@@ -815,6 +815,52 @@ class YahooFinanceService:
 
             total_recommendations = sum(recommendation_counts.values())
 
+            # If no analyst recommendations, use news sentiment as fallback
+            source = 'analyst'
+            if total_recommendations == 0 and alpha_vantage_service:
+                news_result = alpha_vantage_service.get_news_sentiment(tickers=symbol, limit=50)
+                if news_result.get('status') == 'success' and news_result.get('data', {}).get('feed'):
+                    news_feed = news_result['data']['feed']
+
+                    # Count sentiment from ticker-specific sentiment in news
+                    sentiment_counts = {
+                        'Bullish': 0,
+                        'Somewhat-Bullish': 0,
+                        'Somewhat_Bullish': 0,
+                        'Neutral': 0,
+                        'Somewhat-Bearish': 0,
+                        'Somewhat_Bearish': 0,
+                        'Bearish': 0
+                    }
+
+                    for article in news_feed:
+                        ticker_sentiment = article.get('ticker_sentiment', {})
+                        # Check for this specific ticker's sentiment
+                        if symbol.upper() in ticker_sentiment:
+                            label = ticker_sentiment[symbol.upper()].get('sentiment_label', 'Neutral')
+                            if label in sentiment_counts:
+                                sentiment_counts[label] += 1
+                        else:
+                            # Fall back to overall sentiment if ticker-specific not available
+                            label = article.get('overall_sentiment_label', 'Neutral')
+                            # Normalize label format
+                            label = label.replace('_', '-')
+                            if label in sentiment_counts:
+                                sentiment_counts[label] += 1
+
+                    # Map news sentiment to analyst recommendations
+                    # Bullish -> Strong Buy, Somewhat-Bullish -> Buy, Neutral -> Hold
+                    # Somewhat-Bearish -> Sell, Bearish -> Strong Sell
+                    recommendation_counts = {
+                        'strongBuy': sentiment_counts['Bullish'],
+                        'buy': sentiment_counts['Somewhat-Bullish'] + sentiment_counts['Somewhat_Bullish'],
+                        'hold': sentiment_counts['Neutral'],
+                        'sell': sentiment_counts['Somewhat-Bearish'] + sentiment_counts['Somewhat_Bearish'],
+                        'strongSell': sentiment_counts['Bearish']
+                    }
+                    total_recommendations = sum(recommendation_counts.values())
+                    source = 'news_sentiment'
+
             # Calculate percentages
             recommendation_percentages = {}
             if total_recommendations > 0:
@@ -836,7 +882,8 @@ class YahooFinanceService:
                         'mean': target_mean,
                         'median': target_median
                     },
-                    'num_analysts': num_analysts
+                    'num_analysts': num_analysts,
+                    'source': source  # 'analyst' or 'news_sentiment'
                 },
                 'timestamp': datetime.now().isoformat()
             }
@@ -1829,7 +1876,7 @@ Return only a JSON object with this exact format:
         }
 
     def chat_with_context(self, question: str, context: Dict) -> Dict:
-        """Chat with GPT using stock context"""
+        """Chat with GPT using comprehensive stock context for buy/sell/hold analysis"""
         if not self.client:
             return {
                 'status': 'error',
@@ -1839,100 +1886,352 @@ Return only a JSON object with this exact format:
             }
 
         try:
-            # Build context-aware prompt
+            # Extract all context data
             symbol = context.get('symbol', 'N/A')
             stock = context.get('stock', {})
             financials = context.get('financials', {})
             news = context.get('news', [])
             insights = context.get('insights', {})
             analyst = context.get('analyst', {})
+            technical = context.get('technical', {})
+            overview = context.get('overview', {})
 
-            # Format financial data
+            # Helper function to format currency
+            def fmt_currency(val, suffix=''):
+                if val is None or val == 'N/A':
+                    return 'N/A'
+                if isinstance(val, (int, float)):
+                    if abs(val) >= 1e12:
+                        return f"${val/1e12:.2f}T{suffix}"
+                    elif abs(val) >= 1e9:
+                        return f"${val/1e9:.2f}B{suffix}"
+                    elif abs(val) >= 1e6:
+                        return f"${val/1e6:.2f}M{suffix}"
+                    else:
+                        return f"${val:,.0f}{suffix}"
+                return str(val)
+
+            # Format comprehensive financial data
             financial_context = ""
+            bullish_signals = []
+            bearish_signals = []
+
             if financials and financials.get('annual_reports'):
                 latest = financials['annual_reports'][0]
-                revenue = f"${latest.get('TotalRevenue', 0):,.0f}" if isinstance(latest.get('TotalRevenue'), (int, float)) else 'N/A'
-                net_income = f"${latest.get('NetIncome', 0):,.0f}" if isinstance(latest.get('NetIncome'), (int, float)) else 'N/A'
-                assets = f"${latest.get('TotalAssets', 0):,.0f}" if isinstance(latest.get('TotalAssets'), (int, float)) else 'N/A'
-                cashflow = f"${latest.get('OperatingCashFlow', 0):,.0f}" if isinstance(latest.get('OperatingCashFlow'), (int, float)) else 'N/A'
+                prev = financials['annual_reports'][1] if len(financials['annual_reports']) > 1 else None
+
+                # Income Statement Metrics
+                revenue = latest.get('TotalRevenue')
+                net_income = latest.get('NetIncome')
+                gross_profit = latest.get('GrossProfit')
+                operating_income = latest.get('OperatingIncome')
+                ebitda = latest.get('EBITDA')
+                eps = latest.get('BasicEPS') or latest.get('DilutedEPS')
+
+                # Balance Sheet Metrics
+                total_assets = latest.get('TotalAssets')
+                total_debt = latest.get('TotalDebt')
+                total_equity = latest.get('StockholdersEquity')
+                cash = latest.get('CashAndCashEquivalents')
+                current_assets = latest.get('CurrentAssets')
+                current_liabilities = latest.get('CurrentLiabilities')
+
+                # Cash Flow Metrics
+                operating_cf = latest.get('OperatingCashFlow')
+                free_cash_flow = latest.get('FreeCashFlow')
+                capex = latest.get('CapitalExpenditure')
+
+                # Calculate key ratios
+                gross_margin = (gross_profit / revenue * 100) if revenue and gross_profit else None
+                operating_margin = (operating_income / revenue * 100) if revenue and operating_income else None
+                net_margin = (net_income / revenue * 100) if revenue and net_income else None
+                debt_to_equity = (total_debt / total_equity) if total_equity and total_debt else None
+                current_ratio = (current_assets / current_liabilities) if current_liabilities and current_assets else None
+
+                # YoY Growth Analysis
+                revenue_growth = None
+                earnings_growth = None
+                if prev:
+                    prev_revenue = prev.get('TotalRevenue')
+                    prev_net_income = prev.get('NetIncome')
+                    if prev_revenue and revenue:
+                        revenue_growth = ((revenue - prev_revenue) / abs(prev_revenue)) * 100
+                    if prev_net_income and net_income:
+                        earnings_growth = ((net_income - prev_net_income) / abs(prev_net_income)) * 100
+
+                # Fundamental signals
+                if revenue_growth and revenue_growth > 10:
+                    bullish_signals.append(f"Strong revenue growth: {revenue_growth:.1f}% YoY")
+                elif revenue_growth and revenue_growth < -5:
+                    bearish_signals.append(f"Declining revenue: {revenue_growth:.1f}% YoY")
+
+                if net_margin and net_margin > 15:
+                    bullish_signals.append(f"High profit margin: {net_margin:.1f}%")
+                elif net_margin and net_margin < 5:
+                    bearish_signals.append(f"Low profit margin: {net_margin:.1f}%")
+
+                if debt_to_equity and debt_to_equity < 0.5:
+                    bullish_signals.append(f"Low debt: D/E ratio {debt_to_equity:.2f}")
+                elif debt_to_equity and debt_to_equity > 2:
+                    bearish_signals.append(f"High debt load: D/E ratio {debt_to_equity:.2f}")
+
+                if free_cash_flow and free_cash_flow > 0:
+                    bullish_signals.append(f"Positive free cash flow: {fmt_currency(free_cash_flow)}")
+                elif free_cash_flow and free_cash_flow < 0:
+                    bearish_signals.append(f"Negative free cash flow: {fmt_currency(free_cash_flow)}")
+
+                if current_ratio and current_ratio > 2:
+                    bullish_signals.append(f"Strong liquidity: Current ratio {current_ratio:.2f}")
+                elif current_ratio and current_ratio < 1:
+                    bearish_signals.append(f"Liquidity concern: Current ratio {current_ratio:.2f}")
 
                 financial_context = f"""
-Latest Annual Financials:
-- Revenue: {revenue}
-- Net Income: {net_income}
-- Total Assets: {assets}
-- Operating Cash Flow: {cashflow}
+=== FINANCIAL ANALYSIS (Latest Annual Report) ===
+
+INCOME STATEMENT:
+- Revenue: {fmt_currency(revenue)} {f'({revenue_growth:+.1f}% YoY)' if revenue_growth else ''}
+- Gross Profit: {fmt_currency(gross_profit)} (Margin: {f'{gross_margin:.1f}%' if gross_margin else 'N/A'})
+- Operating Income: {fmt_currency(operating_income)} (Margin: {f'{operating_margin:.1f}%' if operating_margin else 'N/A'})
+- Net Income: {fmt_currency(net_income)} (Margin: {f'{net_margin:.1f}%' if net_margin else 'N/A'})
+- EBITDA: {fmt_currency(ebitda)}
+- EPS: {f'${eps:.2f}' if isinstance(eps, (int, float)) else 'N/A'}
+
+BALANCE SHEET:
+- Total Assets: {fmt_currency(total_assets)}
+- Total Debt: {fmt_currency(total_debt)}
+- Stockholders Equity: {fmt_currency(total_equity)}
+- Cash & Equivalents: {fmt_currency(cash)}
+- Current Ratio: {f'{current_ratio:.2f}' if current_ratio else 'N/A'}
+- Debt-to-Equity: {f'{debt_to_equity:.2f}' if debt_to_equity else 'N/A'}
+
+CASH FLOW:
+- Operating Cash Flow: {fmt_currency(operating_cf)}
+- Free Cash Flow: {fmt_currency(free_cash_flow)}
+- Capital Expenditure: {fmt_currency(capex)}
+"""
+
+            # Technical Analysis with signals
+            technical_context = ""
+            if technical:
+                rsi = technical.get('rsi')
+                macd = technical.get('macd')
+                macd_signal = technical.get('macd_signal')
+                sma_20 = technical.get('sma_20')
+                sma_50 = technical.get('sma_50')
+                bb_upper = technical.get('bb_upper')
+                bb_lower = technical.get('bb_lower')
+                bb_middle = technical.get('bb_middle')
+                current_price = stock.get('current_price')
+
+                # RSI signals
+                if rsi:
+                    if rsi < 30:
+                        bullish_signals.append(f"RSI oversold at {rsi:.1f} - potential bounce")
+                    elif rsi > 70:
+                        bearish_signals.append(f"RSI overbought at {rsi:.1f} - potential pullback")
+                    elif 40 <= rsi <= 60:
+                        bullish_signals.append(f"RSI neutral at {rsi:.1f} - room to run")
+
+                # MACD signals
+                if macd is not None and macd_signal is not None:
+                    if macd > macd_signal:
+                        bullish_signals.append("MACD bullish crossover - positive momentum")
+                    else:
+                        bearish_signals.append("MACD bearish - negative momentum")
+
+                # Moving average signals
+                if current_price and sma_20 and sma_50:
+                    if current_price > sma_20 > sma_50:
+                        bullish_signals.append("Price above 20 & 50 SMA - bullish trend")
+                    elif current_price < sma_20 < sma_50:
+                        bearish_signals.append("Price below 20 & 50 SMA - bearish trend")
+
+                # Bollinger Band signals
+                if current_price and bb_lower and bb_upper:
+                    if current_price <= bb_lower:
+                        bullish_signals.append("Price at lower Bollinger Band - oversold")
+                    elif current_price >= bb_upper:
+                        bearish_signals.append("Price at upper Bollinger Band - overbought")
+
+                technical_context = f"""
+=== TECHNICAL INDICATORS ===
+- RSI (14): {f'{rsi:.1f}' if rsi else 'N/A'} {'(Oversold)' if rsi and rsi < 30 else '(Overbought)' if rsi and rsi > 70 else ''}
+- MACD: {f'{macd:.3f}' if macd else 'N/A'}
+- MACD Signal: {f'{macd_signal:.3f}' if macd_signal else 'N/A'}
+- MACD Status: {'Bullish (MACD > Signal)' if macd and macd_signal and macd > macd_signal else 'Bearish (MACD < Signal)' if macd and macd_signal else 'N/A'}
+- 20-Day SMA: ${f'{sma_20:.2f}' if sma_20 else 'N/A'}
+- 50-Day SMA: ${f'{sma_50:.2f}' if sma_50 else 'N/A'}
+- Bollinger Upper: ${f'{bb_upper:.2f}' if bb_upper else 'N/A'}
+- Bollinger Middle: ${f'{bb_middle:.2f}' if bb_middle else 'N/A'}
+- Bollinger Lower: ${f'{bb_lower:.2f}' if bb_lower else 'N/A'}
+"""
+
+            # Price position analysis
+            price_context = ""
+            current_price = stock.get('current_price')
+            high_52 = stock.get('52_week_high')
+            low_52 = stock.get('52_week_low')
+
+            if current_price and high_52 and low_52:
+                range_52 = high_52 - low_52
+                position = ((current_price - low_52) / range_52 * 100) if range_52 > 0 else 50
+                pct_from_high = ((high_52 - current_price) / high_52 * 100)
+                pct_from_low = ((current_price - low_52) / low_52 * 100)
+
+                if position < 30:
+                    bullish_signals.append(f"Near 52-week low ({pct_from_low:.1f}% above) - potential value")
+                elif position > 80:
+                    bearish_signals.append(f"Near 52-week high ({pct_from_high:.1f}% below) - limited upside")
+
+                price_context = f"""
+=== PRICE POSITION ===
+- Current: ${current_price:,.2f}
+- 52-Week High: ${high_52:,.2f} ({pct_from_high:.1f}% below)
+- 52-Week Low: ${low_52:,.2f} ({pct_from_low:.1f}% above)
+- Position in 52-Week Range: {position:.0f}% (0=low, 100=high)
+"""
+
+            # Analyst sentiment
+            analyst_context = ""
+            if analyst and analyst.get('target_price'):
+                target = analyst['target_price']
+                mean_target = target.get('mean')
+                if mean_target and current_price:
+                    upside = ((mean_target - current_price) / current_price * 100)
+                    if upside > 15:
+                        bullish_signals.append(f"Analysts see {upside:.1f}% upside to ${mean_target:.2f}")
+                    elif upside < -10:
+                        bearish_signals.append(f"Analysts see {upside:.1f}% downside to ${mean_target:.2f}")
+
+                mean_target_str = f"${mean_target:.2f}" if isinstance(mean_target, (int, float)) else 'N/A'
+                high_target = target.get('high')
+                low_target = target.get('low')
+                high_target_str = f"${high_target:.2f}" if isinstance(high_target, (int, float)) else 'N/A'
+                low_target_str = f"${low_target:.2f}" if isinstance(low_target, (int, float)) else 'N/A'
+                upside_str = f"{upside:+.1f}%" if isinstance(upside, (int, float)) else 'N/A'
+
+                analyst_context = f"""
+=== ANALYST RECOMMENDATIONS ===
+- Number of Analysts: {analyst.get('num_analysts', 'N/A')}
+- Average Target: {mean_target_str}
+- High Target: {high_target_str}
+- Low Target: {low_target_str}
+- Implied Upside: {upside_str}
+"""
+
+            # Company overview
+            overview_context = ""
+            if overview:
+                employees = overview.get('fullTimeEmployees')
+                employee_str = f"{employees:,}" if isinstance(employees, (int, float)) else 'N/A'
+                description = overview.get('longBusinessSummary', 'N/A') or 'N/A'
+                overview_context = f"""
+=== COMPANY OVERVIEW ===
+- Sector: {overview.get('sector', 'N/A')}
+- Industry: {overview.get('industry', 'N/A')}
+- Full-Time Employees: {employee_str}
+- Description: {description[:300]}...
 """
 
             # Format news
             news_context = ""
             if news:
-                news_context = "Recent News Headlines:\n" + "\n".join([f"- {n.get('title', '')}" for n in news[:5]])
+                news_context = "\n=== RECENT NEWS ===\n" + "\n".join([f"- {n.get('title', '')}" for n in news[:5]])
 
             # Format insights
             insights_context = ""
             if insights:
                 pos = insights.get('positive', [])
                 neg = insights.get('negative', [])
-                if pos:
-                    insights_context += "Positive Insights:\n" + "\n".join([f"- {p}" for p in pos[:3]]) + "\n"
-                if neg:
-                    insights_context += "Negative Insights:\n" + "\n".join([f"- {n}" for n in neg[:3]])
+                if pos or neg:
+                    insights_context = "\n=== AI INSIGHTS ===\n"
+                    if pos:
+                        insights_context += "Positive:\n" + "\n".join([f"  + {p}" for p in pos[:3]]) + "\n"
+                    if neg:
+                        insights_context += "Negative:\n" + "\n".join([f"  - {n}" for n in neg[:3]])
 
-            # Format analyst recommendations
-            analyst_context = ""
-            if analyst and analyst.get('target_price'):
-                target = analyst['target_price']
-                analyst_context = f"""
-Analyst Recommendations:
-- Average Target Price: ${target.get('mean', 'N/A')}
-- High Target: ${target.get('high', 'N/A')}
-- Low Target: ${target.get('low', 'N/A')}
-- Number of Analysts: {analyst.get('num_analysts', 'N/A')}
+            # Build signal summary
+            signal_summary = f"""
+=== SIGNAL SUMMARY ===
+BULLISH SIGNALS ({len(bullish_signals)}):
+{chr(10).join(['  ✓ ' + s for s in bullish_signals]) if bullish_signals else '  None identified'}
+
+BEARISH SIGNALS ({len(bearish_signals)}):
+{chr(10).join(['  ✗ ' + s for s in bearish_signals]) if bearish_signals else '  None identified'}
+
+OVERALL BIAS: {'BULLISH' if len(bullish_signals) > len(bearish_signals) + 1 else 'BEARISH' if len(bearish_signals) > len(bullish_signals) + 1 else 'NEUTRAL'}
+Signal Ratio: {len(bullish_signals)} bullish vs {len(bearish_signals)} bearish
 """
 
             # Format market cap and volume
-            market_cap = f"${stock.get('market_cap', 0):,}" if isinstance(stock.get('market_cap'), (int, float)) else 'N/A'
+            market_cap = fmt_currency(stock.get('market_cap'))
             volume = f"{stock.get('volume', 0):,}" if isinstance(stock.get('volume'), (int, float)) else 'N/A'
 
-            system_prompt = f"""You are a knowledgeable financial analyst assistant helping users understand stock data and make informed decisions.
+            system_prompt = f"""You are an expert financial analyst providing comprehensive stock analysis and investment recommendations.
 
-You have access to comprehensive data about {symbol}:
+You have access to COMPLETE data about {symbol}:
 
-Stock Information:
+=== STOCK OVERVIEW ===
 - Symbol: {symbol}
 - Current Price: ${stock.get('current_price', 'N/A')}
 - Market Cap: {market_cap}
 - P/E Ratio: {stock.get('pe_ratio', 'N/A')}
-- 52-Week High: ${stock.get('52_week_high', 'N/A')}
-- 52-Week Low: ${stock.get('52_week_low', 'N/A')}
+- EPS: ${stock.get('eps', 'N/A')}
 - Volume: {volume}
+
+{price_context}
 
 {financial_context}
 
+{technical_context}
+
 {analyst_context}
+
+{overview_context}
+
+{signal_summary}
 
 {insights_context}
 
 {news_context}
 
-Guidelines:
-- Provide clear, concise answers based on the data provided
-- If asked about data you don't have, politely say you don't have that specific information
-- Use financial terminology appropriately but explain complex concepts
-- When discussing price targets or predictions, always mention this is analyst opinion and not guaranteed
-- Format numbers with proper currency symbols and commas
-- Be helpful but remind users this is for informational purposes only, not financial advice
+=== YOUR ANALYSIS GUIDELINES ===
+
+FORMATTING RULES (IMPORTANT):
+- DO NOT use markdown formatting (no **, ##, ###, etc.)
+- Use plain text with line breaks for readability
+- Use CAPS for emphasis instead of bold
+- Keep responses concise and scannable
+
+When asked about BUY/SELL/HOLD or sentiment:
+1. Start with a clear one-line verdict: "RECOMMENDATION: [BUY/SELL/HOLD] | SENTIMENT: [Bullish/Bearish/Neutral]"
+2. Analyze ALL available data holistically
+3. Weigh fundamental strength (financials, margins, growth)
+4. Consider technical momentum (RSI, MACD, moving averages)
+5. Factor in analyst sentiment and price targets
+6. Account for valuation (P/E, position in 52-week range)
+
+Recommendation scale:
+- STRONG BUY: Multiple bullish signals across fundamentals & technicals
+- BUY: More bullish than bearish signals, reasonable valuation
+- HOLD: Mixed signals or fairly valued
+- SELL: More bearish signals, technical weakness
+- STRONG SELL: Multiple bearish signals, deteriorating fundamentals
+
+Sentiment scale: Very Bullish > Bullish > Slightly Bullish > Neutral > Slightly Bearish > Bearish > Very Bearish
+
+Keep your analysis brief but insightful. Cite specific metrics.
+End with a short disclaimer about this being informational only.
 """
 
             response = self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": question}
                 ],
                 temperature=0.7,
-                max_tokens=500
+                max_tokens=800
             )
 
             answer = response.choices[0].message.content

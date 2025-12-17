@@ -40,6 +40,11 @@ exports[`EconomicIndicators > matches snapshot 1`] = `
         Economic Indicators
       </h2>
     </div>
+    <p
+      class="text-zinc-400 text-sm mb-4"
+    >
+      Loading economic data...
+    </p>
     <div
       class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
     >
