@@ -50,7 +50,7 @@ export function Chatbot({ symbol }: ChatbotProps) {
     setIsLoading(true)
 
     try {
-      // Get context from session storage
+      // Get context from session storage - comprehensive data for AI analysis
       const context = {
         symbol,
         stock: JSON.parse(sessionStorage.getItem(`stock_${symbol}`) || '{}'),
@@ -58,6 +58,8 @@ export function Chatbot({ symbol }: ChatbotProps) {
         news: JSON.parse(sessionStorage.getItem(`news_${symbol}`) || '[]'),
         insights: JSON.parse(sessionStorage.getItem(`insights_${symbol}`) || '{}'),
         analyst: JSON.parse(sessionStorage.getItem(`analyst_${symbol}`) || '{}'),
+        technical: JSON.parse(sessionStorage.getItem(`technical_${symbol}`) || '{}'),
+        overview: JSON.parse(sessionStorage.getItem(`overview_${symbol}`) || '{}'),
       }
 
       const API_BASE = import.meta.env.VITE_API_BASE_URL || ''

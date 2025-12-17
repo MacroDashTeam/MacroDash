@@ -123,6 +123,37 @@ export default function StockDetail({ onBack }: { onBack?: () => void }) {
     enabled: !!symbol,
   })
 
+  // Fetch all financial statements for chatbot context
+  const { data: incomeData } = useQuery({
+    queryKey: ['company-financials-income', symbol],
+    queryFn: () => fetchCompanyFinancials(symbol!, 'income'),
+    enabled: !!symbol,
+  })
+
+  const { data: balanceData } = useQuery({
+    queryKey: ['company-financials-balance', symbol],
+    queryFn: () => fetchCompanyFinancials(symbol!, 'balance'),
+    enabled: !!symbol,
+  })
+
+  const { data: cashflowData } = useQuery({
+    queryKey: ['company-financials-cashflow', symbol],
+    queryFn: () => fetchCompanyFinancials(symbol!, 'cashflow'),
+    enabled: !!symbol,
+  })
+
+  // Fetch technical indicators for chatbot
+  const { data: technicalData } = useQuery({
+    queryKey: ['technical-indicators-chatbot', symbol],
+    queryFn: async () => {
+      const API_BASE = import.meta.env.VITE_API_BASE_URL
+      const res = await fetch(`${API_BASE}/api/technical-indicators/${symbol}/`)
+      if (!res.ok) throw new Error('Failed to fetch technical indicators')
+      return res.json()
+    },
+    enabled: !!symbol,
+  })
+
   const { data: insightsData } = useQuery({
     queryKey: ['stock-insights', symbol],
     queryFn: () => fetchStockInsights(symbol!),
@@ -148,11 +179,65 @@ export default function StockDetail({ onBack }: { onBack?: () => void }) {
     }
   }, [symbol, newsData])
 
+  // Combine all financial statements for comprehensive chatbot context
   useEffect(() => {
-    if (symbol && financialsData?.data) {
-      sessionStorage.setItem(`financials_${symbol}`, JSON.stringify(financialsData.data))
+    if (symbol && incomeData?.data && balanceData?.data && cashflowData?.data) {
+      // Merge all three financial statements into comprehensive reports
+      const mergeReports = (income: any[], balance: any[], cashflow: any[]) => {
+        if (!income?.length) return []
+        return income.map((incomeReport, i) => ({
+          ...incomeReport,
+          ...(balance?.[i] || {}),
+          ...(cashflow?.[i] || {}),
+        }))
+      }
+
+      const combined = {
+        annual_reports: mergeReports(
+          incomeData.data.annual_reports,
+          balanceData.data.annual_reports,
+          cashflowData.data.annual_reports
+        ),
+        quarterly_reports: mergeReports(
+          incomeData.data.quarterly_reports,
+          balanceData.data.quarterly_reports,
+          cashflowData.data.quarterly_reports
+        ),
+      }
+      sessionStorage.setItem(`financials_${symbol}`, JSON.stringify(combined))
     }
-  }, [symbol, financialsData])
+  }, [symbol, incomeData, balanceData, cashflowData])
+
+  // Store technical indicators for chatbot
+  useEffect(() => {
+    if (symbol && technicalData?.data) {
+      // Extract latest values for chatbot context
+      const data = technicalData.data
+      const getLatest = (arr: number[]) => arr?.[arr.length - 1]
+
+      const technical = {
+        rsi: getLatest(data.rsi?.values),
+        macd: getLatest(data.macd?.macd),
+        macd_signal: getLatest(data.macd?.signal),
+        macd_histogram: getLatest(data.macd?.histogram),
+        sma_20: getLatest(data.sma_20?.values),
+        sma_50: getLatest(data.sma_50?.values),
+        ema_12: getLatest(data.ema_12?.values),
+        ema_26: getLatest(data.ema_26?.values),
+        bb_upper: getLatest(data.bollinger?.upper),
+        bb_middle: getLatest(data.bollinger?.middle),
+        bb_lower: getLatest(data.bollinger?.lower),
+      }
+      sessionStorage.setItem(`technical_${symbol}`, JSON.stringify(technical))
+    }
+  }, [symbol, technicalData])
+
+  // Store company overview for chatbot
+  useEffect(() => {
+    if (symbol && overviewData?.data) {
+      sessionStorage.setItem(`overview_${symbol}`, JSON.stringify(overviewData.data))
+    }
+  }, [symbol, overviewData])
 
   useEffect(() => {
     if (symbol && insightsData?.data) {
@@ -589,25 +674,30 @@ export default function StockDetail({ onBack }: { onBack?: () => void }) {
           </div>
         )}
 
-        {/* Analyst Recommendations */}
+        {/* Analyst Recommendations / News Sentiment */}
         {analystData?.data && (
           <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
-            <h2 className="text-xl font-semibold mb-6">Analyst Recommendations</h2>
+            <h2 className="text-xl font-semibold mb-6">
+              {analystData.data.source === 'news_sentiment' ? 'News Sentiment Analysis' : 'Analyst Recommendations'}
+            </h2>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Recommendation Breakdown */}
               <div>
                 <div className="text-sm text-zinc-400 mb-4">
-                  Based on {analystData.data.num_analysts || analystData.data.total} analysts
+                  {analystData.data.source === 'news_sentiment'
+                    ? `Based on ${analystData.data.total} recent news articles`
+                    : `Based on ${analystData.data.num_analysts || analystData.data.total} analysts`
+                  }
                 </div>
 
                 <div className="space-y-3">
                   {[
-                    { key: 'strongBuy', label: 'Strong Buy', color: 'bg-green-600' },
-                    { key: 'buy', label: 'Buy', color: 'bg-green-500' },
-                    { key: 'hold', label: 'Hold', color: 'bg-yellow-500' },
-                    { key: 'sell', label: 'Sell', color: 'bg-red-500' },
-                    { key: 'strongSell', label: 'Strong Sell', color: 'bg-red-600' }
+                    { key: 'strongBuy', label: analystData.data.source === 'news_sentiment' ? 'Bullish' : 'Strong Buy', color: 'bg-green-600' },
+                    { key: 'buy', label: analystData.data.source === 'news_sentiment' ? 'Somewhat Bullish' : 'Buy', color: 'bg-green-500' },
+                    { key: 'hold', label: 'Neutral', color: 'bg-yellow-500' },
+                    { key: 'sell', label: analystData.data.source === 'news_sentiment' ? 'Somewhat Bearish' : 'Sell', color: 'bg-red-500' },
+                    { key: 'strongSell', label: analystData.data.source === 'news_sentiment' ? 'Bearish' : 'Strong Sell', color: 'bg-red-600' }
                   ].map(({ key, label, color }) => {
                     const percentage = analystData.data.percentages[key] || 0
                     return (

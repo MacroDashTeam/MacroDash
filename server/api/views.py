@@ -354,10 +354,11 @@ def company_earnings(request, symbol):
 
 @csrf_exempt
 def analyst_recommendations(request, symbol):
-    """Get analyst recommendations and price targets from Yahoo Finance"""
+    """Get analyst recommendations and price targets from Yahoo Finance, with news sentiment fallback"""
     if request.method == 'GET':
         yahoo_service = YahooFinanceService()
-        data = yahoo_service.get_analyst_recommendations(symbol)
+        alpha_vantage_service = AlphaVantageService()
+        data = yahoo_service.get_analyst_recommendations(symbol, alpha_vantage_service)
         return JsonResponse(data)
 
     return JsonResponse({"error": "Method not allowed"}, status=405)
