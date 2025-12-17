@@ -126,16 +126,28 @@ class FREDService:
                     if not series.empty:
                         # Take only the last 30 data points
                         series = series.tail(30)
-                        latest = series.iloc[-1]
-                        previous = series.iloc[-2] if len(series) > 1 else latest
+                        # Filter out NaN values for latest/previous calculation
+                        valid_series = series.dropna()
+                        if len(valid_series) == 0:
+                            continue
+
+                        latest = valid_series.iloc[-1]
+                        previous = valid_series.iloc[-2] if len(valid_series) > 1 else latest
+
+                        # Ensure values are valid numbers (not NaN)
+                        if pd.isna(latest) or pd.isna(previous):
+                            continue
+
+                        change = float(latest - previous)
+                        change_percent = float(((latest - previous) / previous) * 100) if previous != 0 else 0.0
 
                         data[series_id] = {
                             'description': description,
                             'current': float(latest),
                             'previous': float(previous),
-                            'change': float(latest - previous),
-                            'change_percent': float(((latest - previous) / previous) * 100) if previous != 0 else 0,
-                            'last_updated': series.index[-1].strftime('%Y-%m-%d'),
+                            'change': change,
+                            'change_percent': change_percent,
+                            'last_updated': valid_series.index[-1].strftime('%Y-%m-%d'),
                             'historical': [
                                 {
                                     'date': date.strftime('%Y-%m-%d'),
