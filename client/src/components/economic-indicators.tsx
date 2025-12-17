@@ -11,10 +11,12 @@ async function fetchEconomicData() {
 }
 
 export default function EconomicIndicators() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['economic'],
     queryFn: fetchEconomicData,
     refetchInterval: 300000,
+    retry: 2,
+    staleTime: 60000,
   })
 
   if (isLoading) {
@@ -24,6 +26,7 @@ export default function EconomicIndicators() {
           <BarChart3 className="w-5 h-5 text-blue-500" />
           <h2 className="text-xl font-semibold">Economic Indicators</h2>
         </div>
+        <p className="text-zinc-400 text-sm mb-4">Loading economic data...</p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map(i => (
             <div key={i} className="h-28 bg-zinc-800/50 rounded animate-pulse" />
@@ -33,14 +36,24 @@ export default function EconomicIndicators() {
     )
   }
 
-  if (!data) {
+  if (isError || !data) {
     return (
       <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
         <div className="flex items-center gap-2 mb-4">
           <BarChart3 className="w-5 h-5 text-blue-500" />
           <h2 className="text-xl font-semibold">Economic Indicators</h2>
         </div>
-        <p className="text-red-400 text-sm">Loading economic data... (This may take 10-15 seconds)</p>
+        <div className="flex items-center gap-4">
+          <p className="text-red-400 text-sm">
+            {isError ? `Failed to load: ${error?.message || 'Unknown error'}` : 'No data available'}
+          </p>
+          <button
+            onClick={() => refetch()}
+            className="text-sm text-blue-400 hover:text-blue-300 underline"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     )
   }
