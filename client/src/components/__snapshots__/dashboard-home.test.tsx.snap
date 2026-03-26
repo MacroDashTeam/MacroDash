@@ -48,6 +48,20 @@ exports[`DashboardHome > matches snapshot 1`] = `
       </div>
     </section>
     <section>
+      <div
+        data-testid="agent-recommendations"
+      >
+        Agent Recommendations
+      </div>
+    </section>
+    <section>
+      <div
+        data-testid="news-synthesis"
+      >
+        News Synthesis
+      </div>
+    </section>
+    <section>
       <h2
         class="text-xl font-semibold mb-4"
       >

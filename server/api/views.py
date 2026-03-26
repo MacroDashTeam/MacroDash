@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import json
 import random
 from .services import FREDService, YahooFinanceService, AlphaVantageService, OpenAIService, TechnicalIndicatorService, CoinMarketCapService, CoinGeckoService, StatsmodelsService
-from .models import PriceAlert
+from .models import PriceAlert, PortfolioRecommendation, NewsSynthesis, UserPreferences
 from django.core.mail import send_mail
 from django.conf import settings
 from django.db import connection
@@ -1644,6 +1644,155 @@ def chart_data(request, chart_id):
             }, status=500)
 
     return JsonResponse({"error": "Method not allowed"}, status=405)
+
+# ============================================================================
+# AUTONOMOUS AGENT ENDPOINTS
+# ============================================================================
+
+@csrf_exempt
+def portfolio_recommendations(request):
+    """Get latest portfolio recommendations from autonomous agent"""
+    if request.method == 'GET':
+        try:
+            # Get all recommendations updated in last 24 hours
+            cutoff_time = datetime.now() - timedelta(hours=24)
+            recommendations = PortfolioRecommendation.objects.filter(
+                updated_at__gte=cutoff_time
+            ).values(
+                'symbol', 'stock_name', 'recommendation', 'confidence_score',
+                'reasoning', 'signals', 'updated_at'
+            ).order_by('-confidence_score')
+
+            data = list(recommendations)
+
+            return JsonResponse({
+                'status': 'success',
+                'recommendations': data,
+                'count': len(data),
+                'timestamp': datetime.now().isoformat()
+            })
+
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'error': str(e)
+            }, status=500)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def news_synthesis(request):
+    """Get latest news synthesis from autonomous agent"""
+    if request.method == 'GET':
+        try:
+            # Get all syntheses updated in last 24 hours
+            cutoff_time = datetime.now() - timedelta(hours=24)
+            syntheses = NewsSynthesis.objects.filter(
+                updated_at__gte=cutoff_time
+            ).values(
+                'symbol', 'stock_name', 'impact_score', 'summary',
+                'key_developments', 'entities_mentioned', 'articles_analyzed',
+                'updated_at'
+            ).order_by('-impact_score')
+
+            data = list(syntheses)
+
+            return JsonResponse({
+                'status': 'success',
+                'syntheses': data,
+                'count': len(data),
+                'timestamp': datetime.now().isoformat()
+            })
+
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'error': str(e)
+            }, status=500)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@api_view(['GET', 'PATCH'])
+def user_preferences(request):
+    """Get or update user preferences including agent notifications"""
+    if not request.user.is_authenticated:
+        return JsonResponse({
+            'status': 'error',
+            'error': 'Not authenticated'
+        }, status=401)
+
+    if request.method == 'GET':
+        try:
+            prefs, created = UserPreferences.objects.get_or_create(user=request.user)
+
+            return JsonResponse({
+                'status': 'success',
+                'data': {
+                    'theme': prefs.theme,
+                    'default_time_period': prefs.default_time_period,
+                    'email_alerts': prefs.email_alerts,
+                    'price_alert_notifications': prefs.price_alert_notifications,
+                    'news_notifications': prefs.news_notifications,
+                    'agent_notifications': prefs.agent_notifications,
+                    'preferred_news_source': prefs.preferred_news_source,
+                }
+            })
+
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'error': str(e)
+            }, status=500)
+
+    elif request.method == 'PATCH':
+        try:
+            from rest_framework.parsers import JSONParser
+            data = json.loads(request.body)
+
+            prefs, created = UserPreferences.objects.get_or_create(user=request.user)
+
+            # Update allowed fields
+            if 'theme' in data:
+                prefs.theme = data['theme']
+            if 'default_time_period' in data:
+                prefs.default_time_period = data['default_time_period']
+            if 'email_alerts' in data:
+                prefs.email_alerts = data['email_alerts']
+            if 'price_alert_notifications' in data:
+                prefs.price_alert_notifications = data['price_alert_notifications']
+            if 'news_notifications' in data:
+                prefs.news_notifications = data['news_notifications']
+            if 'agent_notifications' in data:
+                prefs.agent_notifications = data['agent_notifications']
+            if 'preferred_news_source' in data:
+                prefs.preferred_news_source = data['preferred_news_source']
+
+            prefs.save()
+
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Preferences updated',
+                'data': {
+                    'theme': prefs.theme,
+                    'default_time_period': prefs.default_time_period,
+                    'email_alerts': prefs.email_alerts,
+                    'price_alert_notifications': prefs.price_alert_notifications,
+                    'news_notifications': prefs.news_notifications,
+                    'agent_notifications': prefs.agent_notifications,
+                    'preferred_news_source': prefs.preferred_news_source,
+                }
+            })
+
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'error': str(e)
+            }, status=500)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
 
 # ============================================================================
 # WATCHLIST API ENDPOINTS

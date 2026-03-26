@@ -7,7 +7,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from django_apscheduler.jobstores import DjangoJobStore
 from django.conf import settings
 from django.core.mail import send_mail
-from api.models import PriceAlert, StockInsight
+from api.models import PriceAlert, StockInsight, UserPreferences
 from api.services import YahooFinanceService, OpenAIService
 from django.utils import timezone as django_timezone
 
@@ -171,6 +171,158 @@ def fetch_stock_insights():
     )
 
 
+def run_portfolio_agent():
+    """
+    Autonomous agent that generates BUY/SELL/HOLD recommendations
+    This function runs every 6 hours via APScheduler
+    """
+    logger.info("Starting autonomous portfolio agent...")
+
+    AGENT_STOCKS = [
+        ('AAPL', 'Apple Inc.'),
+        ('MSFT', 'Microsoft Corporation'),
+        ('GOOGL', 'Alphabet Inc.'),
+        ('AMZN', 'Amazon.com Inc.'),
+        ('NVDA', 'NVIDIA Corporation'),
+        ('TSLA', 'Tesla Inc.'),
+        ('META', 'Meta Platforms Inc.'),
+        ('JPM', 'JPMorgan Chase & Co.'),
+        ('V', 'Visa Inc.'),
+        ('WMT', 'Walmart Inc.'),
+    ]
+
+    try:
+        openai_service = OpenAIService()
+        recommendations = openai_service.run_portfolio_agent(AGENT_STOCKS)
+
+        logger.info(f"Portfolio agent generated {len(recommendations)} recommendations")
+
+        # Send emails to opted-in users
+        try:
+            send_agent_report_email(recommendations, [])
+        except Exception as e:
+            logger.error(f"Error sending agent emails: {e}")
+
+        return recommendations
+
+    except Exception as e:
+        logger.error(f"Portfolio agent error: {e}")
+        return []
+
+
+def run_news_synthesis_agent():
+    """
+    Autonomous agent that synthesizes news into impact scores
+    This function runs every 6 hours via APScheduler
+    """
+    logger.info("Starting autonomous news synthesis agent...")
+
+    AGENT_STOCKS = [
+        ('AAPL', 'Apple Inc.'),
+        ('MSFT', 'Microsoft Corporation'),
+        ('GOOGL', 'Alphabet Inc.'),
+        ('AMZN', 'Amazon.com Inc.'),
+        ('NVDA', 'NVIDIA Corporation'),
+        ('TSLA', 'Tesla Inc.'),
+        ('META', 'Meta Platforms Inc.'),
+        ('JPM', 'JPMorgan Chase & Co.'),
+        ('V', 'Visa Inc.'),
+        ('WMT', 'Walmart Inc.'),
+    ]
+
+    try:
+        openai_service = OpenAIService()
+        syntheses = openai_service.run_news_synthesis_agent(AGENT_STOCKS)
+
+        logger.info(f"News synthesis agent generated {len(syntheses)} syntheses")
+
+        # Send emails to opted-in users
+        try:
+            send_agent_report_email([], syntheses)
+        except Exception as e:
+            logger.error(f"Error sending agent emails: {e}")
+
+        return syntheses
+
+    except Exception as e:
+        logger.error(f"News synthesis agent error: {e}")
+        return []
+
+
+def send_agent_report_email(recommendations, syntheses):
+    """Send agent analysis report to opted-in users"""
+    try:
+        # Query all opted-in users who have an email address
+        opted_in = UserPreferences.objects.filter(
+            agent_notifications=True
+        ).select_related('user').exclude(user__email='')
+
+        if not opted_in.exists():
+            logger.debug("No users opted in for agent notifications")
+            return
+
+        # Build email body
+        buy_count = len([r for r in recommendations if r.get('recommendation') == 'BUY'])
+        sell_count = len([r for r in recommendations if r.get('recommendation') == 'SELL'])
+        hold_count = len([r for r in recommendations if r.get('recommendation') == 'HOLD'])
+
+        subject = f"📊 MacroDash Agent Report — {buy_count} BUY, {hold_count} HOLD, {sell_count} SELL"
+
+        # Build message body
+        message_lines = [
+            "Your MacroDash Autonomous Agent Report",
+            "=" * 60,
+            ""
+        ]
+
+        if recommendations:
+            message_lines.append("PORTFOLIO RECOMMENDATIONS:")
+            message_lines.append("-" * 60)
+            for rec in recommendations[:10]:  # Top 10 recommendations
+                confidence_pct = rec.get('confidence_score', 0.5) * 100
+                reasoning = rec.get('reasoning', ['No reasoning provided'])[:2]
+                reasoning_text = " | ".join(reasoning)
+                message_lines.append(
+                    f"{rec.get('symbol'):5} {rec.get('recommendation'):4} "
+                    f"(Confidence: {confidence_pct:.0f}%)"
+                )
+                message_lines.append(f"  → {reasoning_text[:80]}")
+            message_lines.append("")
+
+        if syntheses:
+            message_lines.append("NEWS SYNTHESIS:")
+            message_lines.append("-" * 60)
+            for synth in syntheses[:10]:  # Top 10 syntheses
+                impact = synth.get('impact_score', 0.0)
+                summary = synth.get('summary', 'No summary')[:100]
+                message_lines.append(f"{synth.get('symbol'):5} Impact: {impact:+.2f}")
+                message_lines.append(f"  {summary}...")
+            message_lines.append("")
+
+        message_lines.append("-" * 60)
+        message_lines.append("Generated by MacroDash Autonomous Agents")
+        message_lines.append(f"Report Time: {django_timezone.now().isoformat()}")
+
+        message = "\n".join(message_lines)
+
+        # Send to all opted-in users
+        for pref in opted_in:
+            try:
+                send_mail(
+                    subject,
+                    message,
+                    settings.DEFAULT_FROM_EMAIL,
+                    [pref.user.email],
+                    fail_silently=False,
+                )
+                logger.info(f"Agent report sent to {pref.user.email}")
+            except Exception as e:
+                logger.error(f"Failed to send agent report to {pref.user.email}: {e}")
+
+    except Exception as e:
+        logger.error(f"Error in send_agent_report_email: {e}")
+
+
 def send_alert_email(alert, current_price):
     """Send email notification when alert triggers"""
     try:
@@ -274,8 +426,28 @@ def start_scheduler():
             replace_existing=True,
         )
 
+        # Add job to run portfolio agent every 6 hours
+        scheduler.add_job(
+            run_portfolio_agent,
+            'interval',
+            hours=6,
+            id='run_portfolio_agent',
+            name='Autonomous Portfolio Agent',
+            replace_existing=True,
+        )
+
+        # Add job to run news synthesis agent every 6 hours
+        scheduler.add_job(
+            run_news_synthesis_agent,
+            'interval',
+            hours=6,
+            id='run_news_synthesis_agent',
+            name='News Synthesis Agent',
+            replace_existing=True,
+        )
+
         scheduler.start()
-        logger.info("APScheduler started successfully! Price alerts every 5min, Stock insights every 6hrs.")
+        logger.info("APScheduler started successfully! Price alerts every 5min, Stock insights/Portfolio agent/News synthesis every 6hrs.")
 
         # Disabled immediate insights generation to speed up startup
         # Insights will be generated on the first scheduled run (every 6 hours)

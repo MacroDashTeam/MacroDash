@@ -691,6 +691,7 @@ class YahooFinanceService:
                 'data': {
                     'symbol': symbol.upper(),
                     'name': info.get('longName', symbol),
+                    'quote_type': info.get('quoteType', 'EQUITY'),
                     'current_price': round(float(current_price), 2),
                     'change': round(float(change), 2),
                     'change_percent': round(float(change_percent), 2),
@@ -702,6 +703,12 @@ class YahooFinanceService:
                     'dividend_yield': info.get('dividendYield'),
                     '52_week_high': round(float(hist['High'].max()), 2),
                     '52_week_low': round(float(hist['Low'].min()), 2),
+                    # ETF-specific fields (null for regular stocks)
+                    'total_assets': info.get('totalAssets'),
+                    'expense_ratio': info.get('annualReportExpenseRatio') or info.get('expenseRatio'),
+                    'fund_category': info.get('category'),
+                    'fund_family': info.get('fundFamily'),
+                    'ytd_return': info.get('ytdReturn'),
                     'historical_data': [
                         {
                             'date': date.strftime('%Y-%m-%d'),
@@ -904,7 +911,8 @@ class YahooFinanceService:
                 'mega_cap': ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA', 'TSM', 'BRK-B', 'UNH', 'XOM', 'JNJ', 'JPM'],
                 'large_cap': ['V', 'PG', 'MA', 'HD', 'CVX', 'MRK', 'ABBV', 'PEP', 'COST', 'AVGO', 'ADBE', 'CRM'],
                 'mid_cap': ['ALGN', 'ANSS', 'CBOE', 'CDNS', 'CERN', 'CHTR', 'CSCO', 'CTSH', 'DXCM', 'EXPD', 'FAST', 'FFIV'],
-                'small_cap': ['AAL', 'ALK', 'JBLU', 'UAL', 'DAL', 'SAVE', 'HA', 'LUV']
+                'small_cap': ['AAL', 'ALK', 'JBLU', 'UAL', 'DAL', 'SAVE', 'HA', 'LUV'],
+                'etf': ['VWRL.L', 'GLD', 'VOO'],
             }
 
             stocks_by_sector = {
@@ -2415,6 +2423,243 @@ Be specific and factual. Include the actual percentage change if available."""
                 'insight': f'Unable to retrieve insight for {asset} on {date}.',
                 'timestamp': datetime.now().isoformat()
             }
+
+    def run_portfolio_agent(self, symbols: List[tuple]) -> List[Dict]:
+        """
+        Autonomous agent that analyzes stocks and produces BUY/SELL/HOLD recommendations.
+
+        Args:
+            symbols: List of tuples (symbol, stock_name)
+
+        Returns:
+            List of PortfolioRecommendation data dicts
+        """
+        if not self.client:
+            return []
+
+        from .models import PortfolioRecommendation
+        recommendations = []
+
+        for symbol, stock_name in symbols:
+            try:
+                # Fetch all necessary data for analysis
+                yahoo_service = YahooFinanceService()
+                alpha_vantage_service = AlphaVantageService()
+                tech_service = TechnicalIndicatorService()
+
+                # Get stock data
+                stock_data = yahoo_service.get_stock_detail(symbol)
+                if stock_data.get('status') != 'success':
+                    continue
+
+                stock_info = stock_data.get('data', {})
+
+                # Get technical indicators
+                tech_indicators = tech_service.get_technical_indicators(symbol, '1y')
+
+                # Get news and sentiment
+                news_data = alpha_vantage_service.get_news_sentiment(symbol, limit=10)
+
+                # Build context for analysis
+                context = {
+                    'symbol': symbol,
+                    'current_price': stock_info.get('current_price'),
+                    'pe_ratio': stock_info.get('pe_ratio'),
+                    'eps': stock_info.get('eps'),
+                    'market_cap': stock_info.get('market_cap'),
+                    '52w_high': stock_info.get('52w_high'),
+                    '52w_low': stock_info.get('52w_low'),
+                    'tech_indicators': tech_indicators.get('data', {}),
+                    'news': news_data.get('data', {}).get('feed', [])[:5] if news_data.get('status') == 'success' else [],
+                }
+
+                # Create portfolio analysis prompt
+                prompt = f"""Analyze {symbol} ({stock_name}) and provide investment recommendation.
+
+Current Price: ${context['current_price']}
+P/E Ratio: {context['pe_ratio']}
+Market Cap: ${context['market_cap']}
+52W Range: ${context['52w_low']} - ${context['52w_high']}
+
+Recent News Headlines:
+{chr(10).join([f"- {n.get('title', '')[:80]}" for n in context['news'][:3]])}
+
+Provide your analysis in this EXACT format:
+RECOMMENDATION: [BUY/SELL/HOLD]
+CONFIDENCE: [0.0-1.0]
+REASONING: [bullet1]|[bullet2]|[bullet3]
+BULLISH_SIGNALS: [signal1]|[signal2]|[signal3]
+BEARISH_SIGNALS: [signal1]|[signal2]|[signal3]
+"""
+
+                response = self.client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {"role": "system", "content": "You are an expert investment analyst. Provide clear BUY/SELL/HOLD recommendations with reasoning."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.7,
+                    max_tokens=600
+                )
+
+                # Parse response
+                response_text = response.choices[0].message.content
+                lines = response_text.split('\n')
+
+                recommendation = 'HOLD'
+                confidence = 0.5
+                reasoning = []
+                bullish = []
+                bearish = []
+
+                for line in lines:
+                    if line.startswith('RECOMMENDATION:'):
+                        recommendation = line.split(':')[1].strip().upper()
+                    elif line.startswith('CONFIDENCE:'):
+                        try:
+                            confidence = float(line.split(':')[1].strip())
+                        except:
+                            confidence = 0.5
+                    elif line.startswith('REASONING:'):
+                        reasoning = [r.strip() for r in line.split(':')[1].split('|')]
+                    elif line.startswith('BULLISH_SIGNALS:'):
+                        bullish = [s.strip() for s in line.split(':')[1].split('|')]
+                    elif line.startswith('BEARISH_SIGNALS:'):
+                        bearish = [s.strip() for s in line.split(':')[1].split('|')]
+
+                # Upsert database record
+                rec, created = PortfolioRecommendation.objects.update_or_create(
+                    symbol=symbol,
+                    defaults={
+                        'stock_name': stock_name,
+                        'recommendation': recommendation,
+                        'confidence_score': max(0.0, min(1.0, confidence)),
+                        'reasoning': reasoning,
+                        'signals': {'bullish': bullish, 'bearish': bearish},
+                        'raw_analysis': response_text,
+                    }
+                )
+
+                recommendations.append({
+                    'symbol': symbol,
+                    'stock_name': stock_name,
+                    'recommendation': recommendation,
+                    'confidence_score': confidence,
+                    'reasoning': reasoning,
+                    'signals': {'bullish': bullish, 'bearish': bearish},
+                })
+
+            except Exception as e:
+                print(f"Error analyzing {symbol}: {e}")
+                continue
+
+        return recommendations
+
+    def run_news_synthesis_agent(self, symbols: List[tuple]) -> List[Dict]:
+        """
+        Autonomous agent that synthesizes news into impact scores and key developments.
+
+        Args:
+            symbols: List of tuples (symbol, stock_name)
+
+        Returns:
+            List of NewsSynthesis data dicts
+        """
+        if not self.client:
+            return []
+
+        from .models import NewsSynthesis
+        syntheses = []
+
+        for symbol, stock_name in symbols:
+            try:
+                # Fetch news data
+                alpha_vantage_service = AlphaVantageService()
+                news_data = alpha_vantage_service.get_news_sentiment(symbol, limit=10)
+
+                if news_data.get('status') != 'success' or not news_data.get('data', {}).get('feed'):
+                    continue
+
+                articles = news_data['data']['feed']
+
+                # Build news synthesis prompt
+                news_text = "\n".join([
+                    f"- {a.get('title', '')}: {a.get('summary', '')[:200]} (Sentiment: {a.get('overall_sentiment_label', 'Neutral')})"
+                    for a in articles[:5]
+                ])
+
+                prompt = f"""Synthesize these recent news articles for {symbol} ({stock_name}).
+
+NEWS ARTICLES:
+{news_text}
+
+Provide synthesis in this EXACT format:
+IMPACT_SCORE: [-1.0 to 1.0]
+SUMMARY: [2-3 sentence summary]
+KEY_DEVELOPMENTS: [dev1|dev2|dev3]
+ENTITIES: [entity1|entity2|entity3]
+"""
+
+                response = self.client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {"role": "system", "content": "You are a financial news analyst. Synthesize news into actionable insights with clear impact scores."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.7,
+                    max_tokens=600
+                )
+
+                # Parse response
+                response_text = response.choices[0].message.content
+                lines = response_text.split('\n')
+
+                impact_score = 0.0
+                summary = ""
+                key_devs = []
+                entities = []
+
+                for line in lines:
+                    if line.startswith('IMPACT_SCORE:'):
+                        try:
+                            impact_score = float(line.split(':')[1].strip())
+                        except:
+                            impact_score = 0.0
+                    elif line.startswith('SUMMARY:'):
+                        summary = line.split(':', 1)[1].strip()
+                    elif line.startswith('KEY_DEVELOPMENTS:'):
+                        key_devs = [d.strip() for d in line.split(':')[1].split('|')]
+                    elif line.startswith('ENTITIES:'):
+                        entities = [e.strip() for e in line.split(':')[1].split('|')]
+
+                # Upsert database record
+                synth, created = NewsSynthesis.objects.update_or_create(
+                    symbol=symbol,
+                    defaults={
+                        'stock_name': stock_name,
+                        'impact_score': max(-1.0, min(1.0, impact_score)),
+                        'summary': summary,
+                        'key_developments': key_devs,
+                        'entities_mentioned': entities,
+                        'articles_analyzed': len(articles),
+                    }
+                )
+
+                syntheses.append({
+                    'symbol': symbol,
+                    'stock_name': stock_name,
+                    'impact_score': impact_score,
+                    'summary': summary,
+                    'key_developments': key_devs,
+                    'entities_mentioned': entities,
+                    'articles_analyzed': len(articles),
+                })
+
+            except Exception as e:
+                print(f"Error synthesizing news for {symbol}: {e}")
+                continue
+
+        return syntheses
 
 class TechnicalIndicatorService:
     """Service for calculating technical indicators using TA-Lib"""

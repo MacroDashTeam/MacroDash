@@ -622,25 +622,49 @@ export default function StockDetail({ onBack }: { onBack?: () => void }) {
           {/* Additional Stats - Using Yahoo Finance Data */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6">
             <div>
-              <div className="text-sm text-zinc-400">Market Cap</div>
+              <div className="text-sm text-zinc-400">{stock.quote_type === 'ETF' ? 'AUM' : 'Market Cap'}</div>
               <div className="text-lg font-semibold mt-1">
-                {stock.market_cap ? (
-                  stock.market_cap >= 1e12 ? `$${(stock.market_cap / 1e12).toFixed(2)}T` :
-                  stock.market_cap >= 1e9 ? `$${(stock.market_cap / 1e9).toFixed(2)}B` :
-                  `$${(stock.market_cap / 1e6).toFixed(2)}M`
-                ) : 'N/A'}
+                {stock.quote_type === 'ETF' ? (
+                  stock.total_assets ? (
+                    stock.total_assets >= 1e12 ? `$${(stock.total_assets / 1e12).toFixed(2)}T` :
+                    stock.total_assets >= 1e9 ? `$${(stock.total_assets / 1e9).toFixed(2)}B` :
+                    `$${(stock.total_assets / 1e6).toFixed(2)}M`
+                  ) : 'N/A'
+                ) : (
+                  stock.market_cap ? (
+                    stock.market_cap >= 1e12 ? `$${(stock.market_cap / 1e12).toFixed(2)}T` :
+                    stock.market_cap >= 1e9 ? `$${(stock.market_cap / 1e9).toFixed(2)}B` :
+                    `$${(stock.market_cap / 1e6).toFixed(2)}M`
+                  ) : 'N/A'
+                )}
               </div>
             </div>
-            <div>
-              <div className="text-sm text-zinc-400">P/E Ratio</div>
-              <div className="text-lg font-semibold mt-1">{stock.pe_ratio?.toFixed(2) || 'N/A'}</div>
-            </div>
-            <div>
-              <div className="text-sm text-zinc-400">EPS (TTM)</div>
-              <div className="text-lg font-semibold mt-1">
-                {stock.eps ? stock.eps.toFixed(2) : 'N/A'}
+            {stock.quote_type === 'ETF' ? (
+              <div>
+                <div className="text-sm text-zinc-400">Expense Ratio</div>
+                <div className="text-lg font-semibold mt-1">
+                  {stock.expense_ratio != null ? `${(stock.expense_ratio * 100).toFixed(2)}%` : 'N/A'}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div>
+                <div className="text-sm text-zinc-400">P/E Ratio</div>
+                <div className="text-lg font-semibold mt-1">{stock.pe_ratio?.toFixed(2) || 'N/A'}</div>
+              </div>
+            )}
+            {stock.quote_type === 'ETF' ? (
+              <div>
+                <div className="text-sm text-zinc-400">Category</div>
+                <div className="text-lg font-semibold mt-1 text-sm leading-tight">{stock.fund_category || 'N/A'}</div>
+              </div>
+            ) : (
+              <div>
+                <div className="text-sm text-zinc-400">EPS (TTM)</div>
+                <div className="text-lg font-semibold mt-1">
+                  {stock.eps ? stock.eps.toFixed(2) : 'N/A'}
+                </div>
+              </div>
+            )}
             <div>
               <div className="text-sm text-zinc-400">Volume</div>
               <div className="text-lg font-semibold mt-1">
@@ -648,7 +672,7 @@ export default function StockDetail({ onBack }: { onBack?: () => void }) {
               </div>
             </div>
             <div>
-              <div className="text-sm text-zinc-400">Dividend Yield</div>
+              <div className="text-sm text-zinc-400">{stock.quote_type === 'ETF' ? 'Distribution Yield' : 'Dividend Yield'}</div>
               <div className="text-lg font-semibold mt-1">
                 {stock.dividend_yield ? `${(stock.dividend_yield * 100).toFixed(2)}%` : 'N/A'}
               </div>
@@ -656,8 +680,34 @@ export default function StockDetail({ onBack }: { onBack?: () => void }) {
           </div>
         </div>
 
-        {/* Company Info */}
-        {overview && overview.description && (
+        {/* Company / Fund Info */}
+        {stock.quote_type === 'ETF' ? (
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
+            <h2 className="text-xl font-semibold mb-4">Fund Details</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <div className="text-sm text-zinc-400">Fund Family</div>
+                <div className="text-lg font-semibold mt-1">{stock.fund_family || 'N/A'}</div>
+              </div>
+              <div>
+                <div className="text-sm text-zinc-400">Category</div>
+                <div className="text-lg font-semibold mt-1">{stock.fund_category || 'N/A'}</div>
+              </div>
+              <div>
+                <div className="text-sm text-zinc-400">YTD Return</div>
+                <div className={`text-lg font-semibold mt-1 ${stock.ytd_return != null ? (stock.ytd_return >= 0 ? 'text-green-500' : 'text-red-500') : ''}`}>
+                  {stock.ytd_return != null ? `${(stock.ytd_return * 100).toFixed(2)}%` : 'N/A'}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm text-zinc-400">Expense Ratio</div>
+                <div className="text-lg font-semibold mt-1">
+                  {stock.expense_ratio != null ? `${(stock.expense_ratio * 100).toFixed(2)}%` : 'N/A'}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : overview && overview.description ? (
           <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
             <h2 className="text-xl font-semibold mb-4">About {stock.name}</h2>
             <p className="text-zinc-300 leading-relaxed">{overview.description}</p>
@@ -672,7 +722,7 @@ export default function StockDetail({ onBack }: { onBack?: () => void }) {
               </div>
             </div>
           </div>
-        )}
+        ) : null}
 
         {/* Analyst Recommendations / News Sentiment */}
         {analystData?.data && (

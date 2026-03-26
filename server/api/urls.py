@@ -45,6 +45,10 @@ urlpatterns = [
     path('ai-insights/<str:symbol>/', views.ai_stock_insights, name='ai_stock_insights'),
     # Market Insight for chart extrema points
     path('market-insight/', views.market_insight, name='market_insight'),
+    # Autonomous Agents
+    path('agent/portfolio/', views.portfolio_recommendations, name='portfolio_recommendations'),
+    path('agent/news-synthesis/', views.news_synthesis, name='news_synthesis'),
+    path('preferences/', views.user_preferences, name='user_preferences'),
     # Watchlist
     path('watchlist/', views.user_watchlist, name='user_watchlist'),
     path('watchlist/<str:symbol>/', views.remove_from_watchlist, name='remove_from_watchlist'),

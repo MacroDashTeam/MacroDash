@@ -1,8 +1,10 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { useState } from 'react'
-import { Key, Database, Brain, Lock, CheckCircle, AlertCircle, ExternalLink, User as UserIcon, LogOut } from 'lucide-react'
+import { Key, Database, Brain, Lock, CheckCircle, AlertCircle, ExternalLink, User as UserIcon, LogOut, Bell } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 interface User {
   id: number
@@ -17,6 +19,36 @@ interface SettingsProps {
 
 export default function Settings({ user, onSignOut }: SettingsProps) {
   const [showKeys, setShowKeys] = useState(false)
+  const queryClient = useQueryClient()
+
+  // Fetch user preferences
+  const { data: preferencesData, isLoading: preferencesLoading } = useQuery({
+    queryKey: ['user-preferences'],
+    queryFn: async () => {
+      const res = await fetch('/api/preferences/')
+      if (!res.ok) throw new Error('Failed to fetch preferences')
+      return res.json()
+    },
+    enabled: !!user,
+  })
+
+  // Update preferences mutation
+  const updatePreferencesMutation = useMutation({
+    mutationFn: async (data: Record<string, unknown>) => {
+      const res = await fetch('/api/preferences/', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+      if (!res.ok) throw new Error('Failed to update preferences')
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-preferences'] })
+    },
+  })
+
+  const preferences = preferencesData?.data || {}
 
   const apiKeys = [
     {
@@ -99,6 +131,110 @@ export default function Settings({ user, onSignOut }: SettingsProps) {
                     <LogOut className="w-4 h-4 mr-2" />
                     Sign Out
                   </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Notifications Section */}
+        {user && (
+          <Card className="bg-zinc-900/50 border-zinc-800">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="w-5 h-5" />
+                Notifications
+              </CardTitle>
+              <CardDescription>
+                Configure notification preferences
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {preferencesLoading ? (
+                <p className="text-zinc-400 text-sm">Loading preferences...</p>
+              ) : (
+                <div className="space-y-4">
+                  {/* AI Agent Reports Toggle */}
+                  <div className="flex items-center justify-between p-3 rounded-lg border border-zinc-800 hover:border-zinc-700 transition">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-white">
+                        AI Agent Reports
+                      </p>
+                      <p className="text-xs text-zinc-400 mt-1">
+                        Receive autonomous portfolio analysis and news synthesis every 6 hours
+                      </p>
+                    </div>
+                    <Checkbox
+                      checked={preferences.agent_notifications || false}
+                      onCheckedChange={(checked) => {
+                        updatePreferencesMutation.mutate({
+                          agent_notifications: checked,
+                        })
+                      }}
+                      disabled={updatePreferencesMutation.isPending}
+                    />
+                  </div>
+
+                  {/* Other notification toggles */}
+                  <div className="flex items-center justify-between p-3 rounded-lg border border-zinc-800 hover:border-zinc-700 transition">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-white">
+                        Email Alerts
+                      </p>
+                      <p className="text-xs text-zinc-400 mt-1">
+                        Receive email notifications
+                      </p>
+                    </div>
+                    <Checkbox
+                      checked={preferences.email_alerts !== false}
+                      onCheckedChange={(checked) => {
+                        updatePreferencesMutation.mutate({
+                          email_alerts: checked,
+                        })
+                      }}
+                      disabled={updatePreferencesMutation.isPending}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 rounded-lg border border-zinc-800 hover:border-zinc-700 transition">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-white">
+                        Price Alert Notifications
+                      </p>
+                      <p className="text-xs text-zinc-400 mt-1">
+                        Get notified when price alerts are triggered
+                      </p>
+                    </div>
+                    <Checkbox
+                      checked={preferences.price_alert_notifications !== false}
+                      onCheckedChange={(checked) => {
+                        updatePreferencesMutation.mutate({
+                          price_alert_notifications: checked,
+                        })
+                      }}
+                      disabled={updatePreferencesMutation.isPending}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 rounded-lg border border-zinc-800 hover:border-zinc-700 transition">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-white">
+                        News Notifications
+                      </p>
+                      <p className="text-xs text-zinc-400 mt-1">
+                        Get notified about important news
+                      </p>
+                    </div>
+                    <Checkbox
+                      checked={preferences.news_notifications || false}
+                      onCheckedChange={(checked) => {
+                        updatePreferencesMutation.mutate({
+                          news_notifications: checked,
+                        })
+                      }}
+                      disabled={updatePreferencesMutation.isPending}
+                    />
+                  </div>
                 </div>
               )}
             </CardContent>

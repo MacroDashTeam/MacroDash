@@ -81,6 +81,7 @@ function CryptoDetailWrapper() {
   return <CryptoDetail onBack={() => navigate('/')} />;
 }
 
+
 function DashboardLayout({ user, onSignOut }: { user: User | null, onSignOut: () => void }) {
   const navigate = useNavigate();
   const location = useLocation();

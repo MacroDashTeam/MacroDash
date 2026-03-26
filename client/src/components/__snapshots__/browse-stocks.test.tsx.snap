@@ -30,6 +30,11 @@ exports[`BrowseStocks > matches snapshot 1`] = `
       >
         Sector
       </button>
+      <button
+        class="px-4 py-2 border-b-2 transition-colors border-transparent text-zinc-400 hover:text-white"
+      >
+        ETFs
+      </button>
     </div>
     <div>
       <div
