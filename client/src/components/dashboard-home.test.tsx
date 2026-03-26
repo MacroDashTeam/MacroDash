@@ -15,6 +15,8 @@ vi.mock('./stock-top-losers', () => ({ default: () => <div data-testid="stock-to
 vi.mock('./crypto-watchlist', () => ({ default: () => <div data-testid="crypto-watchlist">Crypto Watchlist</div> }))
 vi.mock('./crypto-top-gainers', () => ({ default: () => <div data-testid="crypto-top-gainers">Crypto Top Gainers</div> }))
 vi.mock('./crypto-top-losers', () => ({ default: () => <div data-testid="crypto-top-losers">Crypto Top Losers</div> }))
+vi.mock('./agent-recommendations-panel', () => ({ default: () => <div data-testid="agent-recommendations">Agent Recommendations</div> }))
+vi.mock('./news-synthesis-panel', () => ({ default: () => <div data-testid="news-synthesis">News Synthesis</div> }))
 
 describe('DashboardHome', () => {
     it('renders without crashing', () => {
