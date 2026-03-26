@@ -182,6 +182,7 @@ class UserPreferences(models.Model):
     email_alerts = models.BooleanField(default=True)
     price_alert_notifications = models.BooleanField(default=True)
     news_notifications = models.BooleanField(default=False)
+    agent_notifications = models.BooleanField(default=False)  # Opt-in to receive agent email reports every 6 hours
 
     # Dashboard customization
     dashboard_layout = models.JSONField(default=dict, blank=True)  # Store custom dashboard layout
@@ -246,3 +247,69 @@ class SavedChartDisplay(models.Model):
 
     def __str__(self):
         return f"{self.chart_name} ({len(self.series_ids)} series)"
+
+
+class PortfolioRecommendation(models.Model):
+    """Autonomous agent-generated portfolio recommendations (BUY/SELL/HOLD)"""
+
+    RECOMMENDATION_CHOICES = [
+        ('BUY', 'BUY'),
+        ('SELL', 'SELL'),
+        ('HOLD', 'HOLD'),
+    ]
+
+    # Stock identification
+    symbol = models.CharField(max_length=10, db_index=True)
+    stock_name = models.CharField(max_length=255, blank=True)
+
+    # Recommendation
+    recommendation = models.CharField(max_length=4, choices=RECOMMENDATION_CHOICES)
+    confidence_score = models.FloatField(default=0.0)  # 0.0–1.0
+
+    # Analysis details
+    reasoning = models.JSONField(default=list)  # List of reasoning strings
+    signals = models.JSONField(default=dict)  # {bullish: [], bearish: []}
+    raw_analysis = models.TextField(blank=True)  # Full LLM output
+
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+        indexes = [
+            models.Index(fields=['symbol', 'updated_at']),
+        ]
+        get_latest_by = 'updated_at'
+
+    def __str__(self):
+        return f"{self.symbol} {self.recommendation} ({self.confidence_score:.0%})"
+
+
+class NewsSynthesis(models.Model):
+    """Autonomous agent-synthesized news impact and sentiment analysis"""
+
+    # Stock identification
+    symbol = models.CharField(max_length=10, db_index=True)
+    stock_name = models.CharField(max_length=255, blank=True)
+
+    # Synthesis metrics
+    impact_score = models.FloatField(default=0.0)  # -1.0 to 1.0
+    summary = models.TextField(blank=True)
+    key_developments = models.JSONField(default=list)  # List of dicts {headline, impact, sentiment}
+    entities_mentioned = models.JSONField(default=list)  # [company names, people, etc.]
+    articles_analyzed = models.IntegerField(default=0)
+
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+        indexes = [
+            models.Index(fields=['symbol', 'updated_at']),
+        ]
+        get_latest_by = 'updated_at'
+
+    def __str__(self):
+        return f"{self.symbol} news synthesis (impact: {self.impact_score:.2f})"

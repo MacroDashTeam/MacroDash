@@ -10,6 +10,8 @@ import StockTopLosers from './stock-top-losers'
 import CryptoWatchlist from './crypto-watchlist'
 import CryptoTopGainers from './crypto-top-gainers'
 import CryptoTopLosers from './crypto-top-losers'
+import AgentRecommendationsPanel from './agent-recommendations-panel'
+import NewsSynthesisPanel from './news-synthesis-panel'
 
 export default function DashboardHome() {
   return (
@@ -42,6 +44,16 @@ export default function DashboardHome() {
       {/* Stock Watchlist */}
       <section>
         <Watchlist />
+      </section>
+
+      {/* Agent Recommendations */}
+      <section>
+        <AgentRecommendationsPanel />
+      </section>
+
+      {/* News Synthesis */}
+      <section>
+        <NewsSynthesisPanel />
       </section>
 
       {/* Stock Top Gainers & Losers */}

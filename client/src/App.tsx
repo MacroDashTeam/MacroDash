@@ -81,6 +81,25 @@ function CryptoDetailWrapper() {
   return <CryptoDetail onBack={() => navigate('/')} />;
 }
 
+// Dispatches 'navigate-indicator' event so IndicatorChart can pick up the indicator key
+function IndicatorChartWrapper() {
+  const { indicator } = useParams();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (indicator) {
+      const timer = setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('navigate-indicator', {
+          detail: { indicator }
+        }));
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [indicator]);
+
+  return <IndicatorChart onBack={() => navigate('/')} />;
+}
+
 function DashboardLayout({ user, onSignOut }: { user: User | null, onSignOut: () => void }) {
   const navigate = useNavigate();
   const location = useLocation();

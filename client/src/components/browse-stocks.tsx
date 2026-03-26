@@ -49,15 +49,15 @@ function formatMarketCap(marketCap: number): string {
 }
 
 export default function BrowseStocks() {
-  const [activeTab, setActiveTab] = useState<'category' | 'sector'>('category')
+  const [activeTab, setActiveTab] = useState<'category' | 'sector' | 'etf'>('category')
   const [selectedCategory, setSelectedCategory] = useState<string>('mega_cap')
   const [selectedSector, setSelectedSector] = useState<string>('technology')
   const [searchQuery, setSearchQuery] = useState('')
 
   const { data: browseData, isLoading } = useQuery<BrowseData>({
-    queryKey: ['browse-stocks', activeTab === 'category' ? selectedCategory : selectedSector, activeTab],
+    queryKey: ['browse-stocks', activeTab === 'category' ? selectedCategory : activeTab === 'sector' ? selectedSector : 'etf', activeTab],
     queryFn: () => fetchBrowseStocks(
-      activeTab === 'category' ? selectedCategory : undefined,
+      activeTab === 'category' ? selectedCategory : activeTab === 'etf' ? 'etf' : undefined,
       activeTab === 'sector' ? selectedSector : undefined
     ),
   })
@@ -119,11 +119,22 @@ export default function BrowseStocks() {
         >
           Sector
         </button>
+        <button
+          onClick={() => setActiveTab('etf')}
+          className={`px-4 py-2 border-b-2 transition-colors ${activeTab === 'etf'
+            ? 'border-blue-500 text-white'
+            : 'border-transparent text-zinc-400 hover:text-white'
+            }`}
+        >
+          ETFs
+        </button>
       </div>
 
       {/* Category/Sector Selection */}
       <div>
-        {activeTab === 'category' ? (
+        {activeTab === 'etf' ? (
+          <p className="text-zinc-400 text-sm">Showing global ETFs tracked on Yahoo Finance. Click any to view full technical analysis.</p>
+        ) : activeTab === 'category' ? (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {categories.map((cat) => (
               <button
