@@ -37,11 +37,6 @@ export default function NewsSynthesisPanel() {
     return 'text-yellow-600'
   }
 
-  const getImpactBgColor = (score: number) => {
-    if (score > 0.3) return 'bg-green-100'
-    if (score < -0.3) return 'bg-red-100'
-    return 'bg-yellow-100'
-  }
 
   if (isLoading) {
     return (
